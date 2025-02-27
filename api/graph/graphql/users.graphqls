@@ -1,0 +1,27 @@
+type User {
+  id: String!
+  name: String!
+  number: String!
+  password: String
+  createdAt: Time
+  updatedAt: Time
+}
+
+input inputUser {
+  name: String!
+  number: String!
+  password: String!
+}
+
+extend type Query {
+  getUserById(id: String!): User!
+  getAllUsers: [User!]!
+}
+
+extend type Mutation {
+  createUser(input: inputUser!): User!
+  deleteUserById(id: String!): Boolean
+  # createUserOrder(input: OrderInput!): Order!
+}
+
+# Assuming you already have the Order type and OrderInput input defined.

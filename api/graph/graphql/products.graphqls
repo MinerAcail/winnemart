@@ -1,0 +1,161 @@
+type Product {
+  id: String
+  name: String
+  price: String
+  state: ProductState
+  categories: [String]
+  imageUrls: [String]
+  createdAt: Time
+  updatedAt: Time
+}
+type ProductInfor {
+  product: Product
+  ItemSoldCount: Int
+}
+input ProductInput {
+  name: String!
+  price: String!
+  state: ProductState!
+  categories: [String]
+}
+
+enum ProductState {
+  ACTIVE
+  INACTIVE
+}
+
+type CartItem {
+  id: String!
+  productId: String!
+  quantity: Int!
+  orderId: String
+  createdAt: Time!
+  updatedAt: Time!
+}
+type CartItemOrder {
+  orderId: String!
+  productInfor: [orderproductInfor]!
+  customerNumber: String!
+  deliveryAddress: String!
+  status: String!
+  estimatedDeliveryDate: String!
+  createdAt: Time!
+}
+type orderproductInfor {
+  product: [Product]!
+  quantity: Int!
+}
+type Order {
+  id: String!
+  customerNumber: String!
+  deliveryAddress: String!
+  status: String!
+  items: [CartItem!]!
+  estimatedDeliveryDate: String!
+  createdAt: Time!
+  updatedAt: Time!
+}
+input OrderInput {
+  customerNumber: String!
+  deliveryAddress: String!
+  item: [OrderItemInput]
+}
+input OrderItemInput {
+  ProductID: String!
+  quantity: Int!
+}
+type ChatMessage {
+  id: String!
+  orderId: String!
+  sender: SenderType!
+  Read: Boolean!
+  content: String!
+
+  createdAt: Time!
+  updatedAt: Time!
+}
+enum SenderType {
+  CUSTOMER
+  VENDOR
+}
+type OrderChat {
+  orderId: String!
+  messages: [ChatMessage!]!
+}
+
+input ChatMessageInput {
+  # orderId: String!
+  sender: SenderType!
+  content: String!
+}
+input ChatMessageAdminInput {
+  customerNumber: String!
+  sender: SenderType!
+  content: String!
+}
+
+type UserInfor {
+  customerNumber: String!
+  deliveryAddresses: [String!]!
+  totalitemsOrdered: Int!
+  totalOrders: Int!
+  firstlastOrderDate: String!
+}
+extend type Query {
+  getProduct(id: String!): Product!
+  getAllProducts: [Product!]!
+  getAllProductsByAdmin: [ProductInfor!]!
+  getNewAddedProducts: [Product!]!
+  getOrder(id: String!): Order!
+  getAllOrderS: [Order]
+  getAllOrderHistory: [Order]
+  getAllOrderItemsByProductId(orderId: String!): CartItemOrder
+  getAllOrderItemsByProductIdDelivery: [CartItemOrder]
+  useGetordertracking: CartItemOrder
+  getAllUserStats: [UserInfor!]!
+  getOrderChat: OrderChat
+  getAllChatMessageByNumber(customerNumber: String!): [ChatMessage]!
+
+  getAllRequestItems: [RequestItem!]!
+  
+  
+}
+
+extend type Mutation {
+  clearCart: Boolean!
+  VendorUpload(files: [Upload], input: ProductInput!): Product!
+  deleteProduct(id: String!): Boolean
+  createOrderItems(input: OrderInput): Order
+  updateOrderStatus(orderID: String, status: String!): Boolean
+  sendChatMessage(input: ChatMessageInput!): ChatMessage!
+  sendChatMessageByNumber(input: ChatMessageAdminInput!): ChatMessage!
+  markMessagesAsRead(sender: SenderType!): Boolean!
+  deleteAllChatMessageByNumber(customerNumber: String!): Boolean!
+
+  requestItem(input: RequestInput!): RequestItem
+  updateRequestItemStatus(requestId: String!, status: ProductState!): RequestItem
+  deleteRequestItem(requestId: String!): Boolean
+  deleteAllRequestItems: Boolean
+  deleteProductByAdmin(productId: String!): Boolean
+  updateProductByAdmin(productId: String!, input: ProductInput!): Product
+
+}
+type RequestItem {
+  id: String
+  name: String
+  price: String
+  state: ProductState
+  description: String
+  categories: String
+  imageUrls: [String]
+  createdAt: Time
+  updatedAt: Time
+}
+
+input RequestInput {
+  name: String
+  price: String
+  category: String
+  description: String
+  images: [Upload!]
+}

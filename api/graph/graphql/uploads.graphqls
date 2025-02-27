@@ -1,0 +1,32 @@
+type FileUrl {
+  id: String! # Unique identifier for the file URL entry
+  url: String! # The MinIO URL of the file
+  createdAt: Time # Timestamp when the file URL was created
+  updatedAt: Time # Timestamp when the file URL was last updated
+}
+
+type File {
+  id: String! # Unique identifier for the file
+  name: String! # Name of the file
+  content: String! # Content or data associated with the file (could be Base64 encoded)
+}
+
+type ItemFiles {
+  id: String! # Unique identifier for the item file
+  bucketName: String! # Name of the storage bucket in MinIO or another file service
+  url: String! # URL pointing to the file location
+}
+
+input UploadFile {
+  file: Upload! # File upload input
+  bucketName: String! # Bucket name where the file should be stored
+}
+
+extend type Query {
+  imageUrls: [String!]! # Fetch a list of image URLs (e.g., from MinIO)
+}
+
+extend type Mutation {
+  uploadFile(input: UploadFile!): FileUrl! # Mutation for uploading a file and returning the file URL
+  deleteFile(id: String!): Boolean! # Mutation to delete a file by its ID
+}

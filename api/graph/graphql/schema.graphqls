@@ -1,0 +1,47 @@
+scalar Time
+scalar Upload
+
+
+
+
+
+type SystemInfo {
+  bdTable: String!
+  dbName: String!
+}
+
+extend type Query {
+  getID: String
+  # who: Returns
+  getAllSystemInfo: SystemInfo!
+}
+
+extend type Mutation {
+  deleteTable: Boolean!
+  userLogin(input: LoginInput!): User
+  adminLogin(input: LoginInput!): Admin
+  workersLogin(input: LoginInput!): jobRequest
+
+  logOut: Boolean!
+}
+
+input LoginInput {
+  password: String!
+  number: String
+}
+
+type PurchaseHistoryItem {
+  id: String!
+  name: String!
+  price: String!
+  quantity: String!
+  imageUrl: String!
+}
+
+type PurchaseHistory {
+  id: String!
+  date: String!
+  items: [PurchaseHistoryItem!]!
+  status: String!
+  trackingNumber: String
+}

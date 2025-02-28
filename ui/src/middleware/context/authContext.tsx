@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { useLocation } from "react-router";
 // import jwtDecode, { JwtPayload } from "jwt-decode";
 
 interface AuthProviderProps {

@@ -1,10 +1,14 @@
-import { useAuth } from "@/middleware/context/authContext";
+import { useAuth } from "./context/authContext";
+
+// interface User {
+//   type: string[]; // Ensure it's an array of strings
+//   // Other user properties
+// }
 
 const useProtect = (expectedTypes?: string[]) => {
   const { isAuthenticated, user } = useAuth();
-  const userTypes = user?.type || [];
+  const userTypes: string[] = Array.isArray(user?.type) ? user?.type : [user?.type ?? '']; // Ensure it's an array
 
-  // Check if the user is authenticated and has at least one of the expected types
   const hasAccess =
     isAuthenticated &&
     (!expectedTypes || expectedTypes.some((type) => userTypes.includes(type)));
@@ -16,6 +20,5 @@ export default useProtect;
 
 export const ProtectType = {
   Driver: "Driver",
-
   Dispatch: "Dispatch",
-};
+} as const;

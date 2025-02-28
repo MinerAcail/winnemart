@@ -1,5 +1,5 @@
 import React from "react";
-import { Store, ShoppingBasket, LogIn, Merge, MenuSquare } from "lucide-react";
+import { Store, ShoppingBasket,  MenuSquare } from "lucide-react";
 import SelectCategoryFilter from "./SelectCategoryFilter";
 import { SheetSide } from "./sideBar";
 import { useDeviceType } from "@/hooks/useDeviceType";

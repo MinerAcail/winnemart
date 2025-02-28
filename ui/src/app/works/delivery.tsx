@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X, Search, Package, Clock, Check } from "lucide-react";
-import { Link, Navigate } from "react-router";
+import { Link } from "react-router";
 import { useAuth } from "@/middleware/context/authContext";
 
 const GET_ALL_ORDER_ITEMS = gql`
@@ -289,7 +289,7 @@ export default function DeliveryList() {
   const { loading, error, data } = useQuery(GET_ALL_ORDER_ITEMS);
   const [searchQuery, setSearchQuery] = useState("");
   const [orderData, setOrderData] = useState<OrderData[]>([]);
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
 
 
   // Update orderData when query data is received

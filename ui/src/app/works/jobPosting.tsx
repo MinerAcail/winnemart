@@ -6,10 +6,9 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Package, Bike, LucideIcon, LogIn } from "lucide-react";
 import ApplyNowSection from "./applyNow";
 import Login from "../Login";
-import { Link, Links } from "react-router";
+import { Link } from "react-router";
 import { useAuth } from "@/middleware/context/authContext";
 import useProtect, { ProtectType } from "@/middleware/useProtect";
-import DeliveryList from "./delivery";
 import { gql, useMutation } from "@apollo/client";
 
 interface BubbleProps {

@@ -41,7 +41,7 @@ const HostelStoreApp: React.FC = () => {
   const [searchTerm] = useState<string>("");
   const [selectedProduct, setSelectedProduct] = useState<Item | null>(null);
 
-  const [createOrder, { loading: orderLoader }] = useMutation(
+  const [createOrder] = useMutation(
     CREATE_ORDER_ITEMS,
     { refetchQueries: ["useGetordertracking"] }
   );

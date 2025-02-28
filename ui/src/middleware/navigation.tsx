@@ -7,7 +7,7 @@ import DeliveryList from "@/app/works/delivery";
 import JobPosting from "@/app/works/jobPosting";
 import ErrorPage from "./routError";
 import { AuthProvider } from "./context/authContext";
-import ProtectedIsAuthRoute from "./protectedIsAuth";
+// import ProtectedIsAuthRoute from "./protectedIsAuth";
 import ErrorLogin from "./routErrorLogin";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./bar";

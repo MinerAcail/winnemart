@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ServerLogo } from "@/app/HostelStoreApp";
+// import { ServerLogo } from "@/app/HostelStoreApp";
 
 interface CategoryFilterProps {
   categories: string[];
@@ -14,7 +14,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
   setSelectedCategory,
 }) => (
   <div className="mb-6 flex space-x-2 justify-center">
-    <ServerLogo/>
+    {/* <ServerLogo/> */}
     {categories.map((category) => (
       <Button
         key={category}

@@ -31,7 +31,7 @@ export function ImageUpload({ onChange, maxFiles }: ImageUploadProps) {
       })
       
       // Clean up old preview URLs that are no longer needed
-      previews.forEach((preview, index) => {
+      previews.forEach((preview) => {
         if (!newPreviews.includes(preview)) {
           URL.revokeObjectURL(preview)
         }

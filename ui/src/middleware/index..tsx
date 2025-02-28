@@ -5,7 +5,7 @@ const API_URL = window.location.hostname === "localhost"
   : `http://${window.location.hostname}:4001/query`;
 
 const link = createUploadLink({
-  uri:API_URL,
+  uri:"http://16.16.208.207:4001/query",
   credentials: "include",
 });
 

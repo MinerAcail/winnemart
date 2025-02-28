@@ -9,10 +9,11 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  
   server:{
     proxy: {
       '/minio': {
-        target: 'http://192.168.252.193:9000', // Adjust if MinIO is not running on 192.168.62.193
+        target: 'http://16.16.208.207:9000', // Adjust if MinIO is not running on 192.168.62.193
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/minio/, ''),
       },

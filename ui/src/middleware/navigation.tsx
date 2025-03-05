@@ -12,6 +12,7 @@ import ErrorLogin from "./routErrorLogin";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./bar";
 import { SubmitItemForm } from "@/app/userReview/submit-item-form";
+import { ShopItemsManager } from "@/components/custom/sortCategroy";
 
 const router = createBrowserRouter([
   { path: "/", element: <HostelStoreApp /> },
@@ -20,6 +21,8 @@ const router = createBrowserRouter([
   // { path: "/delivery", element: <ProtectedIsAuthRoute element={<DeliveryList />} /> },
   { path: "/job", element: <JobPosting /> },
   { path: "/request", element: <SubmitItemForm /> },
+  { path: "/shop", element: <ShopItemsManager /> },
+
   { path: "*", element: <ErrorPage /> },
 ]);
 

@@ -65,6 +65,11 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
             </div>
           </SheetSide>
         )}
+        <Link to={"/shop"} className="px-3">
+          <Button variant="outline" className="flex items-center gap-1 p3">
+            Shop
+          </Button>
+        </Link>
         <Link to={"/request"} className="px-3">
           <Button variant="outline" className="flex items-center gap-1 p3">
             Request Item

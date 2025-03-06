@@ -9,12 +9,14 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // uri:"http://16.16.208.207:4001/query",
   
   server:{
     proxy: {
-      "/minio": {
-        // target: "http://localhost:9000", // Adjust if MinIO is not running on localhost
-        target: "http://16.16.208.207:9000", // Adjust if MinIO is not running on localhost
+      '/minio': {
+        // target: 'http://localhost:9000', // Adjust if MinIO is not running on
+        target: 'http://16.16.208.207:9000', // Adjust if MinIO is not running on 192.168.62.193
+
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/minio/, ""),
       },
@@ -26,3 +28,4 @@ export default defineConfig({
     host: '0.0.0.0', 
   }
 })
+// 4173

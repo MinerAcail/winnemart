@@ -16,8 +16,9 @@ export default defineConfig({
       '/minio': {
         // target: 'http://localhost:9000', // Adjust if MinIO is not running on
         target: 'http://16.16.208.207:9000', // Adjust if MinIO is not running on 192.168.62.193
+
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/minio/, ''),
+        rewrite: (path) => path.replace(/^\/minio/, ""),
       },
     },
     headers: {

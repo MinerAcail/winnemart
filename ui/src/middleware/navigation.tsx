@@ -12,7 +12,7 @@ import ErrorLogin from "./routErrorLogin";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./bar";
 import { SubmitItemForm } from "@/app/userReview/submit-item-form";
-import { ShopItemsManager } from "@/components/custom/sortCategroy";
+import  ShopItemsManager  from "@/components/custom/sortCategroy/cat/cat.tsx";
 
 const router = createBrowserRouter([
   { path: "/", element: <HostelStoreApp /> },

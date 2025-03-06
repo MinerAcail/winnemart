@@ -12,10 +12,11 @@ export default defineConfig({
   
   server:{
     proxy: {
-      '/minio': {
-        target: 'http://16.16.208.207:9000', // Adjust if MinIO is not running on 192.168.62.193
+      "/minio": {
+        target: "http://16.16.208.207:9000", // Adjust if MinIO is not running on localhost
+        // target: "http://localhost:9000", // Adjust if MinIO is not running on localhost
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/minio/, ''),
+        rewrite: (path) => path.replace(/^\/minio/, ""),
       },
     },
     headers: {

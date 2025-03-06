@@ -22,6 +22,8 @@ RUN go build -o main .
 
 # Expose the application port
 EXPOSE 4001
+
+
 CMD ["air", "-c", ".air.toml"]
 # Run the application with hot reloading
 # CMD ["CompileDaemon", "--build=go build -o main .", "--command=./main"]

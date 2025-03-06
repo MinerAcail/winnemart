@@ -13,7 +13,7 @@ export default function ErrorLogin() {
   const { login: Auth } = useAuth();
 
   const [formData, setFormData] = useState({
-    number: "",
+      number: "",
     password: "",
   });
   const [error, setError] = useState("");

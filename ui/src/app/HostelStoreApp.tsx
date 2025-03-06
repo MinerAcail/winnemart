@@ -12,6 +12,7 @@ import {
   OrderItem,
 } from "@/middleware/api/createorder";
 import { toast } from "sonner";
+import Loading from '../components/ui/loading.tsx'
 
 export interface Item {
   id: string;
@@ -154,7 +155,7 @@ const HostelStoreApp: React.FC = () => {
     window.history.pushState({}, "", newUrl);
   }, [cart, hostelDetails, selectedCategory]);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <Loading/>;
   // if (error) return <p>Error: {error.message}</p>;
 
   // Extract items from the fetched data

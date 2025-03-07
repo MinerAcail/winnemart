@@ -26,6 +26,9 @@ export default defineConfig({
       "Cross-Origin-Embedder-Policy": "require-corp",
     },
     host: '0.0.0.0', 
-  }
+  },
+  preview: {
+    allowedHosts: ["winnemart.com"], // Allow winnemart.com
+  },
 })
 // 4173

@@ -157,7 +157,7 @@ const HostelStoreApp: React.FC = () => {
 
 
   if (loading) return <Loading/>;
-  // if (error) return <p>Error: {error.message}</p>;
+  if (error) return <p>Error: {error.message}</p>;
 
   // Extract items from the fetched data
   const products: Item[] = data.getAllProducts;

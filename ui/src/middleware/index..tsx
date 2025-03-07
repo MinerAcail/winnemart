@@ -5,7 +5,7 @@ import createUploadLink from "apollo-upload-client/createUploadLink.mjs";
 //   : `http://${window.location.hostname}:4001/query`;
 
 const link = createUploadLink({
-  uri:"http://16.16.208.207:4001/query",
+  uri: "https://winnemart.com/query", 
   // uri:"http://localhost:4001/query",
 
   credentials: "include",

@@ -1,13 +1,13 @@
 import React from "react";
-import { Store, ShoppingBasket,  MenuSquare } from "lucide-react";
-import SelectCategoryFilter from "./SelectCategoryFilter";
+import {  ShoppingBasket, MenuSquare } from "lucide-react";
+// import SelectCategoryFilter from "./SelectCategoryFilter";
 import { SheetSide } from "./sideBar";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { CartSidebarProps } from "./CartSidebar";
 import { Button } from "../ui/button";
 import { Link } from "react-router";
 import { useSidebar } from "../ui/sidebar";
-
+import logo from "../../assets/ww.png";
 interface SelectCategoryFilterProps {
   categories: string[];
   selectedCategory: string;
@@ -16,9 +16,9 @@ interface SelectCategoryFilterProps {
 }
 
 const MenuBar: React.FC<SelectCategoryFilterProps> = ({
-  categories,
-  selectedCategory,
-  setSelectedCategory,
+  // categories,
+  // selectedCategory,
+  // setSelectedCategory,
   CartSidebarProps: {
     cart,
     hostelDetails,
@@ -33,11 +33,15 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-[#76a683] shadow-md py-3 px-4 flex justify-between items-center">
       {/* Logo */}
-      <Link to={"/"} className="flex items-center space-x-2">
-        <Store className="text-white w-6 h-6" />
-        <span className="text-lg font-extrabold text-white tracking-wider">
-          WinneMart
-        </span>
+      <Link to={"/"} className="flex items-center ">
+        <img src={logo} alt="WinneMart Logo" className="w-12 pr-[5px]" />
+        <span className="text-lg font-extrabold text-white tracking-wider font-mono">
+  winne
+</span>
+<span className="text-lg font-extrabold text-black tracking-wider pl-[2px] font-mono">
+  mart
+</span>
+
       </Link>
 
       <div className="flex cursor-pointer items-center ">
@@ -65,6 +69,10 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
             </div>
           </SheetSide>
         )}
+
+        {isDesktop && (
+
+       <>
         <Link to={"/shop"} className="px-3">
           <Button variant="outline" className="flex items-center gap-1 p3">
             Shop
@@ -75,12 +83,14 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
             Request Item
           </Button>
         </Link>
+       </>
+        )}
         {/* Show SelectCategoryFilter on desktop */}
-        <SelectCategoryFilter
+        {/* <SelectCategoryFilter
           categories={categories}
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
-        />
+        /> */}
         {!isDesktop && (
           <MenuSquare
             onClick={toggleSidebar}

@@ -85,7 +85,7 @@ export function CardPreview({ isOpen, category, onClose, onDeleteItem }: CardPre
                                 <Plus className="mr-2 h-4 w-4" />
                                 Add To Cart
                             </Button>
-                            <Button className="bg-green-300 hover:bg-green-400">
+                            <Button className="">
                                 <Plus className="mr-2 h-4 w-4" />
                                 Add Item</Button>
                         </div>

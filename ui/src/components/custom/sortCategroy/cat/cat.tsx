@@ -54,12 +54,12 @@ const App = () => {
     }
 
     return (
-        <div className="container mx-auto py-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="container md:mx-auto py-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
                 {categories.map((category) => (
                     <Card
                         key={category.id}
-                        className="overflow-hidden flex flex-row h-[400px] transition-all duration-300 hover:shadow-xl hover:scale-[1.02] cursor-pointer"
+                        className=" flex flex-row md:h-[400px] transition-all duration-300 hover:shadow-xl hover:scale-[1.02] cursor-pointer"
                         onClick={() => openPreview(category)}
                     >
                         {/* Image Section */}

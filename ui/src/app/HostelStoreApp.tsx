@@ -155,6 +155,7 @@ const HostelStoreApp: React.FC = () => {
     window.history.pushState({}, "", newUrl);
   }, [cart, hostelDetails, selectedCategory]);
 
+
   if (loading) return <Loading/>;
   // if (error) return <p>Error: {error.message}</p>;
 

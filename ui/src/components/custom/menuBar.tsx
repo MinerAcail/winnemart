@@ -1,6 +1,6 @@
 import React from "react";
-import { Store, ShoppingBasket, MenuSquare } from "lucide-react";
-import SelectCategoryFilter from "./SelectCategoryFilter";
+import {  ShoppingBasket, MenuSquare } from "lucide-react";
+// import SelectCategoryFilter from "./SelectCategoryFilter";
 import { SheetSide } from "./sideBar";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { CartSidebarProps } from "./CartSidebar";
@@ -16,9 +16,9 @@ interface SelectCategoryFilterProps {
 }
 
 const MenuBar: React.FC<SelectCategoryFilterProps> = ({
-  categories,
-  selectedCategory,
-  setSelectedCategory,
+  // categories,
+  // selectedCategory,
+  // setSelectedCategory,
   CartSidebarProps: {
     cart,
     hostelDetails,
@@ -69,6 +69,10 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
             </div>
           </SheetSide>
         )}
+
+        {isDesktop && (
+
+       <>
         <Link to={"/shop"} className="px-3">
           <Button variant="outline" className="flex items-center gap-1 p3">
             Shop
@@ -79,12 +83,14 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
             Request Item
           </Button>
         </Link>
+       </>
+        )}
         {/* Show SelectCategoryFilter on desktop */}
-        <SelectCategoryFilter
+        {/* <SelectCategoryFilter
           categories={categories}
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
-        />
+        /> */}
         {!isDesktop && (
           <MenuSquare
             onClick={toggleSidebar}

@@ -2,6 +2,7 @@ import { Copy } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "../ui/scroll-area";
 import { gql, useQuery } from "@apollo/client";
+import { ghSim } from "./ItemGrid";
 
 interface Product {
   id: string;
@@ -183,7 +184,7 @@ const orderId =order.orderId.slice(0, 5)
                     </span>
                   </div>
                   <span className="text-zinc-900 dark:text-zinc-100">
-                    ${(item.price * item.quantity).toFixed(2)}
+                   {ghSim}{(item.price * item.quantity).toFixed(2)}
                   </span>
                 </div>
               ))}
@@ -195,7 +196,7 @@ const orderId =order.orderId.slice(0, 5)
             <div className="flex justify-between text-sm">
               <span className="text-zinc-600 dark:text-zinc-400">Subtotal</span>
               <span className="text-zinc-900 dark:text-zinc-100">
-                ${subtotal.toFixed(2)}
+               {ghSim}{subtotal.toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between text-sm">
@@ -203,13 +204,13 @@ const orderId =order.orderId.slice(0, 5)
                 Delivery Fee
               </span>
               <span className="text-zinc-900 dark:text-zinc-100">
-                ${tax.toFixed(2)}
+               {ghSim}{tax.toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between text-base font-medium pt-2 border-t border-zinc-200 dark:border-zinc-800">
               <span className="text-zinc-900 dark:text-zinc-100">Total</span>
               <span className="text-zinc-900 dark:text-zinc-100">
-                ${total.toFixed(2)}
+               {ghSim}{total.toFixed(2)}
               </span>
             </div>
           </div>

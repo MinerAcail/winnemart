@@ -6,8 +6,8 @@ import createUploadLink from "apollo-upload-client/createUploadLink.mjs";
 // const API_URL = import.meta.env.VITE_API_URL;
 
 const link = createUploadLink({
-  // uri: "https://winnemart.com/query", 
-  uri:"http://16.16.208.207:4001/query",
+  uri: "https://winnemart.com/query", 
+  // uri:"http://16.16.208.207:4001/query",
   
   // uri:"http://localhost:4001/query",
 

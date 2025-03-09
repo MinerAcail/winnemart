@@ -78,15 +78,16 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
           </SheetSide>
         )}
 
-        {!isSearchExpanded && !isDesktop && (
-          <div className={""}>
-            <MenuSquare onClick={toggleSidebar} className="" />
-          </div>
-        )}
-        <Search
-          isExpanded={isSearchExpanded}
-          setIsExpanded={setIsSearchExpanded}
-        />
+          {!isSearchExpanded && (
+              !isDesktop &&
+                  <div className={""}>
+                      <MenuSquare
+                          onClick={toggleSidebar}
+                          className=""
+                      />
+                  </div>
+          )}
+          <Search isExpanded={isSearchExpanded} setIsExpanded={setIsSearchExpanded} />
 
         {isDesktop && (
           <>

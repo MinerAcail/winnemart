@@ -10,6 +10,7 @@ import { Link } from "react-router";
 import { useAuth } from "@/middleware/context/authContext";
 import useProtect, { ProtectType } from "@/middleware/useProtect";
 import { gql, useMutation } from "@apollo/client";
+const ghSim = "GH¢"
 
 interface BubbleProps {
   x: number;
@@ -250,7 +251,7 @@ const JobPosting: React.FC = () => {
                 "Flexible schedule availability",
               ]}
               icon={Package}
-              salary="$20-25/hr + Benefits"
+              salary={`${ghSim}20-25/hr + Benefits`}
               location="Full-time • Remote Possible"
             />
 
@@ -264,7 +265,7 @@ const JobPosting: React.FC = () => {
                 "Available for various shifts",
               ]}
               icon={Bike}
-              salary="Up to $30/hr + Tips"
+              salary={`Up to ${ghSim}30/hr + Tips`}
               location="Flexible Hours • Choose Your Area"
             />
           </motion.div>

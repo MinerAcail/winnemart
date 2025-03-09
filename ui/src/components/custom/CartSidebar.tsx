@@ -53,7 +53,8 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   return (
     <>
       {!showReceipt ? (
-        <Card className="sticky mt-30">
+       <Card className="sticky mt-30 lg:mt-32">
+
           <CardContent className="p-4">
             <h3 className="font-bold mb-4 flex items-center">
               <ShoppingCart className="mr-2" />

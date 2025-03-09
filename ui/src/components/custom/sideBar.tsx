@@ -25,7 +25,7 @@ export function SheetSide({
   
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-2 gap-0">
       <Sheet key="top">
         <SheetTrigger asChild>{children}</SheetTrigger>
         <SheetContent side="top">

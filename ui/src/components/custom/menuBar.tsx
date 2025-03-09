@@ -66,7 +66,7 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
               {!isSearchExpanded &&
                   (
                       !isDesktop &&
-                      <div className=" ">
+                      <div className="relative ">
 
                           <ShoppingBasket className="w-6 h-6 text-slate-700" />
 

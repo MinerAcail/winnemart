@@ -43,11 +43,11 @@ export function AppSidebar() {
     <Sidebar className={""}>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupLabel className={"font-bold"}>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className={"font-bold"}>
+            <SidebarMenu className={" "}>
               {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.title} className={"text-4xl font-bold"}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
                       <item.icon />

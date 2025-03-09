@@ -1,4 +1,5 @@
 import {  Home, Inbox, ShoppingBag } from "lucide-react"
+import Request from  "../../icons/request-new.tsx"
 
 import {
   Sidebar,
@@ -19,7 +20,7 @@ const items = [
     icon: Home,
   },
   {
-    title: "shop",
+    title: "Shop",
     url: "/shop",
     icon: ShoppingBag,
   },
@@ -31,19 +32,20 @@ const items = [
   {
     title: "Item Request",
     url: "/request",
-    icon: Inbox,
+    icon: Request,
+
   },
 
 ]
 
 export function AppSidebar() {
   return (
-    <Sidebar>
+    <Sidebar className={""}>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className={"font-bold"}>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>

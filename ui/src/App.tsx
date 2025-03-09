@@ -7,8 +7,10 @@ function App() {
 
 
   return (
-    
-    <Navigation/>
+    <div>
+      <Navigation/>
+    </div>
+
 
   )
 }

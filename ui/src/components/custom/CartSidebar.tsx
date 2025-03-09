@@ -51,12 +51,12 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     }
   }, [error, OrderTimestamp]);
   return (
-    <>
+    <div className={"h-72 w-[350px] overflow-auto border p-1 m-4 "}>
       {!showReceipt ? (
-        <Card className="sticky mt-30">
+        <Card className="sticky mt-30 ">
           <CardContent className="p-4">
             <h3 className="font-bold mb-4 flex items-center">
-              <ShoppingCart className="mr-2" />
+              <ShoppingCart className="mr-2 overflow-y-scrol" />
               Your Cart ({cart.length})
             </h3>
 
@@ -131,7 +131,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
       ) : (
         <SideTabs />
       )}
-    </>
+    </div>
   );
 };
 

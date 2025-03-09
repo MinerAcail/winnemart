@@ -101,7 +101,7 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
                       />
                   </div>
           )}
-          <Search isExpanded={isSearchExpanded} setIsExpanded={setIsSearchExpanded} />
+          {/*<Search isExpanded={isSearchExpanded} setIsExpanded={setIsSearchExpanded} />*/}
 
         {isDesktop && (
 

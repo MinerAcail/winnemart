@@ -1,9 +1,24 @@
 import path from "path"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
-
+import Sitemap from "vite-plugin-sitemap";
+ const  route  = [
+     "/" ,
+     "/job" ,
+     "/request" ,
+     "/shop" ,
+      ]
+      const dynamicRoutes = route.map(name => `${name}`)
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+
+    Sitemap({ hostname: 'https://winnemart.com',
+      dynamicRoutes ,
+  
+     }),
+  ],
+  
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

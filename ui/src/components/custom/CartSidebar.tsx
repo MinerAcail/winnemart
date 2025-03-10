@@ -51,79 +51,80 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     }
   }, [error, OrderTimestamp]);
   return (
-    <div className={"h-72 w-[350px] overflow-auto border p-1 m-4 "}>
+    <>
       {!showReceipt ? (
-        <Card className="sticky  mt-30 lg:mt-32">
+               <Card className="sticky  mt-30 lg:mt-32 h-72  overflow-auto border p-1 m-4">
+
           <CardContent className="p-4">
             <h3 className="font-bold mb-4 flex items-center">
-              <ShoppingCart className="mr-2 overflow-y-scrol" />
+              <ShoppingCart className="mr-2" />
               Your Cart ({cart.length})
             </h3>
 
             <div className="space-y-2 mb-4">
               <Input
-                placeholder="Hostel Name / Location"
-                value={hostelDetails.hostelName}
-                onChange={(e) =>
-                  setHostelDetails((prev) => ({
-                    ...prev,
-                    hostelName: e.target.value,
-                  }))
-                }
+          placeholder="Hostel Name / Location"
+          value={hostelDetails.hostelName}
+          onChange={(e) =>
+            setHostelDetails((prev) => ({
+              ...prev,
+              hostelName: e.target.value,
+            }))
+          }
               />
 
               <Input
-                placeholder="Phone Number"
-                value={hostelDetails.phoneNumber}
-                onChange={(e) =>
-                  setHostelDetails((prev) => ({
-                    ...prev,
-                    phoneNumber: e.target.value,
-                  }))
-                }
+          placeholder="Phone Number"
+          value={hostelDetails.phoneNumber}
+          onChange={(e) =>
+            setHostelDetails((prev) => ({
+              ...prev,
+              phoneNumber: e.target.value,
+            }))
+          }
               />
             </div>
 
             {cart.map((item, index) => (
               <div
-                key={index}
-                className="flex justify-between items-center border-b pb-2 mb-2"
+          key={index}
+          className="flex justify-between items-center border-b pb-2 mb-2"
               >
-                <div>
-                  <p className="font-bold">{item.name}</p>
-                  <p className="text-muted-foreground">
-                    {ghSim}
-                    {item.price}
-                  </p>
-                </div>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => removeFromCart(index)}
-                >
-                  Remove
-                </Button>
+          <div>
+            <p className="font-bold">{item.name}</p>
+            <p className="text-muted-foreground">
+              {ghSim}
+              {item.price}
+            </p>
+          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => removeFromCart(index)}
+          >
+            Remove
+          </Button>
               </div>
             ))}
 
             {cart.length > 0 && (
               <div className="mt-4">
-                <p className="font-bold text-right">
-                  Total: {ghSim}
-                  {cart
-                    .reduce((total, item) => total + Number(item.price), 0)
-                    .toFixed(2)}
-                </p>
+          <p className="font-bold text-right">
+            Total: {ghSim}
+            {cart
+              .reduce((total, item) => total + Number(item.price), 0)
+              .toFixed(2)}
+          </p>
 
-                <Button
-                  onClick={placeOrder}
-                  className="w-full mt-2"
-                  disabled={
-                    !hostelDetails.hostelName || !hostelDetails.phoneNumber
-                  }
-                >
-                  Place Order
-                </Button>
+          <Button
+            onClick={placeOrder}
+            className="w-full mt-2"
+            disabled={
+              !hostelDetails.hostelName || !hostelDetails.phoneNumber
+            }
+          >
+            Place Order
+          </Button>
               </div>
             )}
           </CardContent>
@@ -131,7 +132,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
       ) : (
         <SideTabs />
       )}
-    </div>
+    </>
   );
 };
 

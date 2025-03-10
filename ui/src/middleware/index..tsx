@@ -3,7 +3,7 @@ import createUploadLink from "apollo-upload-client/createUploadLink.mjs";
 const API_URL =
   window.location.hostname === "localhost"
     ? "http://16.16.208.207:4001/query"
-    : `http://${window.location.hostname}:4001/query`; // Changed HTTPS to HTTP
+    : `https://${window.location.hostname}:4001/query`; // Changed HTTPS to HTTP
 
 const link = createUploadLink({
   uri: API_URL,

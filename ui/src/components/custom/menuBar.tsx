@@ -17,9 +17,6 @@ interface SelectCategoryFilterProps {
 }
 
 const MenuBar: React.FC<SelectCategoryFilterProps> = ({
-  // categories,
-  // selectedCategory,
-  // setSelectedCategory,
   CartSidebarProps: {
     cart,
     hostelDetails,
@@ -78,16 +75,15 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
           </SheetSide>
         )}
 
-          {!isSearchExpanded && (
-              !isDesktop &&
-                  <div className={""}>
-                      <MenuSquare
-                          onClick={toggleSidebar}
-                          className=""
-                      />
-                  </div>
-          )}
-          <Search isExpanded={isSearchExpanded} setIsExpanded={setIsSearchExpanded} />
+        {!isSearchExpanded && !isDesktop && (
+          <div className={""}>
+            <MenuSquare onClick={toggleSidebar} className="" />
+          </div>
+        )}
+        <Search
+          isExpanded={isSearchExpanded}
+          setIsExpanded={setIsSearchExpanded}
+        />
 
         {isDesktop && (
           <>

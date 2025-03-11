@@ -46,6 +46,7 @@ func PerformMigrations(db *gorm.DB) error {
 	&model.ChatMessage{},
 	&model.JobRequest{},
 	&model.RequestItem{},
+	&model.CategoryBox{},
 
 	); err != nil {
 		return fmt.Errorf("failed to run AutoMigrate: %w", err)

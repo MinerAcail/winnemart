@@ -4,7 +4,8 @@ import { ShoppingCart } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "../ui/card";
 import { ghSim } from "./ItemGrid";
-import { Item } from "@/app/HostelStoreApp";
+import { Item } from "@/hooks/CartContext.tsx";
+
 import CardReceipt, { GET_ORDER_TRACKING } from "./try";
 import { useQuery } from "@apollo/client";
 
@@ -53,8 +54,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   return (
     <>
       {!showReceipt ? (
-               <Card className="sticky  mt-30 lg:mt-32 h-72  overflow-auto border p-1 m-4">
-
+        <Card className="sticky  mt-30 lg:mt-32 h-72  overflow-auto border p-1 m-4">
           <CardContent className="p-4">
             <h3 className="font-bold mb-4 flex items-center">
               <ShoppingCart className="mr-2" />
@@ -63,68 +63,68 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
 
             <div className="space-y-2 mb-4">
               <Input
-          placeholder="Hostel Name / Location"
-          value={hostelDetails.hostelName}
-          onChange={(e) =>
-            setHostelDetails((prev) => ({
-              ...prev,
-              hostelName: e.target.value,
-            }))
-          }
+                placeholder="Hostel Name / Location"
+                value={hostelDetails.hostelName}
+                onChange={(e) =>
+                  setHostelDetails((prev) => ({
+                    ...prev,
+                    hostelName: e.target.value,
+                  }))
+                }
               />
 
               <Input
-          placeholder="Phone Number"
-          value={hostelDetails.phoneNumber}
-          onChange={(e) =>
-            setHostelDetails((prev) => ({
-              ...prev,
-              phoneNumber: e.target.value,
-            }))
-          }
+                placeholder="Phone Number"
+                value={hostelDetails.phoneNumber}
+                onChange={(e) =>
+                  setHostelDetails((prev) => ({
+                    ...prev,
+                    phoneNumber: e.target.value,
+                  }))
+                }
               />
             </div>
 
             {cart.map((item, index) => (
               <div
-          key={index}
-          className="flex justify-between items-center border-b pb-2 mb-2"
+                key={index}
+                className="flex justify-between items-center border-b pb-2 mb-2"
               >
-          <div>
-            <p className="font-bold">{item.name}</p>
-            <p className="text-muted-foreground">
-              {ghSim}
-              {item.price}
-            </p>
-          </div>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => removeFromCart(index)}
-          >
-            Remove
-          </Button>
+                <div>
+                  <p className="font-bold">{item.name}</p>
+                  <p className="text-muted-foreground">
+                    {ghSim}
+                    {item.price}
+                  </p>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => removeFromCart(index)}
+                >
+                  Remove
+                </Button>
               </div>
             ))}
 
             {cart.length > 0 && (
               <div className="mt-4">
-          <p className="font-bold text-right">
-            Total: {ghSim}
-            {cart
-              .reduce((total, item) => total + Number(item.price), 0)
-              .toFixed(2)}
-          </p>
+                <p className="font-bold text-right">
+                  Total: {ghSim}
+                  {cart
+                    .reduce((total, item) => total + Number(item.price), 0)
+                    .toFixed(2)}
+                </p>
 
-          <Button
-            onClick={placeOrder}
-            className="w-full mt-2"
-            disabled={
-              !hostelDetails.hostelName || !hostelDetails.phoneNumber
-            }
-          >
-            Place Order
-          </Button>
+                <Button
+                  onClick={placeOrder}
+                  className="w-full mt-2"
+                  disabled={
+                    !hostelDetails.hostelName || !hostelDetails.phoneNumber
+                  }
+                >
+                  Place Order
+                </Button>
               </div>
             )}
           </CardContent>
@@ -138,23 +138,22 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
 
 export default CartSidebar;
 
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MinChat from "@/app/message";
 
 export function SideTabs() {
   return (
     <Tabs defaultValue="receipt" className="w-full sticky lg:mt-32 ">
-    <TabsList className="grid w-full grid-cols-2">
-      <TabsTrigger value="receipt">Receipt</TabsTrigger>
-      <TabsTrigger value="message">Message</TabsTrigger>
-    </TabsList>
-    <TabsContent value="receipt">
-      <CardReceipt />
-    </TabsContent>
-    <TabsContent value="message">
-      <MinChat />
-    </TabsContent>
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="receipt">Receipt</TabsTrigger>
+        <TabsTrigger value="message">Message</TabsTrigger>
+      </TabsList>
+      <TabsContent value="receipt">
+        <CardReceipt />
+      </TabsContent>
+      <TabsContent value="message">
+        <MinChat />
+      </TabsContent>
     </Tabs>
   );
 }

@@ -15,6 +15,8 @@ import ReviewApplicate from "@/subApps/settings/review";
 import Workers from "@/subApps/settings/workers";
 import { Toaster } from "@/components/ui/toaster";
 import RequestItems from "@/subApps/products/requestItem";
+import DragDropBoxes from "@/subApps/products/cate/index";
+import ViewCate from "@/subApps/products/cate/cat/cat";
 function Navigation() {
   return (
     <ApolloProvider client={Client}>
@@ -26,6 +28,8 @@ function Navigation() {
             <Route path="products" element={<Products />} />
             <Route path="products/new" element={<UploadProduct />} />
             <Route path="products/request" element={<RequestItems />} />
+            <Route path="products/cate" element={<DragDropBoxes />} />
+            <Route path="products/view" element={<ViewCate />} />
 
             <Route path="orders" element={<Orders />} />
             <Route path="history" element={<OrdersHistory />} />

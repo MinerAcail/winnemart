@@ -1,127 +1,316 @@
+import { useState } from "react";
+import { useQuery, gql } from "@apollo/client";
+import { CardPreview } from "./Preview";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import NavBar from "@/app/navBar";
+import { useDeviceType } from "@/hooks/useDeviceType";
+import CartSidebar from "../../CartSidebar";
+import { useCart } from "@/hooks/CartContext";
+import { Plus, ShoppingCart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { ghSim } from "../../ItemGrid";
+import { NoItemsFound } from "../../Empty";
 
+const GET_ALL_CATEGORY_BOX = gql`
+  query getAllCategoryBox {
+    getAllCategoryBox {
+      categoryBox {
+        id
+        name
+        imageUrl
+      }
+      products {
+        id
+        name
+        price
+        imageUrls
+        categories
+      }
+    }
+  }
+`;
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "../../../ui/card.tsx"
-import { ScrollArea } from "../../../ui/scroll-area.tsx"
-import { Button } from "../../../ui/button.tsx"
-import { Plus } from "lucide-react"
-import { CardPreview } from "@/components/custom/sortCategroy/cat/Preview.tsx"
-import data from "./data.tsx"
+interface Product {
+  id: string;
+  name: string;
+  price: string;
+  imageUrls: string[];
+  categories?: string[];
+}
 
-// Define types for category and item
-interface Item {
-    id: string
-    name: string
-    description: string
-    price: number
-    imageUrl: string
+interface CategoryBox {
+  id: string;
+  name: string;
+  imageUrl: string;
 }
 
 interface Category {
-    id: string
-    name: string
-    description: string
-    imageUrl: string
-    items: Item[]
+  categoryBox: CategoryBox;
+  products: Product[];
 }
 
-const App = () => {
-    const [categories, setCategories] = useState<Category[]>(data)
-    const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
+const ViewCate = () => {
+  const { isDesktop } = useDeviceType();
+  const { loading, error, data } = useQuery<{ getAllCategoryBox: Category[] }>(
+    GET_ALL_CATEGORY_BOX
+  );
 
-    const openPreview = (category: Category) => {
-        setSelectedCategory(category)
-    }
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null
+  );
+  const {
+    cart,
+    hostelDetails,
+    setHostelDetails,
+    removeFromCart,
+    addToCart,
+    placeOrder,
+  } = useCart();
 
-    const closePreview = () => {
-        setSelectedCategory(null)
-    }
+  // Function to handle add to cart for a product
+  const handleAddToCart = (event: React.MouseEvent, product: Product) => {
+    // Stop event propagation to prevent opening the CardPreview
+    event.stopPropagation();
 
-    const handleDeleteItem = (categoryId: string, itemId: string) => {
-        setCategories((prevCategories) => {
-            const updatedCategories = prevCategories.map((category) =>
-                category.id === categoryId
-                    ? { ...category, items: category.items.filter((item) => item.id !== itemId) }
-                    : category
-            )
+    // Convert string price to number and prepare product for cart
+    const cartItem = {
+      id: product.id,
+      name: product.name,
+      price: parseFloat(product.price),
+      categories: product.categories || [],
+      imageUrls: product.imageUrls,
+    };
 
-            if (selectedCategory?.id === categoryId) {
-                setSelectedCategory(updatedCategories.find((c) => c.id === categoryId) || null)
-            }
+    // Add the product to cart
+    addToCart(cartItem);
 
-            return updatedCategories
-        })
-    }
+    // Show toast notification
+    toast.success(`${product.name} added to cart`);
+  };
+  // Add this function within the ViewCate component
+  const handleAddAllToCart = (event: React.MouseEvent, products: Product[]) => {
+    // Stop event propagation to prevent opening the CardPreview
+    event.stopPropagation();
 
+    // Loop through all products in the category and add each to cart
+    products.forEach((product) => {
+      const cartItem = {
+        id: product.id,
+        name: product.name,
+        price: parseFloat(product.price),
+        categories: product.categories || [],
+        imageUrls: product.imageUrls,
+      };
+
+      // Add the product to cart
+      addToCart(cartItem);
+    });
+
+    // Show toast notification
+    toast.success(
+      `Added all ${products.length} items from this category to cart`
+    );
+  };
+
+  if (loading)
     return (
-        <div className="container md:mx-auto py-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-                {categories.map((category) => (
-                    <Card
-                        key={category.id}
-                        className=" flex flex-row md:h-[400px] transition-all duration-300 hover:shadow-xl hover:scale-[1.02] cursor-pointer"
-                        onClick={() => openPreview(category)}
-                    >
-                        {/* Image Section */}
-                        <div className="relative h-full w-1/2 p-2 flex items-center justify-center">
-                            <div className="rounded-2xl overflow-hidden shadow-sm w-full h-auto">
-                                <img
-                                    src={category.imageUrl || "/placeholder.svg?height=200&width=200"}
-                                    alt={category.name}
-                                    className="w-[900px] h-full object-cover rounded-2xl"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Content Section */}
-                        <div className="w-2/3 flex flex-col">
-                            <CardHeader>
-                                <CardTitle>{category.name}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex flex-col flex-grow">
-                                <p className="text-gray-600 mb-3">{category.description}</p>
-
-                                {/* Items List */}
-                                <ScrollArea className="m-0 h-[200px]">
-                                    <div className="p-2">
-                                        <ul className="text-sm text-gray-800">
-                                            {category.items.map((item) => (
-                                                <li key={item.id} className="border-b last:border-0 py-1">
-                                                    {item.name}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </ScrollArea>
-
-                                {/* Button Section */}
-                                <div className="flex justify-end mt-auto">
-                                    <Button
-                                        variant="outline"
-                                        className="mr-2"
-                                        onClick={(e) => e.stopPropagation()} // Prevent parent click
-                                    >
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Add To Cart
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </div>
-                    </Card>
-                ))}
-            </div>
-
-            {/* Card Preview Component */}
-            {selectedCategory && (
-                <CardPreview
-                    isOpen
-                    category={selectedCategory}
-                    onClose={closePreview}
-                    onDeleteItem={handleDeleteItem}
-                />
-            )}
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-gray-600 text-sm">Loading...</p>
         </div>
-    )
-}
+      </div>
+    );
 
-export default App
+  if (error)
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center text-red-500">
+          <p className="font-semibold">Error loading categories</p>
+          <p className="mt-1 text-sm">{error.message}</p>
+        </div>
+      </div>
+    );
+
+    if (data?.getAllCategoryBox.length === 0) {
+      return (
+       <NoItemsFound/>
+      );
+        
+    }
+
+  return (
+    <div className="maincontainer mx-auto px-4">
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Main content */}
+        <div className="w-full">
+          <NavBar />
+          <h1 className="text-2xl font-bold mb-4">Order Receipt</h1>
+
+          <div className="grid grid-cols-1 pt-14 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {data?.getAllCategoryBox.map(({ categoryBox, products }) => (
+              <Card
+                key={categoryBox.id}
+                className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer border-2"
+                onClick={() => setSelectedCategory({ categoryBox, products })}
+              >
+                {/* Food image */}
+                <div className="w-full h-48 relative">
+                  <img
+                    src={
+                      categoryBox.imageUrl ||
+                      "/placeholder.svg?height=300&width=400"
+                    }
+                    alt={`${categoryBox.name} category`}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-3 right-3">
+                    <Badge className="bg-primary text-white px-3 py-1">
+                      {products.length} items
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-semibold text-lg">
+                      {categoryBox.name}
+                    </h3>
+
+                    {/* // Then replace the Button element with: */}
+                    {products.length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 bg-green-200 hover:bg-green-300 rounded-full"
+                        onClick={(e) => handleAddAllToCart(e, products)}
+                        title={`Add all ${products.length} items to cart`}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Product thumbnails */}
+                  <div className="flex ml-1 mt-3">
+                    {products
+                      .filter((product) => product.imageUrls.length > 0)
+                      .slice(0, 4)
+                      .map((product, index) => (
+                        <div key={product.id} className="relative group">
+                          <div
+                            className="w-8 h-8 rounded-full overflow-hidden border-2 border-white -ml-2 shadow-md relative"
+                            style={{ zIndex: 10 - index }}
+                          >
+                            <img
+                              src={
+                                product.imageUrls[0] ||
+                                "/placeholder.svg?height=40&width=40"
+                              }
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+
+                          {/* Quick add button that appears on hover */}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="absolute -bottom-2 -right-2 h-6 w-6 p-0 bg-green-200 hover:bg-green-300 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                            onClick={(e) => handleAddToCart(e, product)}
+                            title={`Add ${product.name} to cart`}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+
+                    {products.length > 4 && (
+                      <div
+                        className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white -ml-2 flex items-center justify-center shadow-md"
+                        style={{ zIndex: 5 }}
+                      >
+                        <span className="text-xs font-medium text-gray-600">
+                          +{products.length - 4}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Show quick stats */}
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="text-xs text-gray-500">
+                      {cart.filter((item) =>
+                        products.some((p) => p.id === item.id)
+                      ).length > 0 ? (
+                        <span className="flex items-center text-green-600">
+                          <ShoppingCart className="h-3 w-3 mr-1" />
+                          {
+                            cart.filter((item) =>
+                              products.some((p) => p.id === item.id)
+                            ).length
+                          }{" "}
+                          in cart
+                        </span>
+                      ) : (
+                        "Browse items"
+                      )}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      From{" "}
+                      {products.length > 0
+                        ? `${ghSim}${parseFloat(
+                            products[0].price
+                          ).toLocaleString()}`
+                        : "N/A"}
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Cart sidebar */}
+        {isDesktop && (
+          <div className="w-full h-full lg:w-1/4">
+            <div className="sticky h-full top-4">
+              <CartSidebar
+                cart={cart}
+                hostelDetails={hostelDetails}
+                setHostelDetails={setHostelDetails}
+                removeFromCart={removeFromCart}
+                placeOrder={placeOrder}
+              />
+            </div>
+          </div>
+        )}
+
+        {selectedCategory && (
+          <CardPreview
+            isOpen
+            category={{
+              id: selectedCategory.categoryBox.id,
+              name: selectedCategory.categoryBox.name,
+              description: "",
+              imageUrl: selectedCategory.categoryBox.imageUrl,
+              items: selectedCategory.products.map((p) => ({
+                ...p,
+                imageUrl: p.imageUrls[0] || "",
+                description: "",
+              })),
+            }}
+            onClose={() => setSelectedCategory(null)}
+            onDeleteItem={(categoryId, itemId) =>
+              console.log(`Delete item ${itemId} from category ${categoryId}`)
+            }
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ViewCate;

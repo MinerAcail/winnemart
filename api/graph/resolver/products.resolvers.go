@@ -16,6 +16,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/mineracail/sergi/graph"
 	"github.com/mineracail/sergi/graph/model"
 	"github.com/mineracail/sergi/helper"
@@ -448,7 +449,7 @@ func (r *mutationResolver) DeleteAllChatMessageByNumber(ctx context.Context, cus
 func (r *mutationResolver) RequestItem(ctx context.Context, input model.RequestInput) (*model.RequestItem, error) {
 	// Generate a bucket name for storing images
 	timestamp := time.Now().UnixNano() / 1000000 // milliseconds
-	
+
 	var simpleName string
 	if input.Name != nil {
 		simpleName = strings.ToLower(strings.ReplaceAll(*input.Name, " ", "-"))
@@ -456,18 +457,18 @@ func (r *mutationResolver) RequestItem(ctx context.Context, input model.RequestI
 	} else {
 		simpleName = "request"
 	}
-	
+
 	bucketName := fmt.Sprintf("req-%s-%d", simpleName[:helper.MinInt(len(simpleName), 10)], timestamp)
-	
+
 	log.Printf("Creating request item bucket: %s", bucketName)
-	
+
 	// Ensure the bucket exists in MinIO
 	if err := helper.CreateBucketInMinio(ctx, r.MinIOClient, bucketName); err != nil {
 		return nil, err
 	}
-	
+
 	var imageURLs []string
-	
+
 	// Upload each image and store the URL
 	if input.Images != nil {
 		for _, file := range input.Images {
@@ -478,16 +479,16 @@ func (r *mutationResolver) RequestItem(ctx context.Context, input model.RequestI
 			imageURLs = append(imageURLs, fileURL)
 		}
 	}
-	
+
 	// Set default state for new request items
 	initialState := "PENDING"
-	
+
 	// Optional category handling
 	var category string
 	if input.Category != nil {
 		category = *input.Category
 	}
-	
+
 	// Create a new request item
 	requestItem := model.RequestItem{
 		Name:        input.Name,
@@ -497,43 +498,42 @@ func (r *mutationResolver) RequestItem(ctx context.Context, input model.RequestI
 		ImageUrls:   imageURLs,
 		Description: input.Description,
 	}
-	
+
 	// Save the request item to the database
 	if err := r.DB.Create(&requestItem).Error; err != nil {
 		return nil, fmt.Errorf("failed to save request item: %v", err)
 	}
-	
-	return &requestItem, nil
 
+	return &requestItem, nil
 }
 
 // UpdateRequestItemStatus is the resolver for the updateRequestItemStatus field.
 func (r *mutationResolver) UpdateRequestItemStatus(ctx context.Context, requestID string, status model.ProductState) (*model.RequestItem, error) {
-		// Parse the UUID
-		itemID, err := uuid.Parse(requestID)
-		if err != nil {
-			return nil, fmt.Errorf("invalid request item ID: %v", err)
+	// Parse the UUID
+	itemID, err := uuid.Parse(requestID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid request item ID: %v", err)
+	}
+
+	// Find the request item
+	var requestItem model.RequestItem
+	if err := r.DB.Where("id = ?", itemID).First(&requestItem).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("request item not found with ID: %s", requestID)
 		}
-		
-		// Find the request item
-		var requestItem model.RequestItem
-		if err := r.DB.Where("id = ?", itemID).First(&requestItem).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, fmt.Errorf("request item not found with ID: %s", requestID)
-			}
-			return nil, fmt.Errorf("failed to fetch request item: %v", err)
-		}
-		
-		// Update the status
-		requestItem.State = &status
-		// requestItem.UpdatedAt = helper.TimePtr(time.Now())
-		
-		// Save the updated request item
-		if err := r.DB.Save(&requestItem).Error; err != nil {
-			return nil, fmt.Errorf("failed to update request item status: %v", err)
-		}
-		
-		return &requestItem, nil
+		return nil, fmt.Errorf("failed to fetch request item: %v", err)
+	}
+
+	// Update the status
+	requestItem.State = &status
+	// requestItem.UpdatedAt = helper.TimePtr(time.Now())
+
+	// Save the updated request item
+	if err := r.DB.Save(&requestItem).Error; err != nil {
+		return nil, fmt.Errorf("failed to update request item status: %v", err)
+	}
+
+	return &requestItem, nil
 }
 
 // DeleteRequestItem is the resolver for the deleteRequestItem field.
@@ -543,7 +543,7 @@ func (r *mutationResolver) DeleteRequestItem(ctx context.Context, requestID stri
 	if err != nil {
 		return nil, fmt.Errorf("invalid request item ID: %v", err)
 	}
-	
+
 	// Find the request item to get bucket name information
 	var requestItem model.RequestItem
 	if err := r.DB.Where("id = ?", itemID).First(&requestItem).Error; err != nil {
@@ -552,7 +552,7 @@ func (r *mutationResolver) DeleteRequestItem(ctx context.Context, requestID stri
 		}
 		return nil, fmt.Errorf("failed to fetch request item: %v", err)
 	}
-	
+
 	// If the request item has images, clean up the MinIO bucket
 	if len(requestItem.ImageUrls) > 0 {
 		// Extract bucket name from the first image URL
@@ -561,7 +561,7 @@ func (r *mutationResolver) DeleteRequestItem(ctx context.Context, requestID stri
 		parts := strings.Split(firstImageURL, "/")
 		if len(parts) >= 4 {
 			bucketName := parts[3]
-			
+
 			// Delete the bucket from MinIO
 			err = helper.DeleteBucketFromMinio(ctx, r.MinIOClient, bucketName)
 			if err != nil {
@@ -570,12 +570,12 @@ func (r *mutationResolver) DeleteRequestItem(ctx context.Context, requestID stri
 			}
 		}
 	}
-	
+
 	// Delete the request item from the database
 	if err := r.DB.Delete(&requestItem).Error; err != nil {
 		return nil, fmt.Errorf("failed to delete request item: %v", err)
 	}
-	
+
 	success := true
 	return &success, nil
 }
@@ -587,14 +587,14 @@ func (r *mutationResolver) DeleteAllRequestItems(ctx context.Context) (*bool, er
 	if tx.Error != nil {
 		return nil, fmt.Errorf("failed to start transaction: %v", tx.Error)
 	}
-	
+
 	// Get all request items to clean up MinIO buckets
 	var requestItems []model.RequestItem
 	if err := tx.Find(&requestItems).Error; err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("failed to fetch request items: %v", err)
 	}
-	
+
 	// Clean up MinIO buckets for each request item with images
 	for _, item := range requestItems {
 		if len(item.ImageUrls) > 0 {
@@ -603,7 +603,7 @@ func (r *mutationResolver) DeleteAllRequestItems(ctx context.Context) (*bool, er
 			parts := strings.Split(firstImageURL, "/")
 			if len(parts) >= 4 {
 				bucketName := parts[3]
-				
+
 				// Delete the bucket from MinIO
 				err := helper.DeleteBucketFromMinio(ctx, r.MinIOClient, bucketName)
 				if err != nil {
@@ -613,18 +613,18 @@ func (r *mutationResolver) DeleteAllRequestItems(ctx context.Context) (*bool, er
 			}
 		}
 	}
-	
+
 	// Delete all request items
 	if err := tx.Exec("DELETE FROM request_items").Error; err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("failed to delete request items: %v", err)
 	}
-	
+
 	// Commit the transaction
 	if err := tx.Commit().Error; err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %v", err)
 	}
-	
+
 	success := true
 	return &success, nil
 }
@@ -637,6 +637,179 @@ func (r *mutationResolver) DeleteProductByAdmin(ctx context.Context, productID s
 // UpdateProductByAdmin is the resolver for the updateProductByAdmin field.
 func (r *mutationResolver) UpdateProductByAdmin(ctx context.Context, productID string, input model.ProductInput) (*model.Product, error) {
 	panic(fmt.Errorf("not implemented: UpdateProductByAdmin - updateProductByAdmin"))
+}
+
+// CreateCategoryBox is the resolver for the createCategoryBox field.
+func (r *mutationResolver) CreateCategoryBox(ctx context.Context, name *string) (*model.CategoryBox, error) {
+	if name == nil {
+		return nil, fmt.Errorf("category name cannot be empty")
+	}
+
+	categoryBox := &model.CategoryBox{
+		Name: *name,
+	}
+
+	if err := r.DB.Create(categoryBox).Error; err != nil {
+		return nil, err
+	}
+
+	return categoryBox, nil
+}
+
+// DeleteCategoryBox is the resolver for the deleteCategoryBox field.
+func (r *mutationResolver) DeleteCategoryBox(ctx context.Context, categoryID string) (*bool, error) {
+	// Retrieve the category box before deleting it
+	var categoryBox model.CategoryBox
+	if err := r.DB.Where("id = ?", categoryID).First(&categoryBox).Error; err != nil {
+		return nil, err
+	}
+
+	// Delete the category box
+	result := r.DB.Delete(&categoryBox)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	// Generate the bucket name from the category name
+	bucketName := fmt.Sprintf("vendor-%s-bucket", categoryBox.Name)
+	if len(bucketName) > 63 {
+		bucketName = bucketName[:63] // Truncate if necessary
+	}
+
+	// Delete the bucket from MinIO
+	err := helper.DeleteBucketFromMinio(ctx, r.MinIOClient, bucketName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete bucket %s: %v", bucketName, err)
+	}
+
+	// Return success status
+	success := result.RowsAffected > 0
+	return &success, nil
+}
+
+// AddProductToCategoryBox is the resolver for the addProductToCategoryBox field.
+func (r *mutationResolver) AddProductToCategoryBox(ctx context.Context, input []*model.CategoryBoxInput) ([]*model.CategoryBox, error) {
+	var updatedCategoryBoxes []*model.CategoryBox
+
+	for _, boxInput := range input {
+		if boxInput.CategoryName == nil {
+			return nil, errors.New("categoryName is required")
+		}
+
+		var categoryBox model.CategoryBox
+		err := r.DB.Where("name = ?", *boxInput.CategoryName).First(&categoryBox).Error
+		initialState := "ACTIVE"
+
+		// Variable to store image URL
+		var imageURL string
+
+		// Handle image upload if provided
+		if boxInput.Files != nil {
+			// Generate bucket name similar to your product upload
+			timestamp := time.Now().UnixNano() / 1000000
+			simpleName := strings.ToLower(strings.ReplaceAll(*boxInput.CategoryName, " ", "-"))
+			simpleName = regexp.MustCompile(`[^a-z0-9-]`).ReplaceAllString(simpleName, "")
+			bucketName := fmt.Sprintf("cat-%s-%d", simpleName[:helper.MinInt(len(simpleName), 10)], timestamp)
+
+			// Create bucket
+			if err := helper.CreateBucketInMinio(ctx, r.MinIOClient, bucketName); err != nil {
+				return nil, err
+			}
+
+			// Upload file
+			fileURL, err := helper.UploadFileToMinio(ctx, r.MinIOClient, bucketName, "category", boxInput.Files)
+			if err != nil {
+				return nil, fmt.Errorf("failed to upload category image: %v", err)
+			}
+			imageURL = fileURL
+		}
+
+		if err != nil {
+			// If not found, create a new category box
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				newBox := model.CategoryBox{
+					Name:     *boxInput.CategoryName,
+					ItemsIds: pq.StringArray{}, // Initialize an empty array
+					ImageUrl: imageURL,         // Set the image URL
+					State:    (*model.ProductState)(&initialState),
+				}
+
+				// Append new products if provided
+				if boxInput.ProductID != nil {
+					for _, id := range boxInput.ProductID {
+						if id != nil {
+							newBox.ItemsIds = append(newBox.ItemsIds, *id)
+						}
+					}
+				}
+
+				if saveErr := r.DB.Create(&newBox).Error; saveErr != nil {
+					return nil, saveErr
+				}
+
+				updatedCategoryBoxes = append(updatedCategoryBoxes, &newBox)
+				continue
+			}
+			return nil, err
+		}
+
+		// Update existing category box with new image if provided
+		if boxInput.Files != nil {
+			categoryBox.ImageUrl = imageURL
+		}
+
+		// Check if product already exists in the category box
+		existingProducts := make(map[string]bool)
+		for _, id := range categoryBox.ItemsIds {
+			existingProducts[id] = true
+		}
+
+		// Add new products that are not already in the list
+		updated := false
+		for _, newID := range boxInput.ProductID {
+			if newID != nil {
+				if _, exists := existingProducts[*newID]; !exists {
+					categoryBox.ItemsIds = append(categoryBox.ItemsIds, *newID)
+					updated = true
+				}
+			}
+		}
+
+		if updated || boxInput.Files != nil {
+			if saveErr := r.DB.Save(&categoryBox).Error; saveErr != nil {
+				return nil, saveErr
+			}
+		}
+
+		updatedCategoryBoxes = append(updatedCategoryBoxes, &categoryBox)
+	}
+
+	return updatedCategoryBoxes, nil
+}
+
+// RemoveProductFromCategoryBox is the resolver for the removeProductFromCategoryBox field.
+func (r *mutationResolver) RemoveProductFromCategoryBox(ctx context.Context, categoryID string, productID string) ([]*model.CategoryBox, error) {
+	var categoryBox model.CategoryBox
+	if err := r.DB.First(&categoryBox, "id = ?", categoryID).Error; err != nil {
+		return nil, err
+	}
+
+	// Remove the product ID from the array
+	var updatedItems pq.StringArray
+	for _, id := range categoryBox.ItemsIds {
+		if id != productID {
+			updatedItems = append(updatedItems, id)
+		}
+	}
+
+	categoryBox.ItemsIds = updatedItems
+	categoryBox.UpdatedAt = time.Now()
+
+	if err := r.DB.Save(&categoryBox).Error; err != nil {
+		return nil, err
+	}
+
+	return []*model.CategoryBox{&categoryBox}, nil
 }
 
 // ID is the resolver for the id field.
@@ -1184,13 +1357,78 @@ func (r *queryResolver) GetAllChatMessageByNumber(ctx context.Context, customerN
 // GetAllRequestItems is the resolver for the getAllRequestItems field.
 func (r *queryResolver) GetAllRequestItems(ctx context.Context) ([]*model.RequestItem, error) {
 	var requestItems []*model.RequestItem
-	
+
 	// Fetch all request items, ordered by creation date (newest first)
 	if err := r.DB.Order("created_at DESC").Find(&requestItems).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch request items: %v", err)
 	}
-	
+
 	return requestItems, nil
+}
+
+// GetAllCategoryBox is the resolver for the getAllCategoryBox field.
+func (r *queryResolver) GetAllCategoryBox(ctx context.Context) ([]*model.ViewcategoryBox, error) {
+	var categoryBoxes []*model.CategoryBox
+	if err := r.DB.Find(&categoryBoxes).Error; err != nil {
+		return nil, err
+	}
+
+	var result []*model.ViewcategoryBox
+	for _, categoryBox := range categoryBoxes {
+		var products []*model.Product
+
+		// Ensure ItemsIds is not empty
+		if len(categoryBox.ItemsIds) > 0 {
+			if err := r.DB.Where("id = ANY(?)", pq.Array(categoryBox.ItemsIds)).Find(&products).Error; err != nil {
+				return nil, err
+			}
+		}
+
+		viewCategoryBox := &model.ViewcategoryBox{
+			CategoryBox: categoryBox,
+			Products:    products,
+		}
+		result = append(result, viewCategoryBox)
+	}
+
+	return result, nil
+}
+
+// GetNewAddedCategoryBox is the resolver for the getNewAddedCategoryBox field.
+func (r *queryResolver) GetNewAddedCategoryBox(ctx context.Context) ([]*model.CategoryBox, error) {
+	var categoryBoxes []*model.CategoryBox
+	addedDayAgo := time.Now().AddDate(0, 0, -1)
+
+	if err := r.DB.Where("created_at >= ?", addedDayAgo).Order("created_at DESC").Find(&categoryBoxes).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch products: %v", err)
+	}
+	return categoryBoxes, nil
+}
+
+// GetCategoryBox is the resolver for the getCategoryBox field.
+func (r *queryResolver) GetCategoryBox(ctx context.Context, categoryID string) (*model.CategoryBox, error) {
+	var categoryBox model.CategoryBox
+	if err := r.DB.First(&categoryBox, "id = ?", categoryID).Error; err != nil {
+		return nil, err
+	}
+	return &categoryBox, nil
+}
+
+// GetProductsByCategory is the resolver for the getProductsByCategory field.
+func (r *queryResolver) GetProductsByCategory(ctx context.Context, categoryID string) ([]*model.Product, error) {
+	var categoryBox model.CategoryBox
+	if err := r.DB.First(&categoryBox, "id = ?", categoryID).Error; err != nil {
+		return nil, err
+	}
+
+	var products []*model.Product
+	if len(categoryBox.ItemsIds) > 0 {
+		if err := r.DB.Where("id IN (?)", categoryBox.ItemsIds).Find(&products).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	return products, nil
 }
 
 // ID is the resolver for the id field.
@@ -1205,6 +1443,22 @@ func (r *requestItemResolver) ImageUrls(ctx context.Context, obj *model.RequestI
 	for _, url := range obj.ImageUrls {
 		urlCopy := url
 		eachArray = append(eachArray, &urlCopy)
+	}
+	return eachArray, nil
+}
+
+// ID is the resolver for the id field.
+func (r *categoryBoxResolver) ID(ctx context.Context, obj *model.CategoryBox) (*string, error) {
+	id := obj.ID.String()
+	return &id, nil
+}
+
+// ItemsIds is the resolver for the itemsIds field.
+func (r *categoryBoxResolver) ItemsIds(ctx context.Context, obj *model.CategoryBox) ([]*string, error) {
+	var eachArray []*string
+	for _, id := range obj.ItemsIds {
+		idCopy := id
+		eachArray = append(eachArray, &idCopy)
 	}
 	return eachArray, nil
 }
@@ -1224,8 +1478,12 @@ func (r *Resolver) Product() graph.ProductResolver { return &productResolver{r} 
 // RequestItem returns graph.RequestItemResolver implementation.
 func (r *Resolver) RequestItem() graph.RequestItemResolver { return &requestItemResolver{r} }
 
+// CategoryBox returns graph.CategoryBoxResolver implementation.
+func (r *Resolver) CategoryBox() graph.CategoryBoxResolver { return &categoryBoxResolver{r} }
+
 type cartItemResolver struct{ *Resolver }
 type chatMessageResolver struct{ *Resolver }
 type orderResolver struct{ *Resolver }
 type productResolver struct{ *Resolver }
 type requestItemResolver struct{ *Resolver }
+type categoryBoxResolver struct{ *Resolver }

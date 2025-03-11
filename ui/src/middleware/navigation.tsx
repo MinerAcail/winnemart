@@ -13,6 +13,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./bar";
 import { SubmitItemForm } from "@/app/userReview/submit-item-form";
 import  ShopItemsManager  from "@/components/custom/sortCategroy/cat/cat.tsx";
+import { CartProvider } from "@/hooks/CartContext";
 
 const router = createBrowserRouter([
   { path: "/", element: <HostelStoreApp /> },
@@ -29,14 +30,15 @@ const router = createBrowserRouter([
 export function Navigation() {
   return (
     <ApolloProvider client={Client}>
-          <SidebarProvider>
-      <AppSidebar />
-
-      <AuthProvider>
-        <RouterProvider router={router} />
-        <Toaster />
-      </AuthProvider>
-  </SidebarProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        <CartProvider>
+          <AuthProvider>
+            <RouterProvider router={router} />
+            <Toaster />
+          </AuthProvider>
+        </CartProvider>
+      </SidebarProvider>
     </ApolloProvider>
   );
 }

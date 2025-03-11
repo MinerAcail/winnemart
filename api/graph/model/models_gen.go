@@ -21,6 +21,12 @@ type CartItemOrder struct {
 	CreatedAt             time.Time            `json:"createdAt"`
 }
 
+type CategoryBoxInput struct {
+	CategoryName *string         `json:"categoryName,omitempty"`
+	Files        *graphql.Upload `json:"files,omitempty"`
+	ProductID    []*string       `json:"productId,omitempty"`
+}
+
 type ChatMessageAdminInput struct {
 	CustomerNumber string     `json:"customerNumber"`
 	Sender         SenderType `json:"sender"`
@@ -111,6 +117,11 @@ type UserInfor struct {
 	TotalitemsOrdered  int32    `json:"totalitemsOrdered"`
 	TotalOrders        int32    `json:"totalOrders"`
 	FirstlastOrderDate string   `json:"firstlastOrderDate"`
+}
+
+type ViewcategoryBox struct {
+	CategoryBox *CategoryBox `json:"categoryBox,omitempty"`
+	Products    []*Product   `json:"products,omitempty"`
 }
 
 type InputUser struct {

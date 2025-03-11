@@ -31,6 +31,10 @@ const data = {
           url: "/products/new",
         },
         {
+          title: "Categorize",
+          url: "/products/cate",
+        },
+        {
           title: "Request items",
           url: "/products/request",
         }

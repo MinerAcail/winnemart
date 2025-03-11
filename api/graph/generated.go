@@ -54,6 +54,7 @@ type ResolverRoot interface {
 	Query() QueryResolver
 	RequestItem() RequestItemResolver
 	User() UserResolver
+	CategoryBox() CategoryBoxResolver
 	JobRequest() JobRequestResolver
 }
 
@@ -126,14 +127,17 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		AddProductToCategoryBox      func(childComplexity int, input []*model.CategoryBoxInput) int
 		AdminLogin                   func(childComplexity int, input model.LoginInput) int
 		ClearCart                    func(childComplexity int) int
 		CreateAdmin                  func(childComplexity int, input model.CreateAdminInput) int
+		CreateCategoryBox            func(childComplexity int, name *string) int
 		CreateOrderItems             func(childComplexity int, input *model.OrderInput) int
 		CreateUser                   func(childComplexity int, input model.InputUser) int
 		DeleteAdmin                  func(childComplexity int, id string) int
 		DeleteAllChatMessageByNumber func(childComplexity int, customerNumber string) int
 		DeleteAllRequestItems        func(childComplexity int) int
+		DeleteCategoryBox            func(childComplexity int, categoryID string) int
 		DeleteFile                   func(childComplexity int, id string) int
 		DeleteProduct                func(childComplexity int, id string) int
 		DeleteProductByAdmin         func(childComplexity int, productID string) int
@@ -144,6 +148,7 @@ type ComplexityRoot struct {
 		JobResponse                  func(childComplexity int, applicantID string, state string) int
 		LogOut                       func(childComplexity int) int
 		MarkMessagesAsRead           func(childComplexity int, sender model.SenderType) int
+		RemoveProductFromCategoryBox func(childComplexity int, categoryID string, productID string) int
 		RequestItem                  func(childComplexity int, input model.RequestInput) int
 		SendChatMessage              func(childComplexity int, input model.ChatMessageInput) int
 		SendChatMessageByNumber      func(childComplexity int, input model.ChatMessageAdminInput) int
@@ -210,6 +215,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		GetAdmin                            func(childComplexity int, id string) int
+		GetAllCategoryBox                   func(childComplexity int) int
 		GetAllChatMessageByNumber           func(childComplexity int, customerNumber string) int
 		GetAllOrderHistory                  func(childComplexity int) int
 		GetAllOrderItemsByProductID         func(childComplexity int, orderID string) int
@@ -222,12 +228,15 @@ type ComplexityRoot struct {
 		GetAllUserStats                     func(childComplexity int) int
 		GetAllUsers                         func(childComplexity int) int
 		GetAllWorks                         func(childComplexity int) int
+		GetCategoryBox                      func(childComplexity int, categoryID string) int
 		GetGrowthData                       func(childComplexity int, id string) int
 		GetID                               func(childComplexity int) int
+		GetNewAddedCategoryBox              func(childComplexity int) int
 		GetNewAddedProducts                 func(childComplexity int) int
 		GetOrder                            func(childComplexity int, id string) int
 		GetOrderChat                        func(childComplexity int) int
 		GetProduct                          func(childComplexity int, id string) int
+		GetProductsByCategory               func(childComplexity int, categoryID string) int
 		GetUserByID                         func(childComplexity int, id string) int
 		ImageUrls                           func(childComplexity int) int
 		ListAdmins                          func(childComplexity int) int
@@ -268,6 +277,21 @@ type ComplexityRoot struct {
 		FirstlastOrderDate func(childComplexity int) int
 		TotalOrders        func(childComplexity int) int
 		TotalitemsOrdered  func(childComplexity int) int
+	}
+
+	ViewcategoryBox struct {
+		CategoryBox func(childComplexity int) int
+		Products    func(childComplexity int) int
+	}
+
+	CategoryBox struct {
+		CreatedAt func(childComplexity int) int
+		ID        func(childComplexity int) int
+		ImageUrl  func(childComplexity int) int
+		ItemsIds  func(childComplexity int) int
+		Name      func(childComplexity int) int
+		State     func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
 	}
 
 	JobRequest struct {
@@ -338,6 +362,10 @@ type MutationResolver interface {
 	DeleteAllRequestItems(ctx context.Context) (*bool, error)
 	DeleteProductByAdmin(ctx context.Context, productID string) (*bool, error)
 	UpdateProductByAdmin(ctx context.Context, productID string, input model.ProductInput) (*model.Product, error)
+	CreateCategoryBox(ctx context.Context, name *string) (*model.CategoryBox, error)
+	DeleteCategoryBox(ctx context.Context, categoryID string) (*bool, error)
+	AddProductToCategoryBox(ctx context.Context, input []*model.CategoryBoxInput) ([]*model.CategoryBox, error)
+	RemoveProductFromCategoryBox(ctx context.Context, categoryID string, productID string) ([]*model.CategoryBox, error)
 	DeleteTable(ctx context.Context) (bool, error)
 	UserLogin(ctx context.Context, input model.LoginInput) (*model.User, error)
 	AdminLogin(ctx context.Context, input model.LoginInput) (*model.Admin, error)
@@ -384,6 +412,10 @@ type QueryResolver interface {
 	GetOrderChat(ctx context.Context) (*model.OrderChat, error)
 	GetAllChatMessageByNumber(ctx context.Context, customerNumber string) ([]*model.ChatMessage, error)
 	GetAllRequestItems(ctx context.Context) ([]*model.RequestItem, error)
+	GetAllCategoryBox(ctx context.Context) ([]*model.ViewcategoryBox, error)
+	GetNewAddedCategoryBox(ctx context.Context) ([]*model.CategoryBox, error)
+	GetCategoryBox(ctx context.Context, categoryID string) (*model.CategoryBox, error)
+	GetProductsByCategory(ctx context.Context, categoryID string) ([]*model.Product, error)
 	GetID(ctx context.Context) (*string, error)
 	GetAllSystemInfo(ctx context.Context) (*model.SystemInfo, error)
 	ImageUrls(ctx context.Context) ([]string, error)
@@ -397,6 +429,11 @@ type RequestItemResolver interface {
 }
 type UserResolver interface {
 	ID(ctx context.Context, obj *model.User) (string, error)
+}
+type CategoryBoxResolver interface {
+	ID(ctx context.Context, obj *model.CategoryBox) (*string, error)
+
+	ItemsIds(ctx context.Context, obj *model.CategoryBox) ([]*string, error)
 }
 type JobRequestResolver interface {
 	ID(ctx context.Context, obj *model.JobRequest) (string, error)
@@ -701,6 +738,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ItemFiles.URL(childComplexity), true
 
+	case "Mutation.addProductToCategoryBox":
+		if e.complexity.Mutation.AddProductToCategoryBox == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addProductToCategoryBox_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddProductToCategoryBox(childComplexity, args["input"].([]*model.CategoryBoxInput)), true
+
 	case "Mutation.adminLogin":
 		if e.complexity.Mutation.AdminLogin == nil {
 			break
@@ -731,6 +780,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateAdmin(childComplexity, args["input"].(model.CreateAdminInput)), true
+
+	case "Mutation.createCategoryBox":
+		if e.complexity.Mutation.CreateCategoryBox == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createCategoryBox_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateCategoryBox(childComplexity, args["name"].(*string)), true
 
 	case "Mutation.createOrderItems":
 		if e.complexity.Mutation.CreateOrderItems == nil {
@@ -786,6 +847,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteAllRequestItems(childComplexity), true
+
+	case "Mutation.deleteCategoryBox":
+		if e.complexity.Mutation.DeleteCategoryBox == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteCategoryBox_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteCategoryBox(childComplexity, args["categoryId"].(string)), true
 
 	case "Mutation.deleteFile":
 		if e.complexity.Mutation.DeleteFile == nil {
@@ -896,6 +969,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.MarkMessagesAsRead(childComplexity, args["sender"].(model.SenderType)), true
+
+	case "Mutation.removeProductFromCategoryBox":
+		if e.complexity.Mutation.RemoveProductFromCategoryBox == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeProductFromCategoryBox_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveProductFromCategoryBox(childComplexity, args["categoryId"].(string), args["productId"].(string)), true
 
 	case "Mutation.requestItem":
 		if e.complexity.Mutation.RequestItem == nil {
@@ -1282,6 +1367,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.GetAdmin(childComplexity, args["id"].(string)), true
 
+	case "Query.getAllCategoryBox":
+		if e.complexity.Query.GetAllCategoryBox == nil {
+			break
+		}
+
+		return e.complexity.Query.GetAllCategoryBox(childComplexity), true
+
 	case "Query.getAllChatMessageByNumber":
 		if e.complexity.Query.GetAllChatMessageByNumber == nil {
 			break
@@ -1376,6 +1468,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.GetAllWorks(childComplexity), true
 
+	case "Query.getCategoryBox":
+		if e.complexity.Query.GetCategoryBox == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getCategoryBox_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetCategoryBox(childComplexity, args["categoryId"].(string)), true
+
 	case "Query.getGrowthData":
 		if e.complexity.Query.GetGrowthData == nil {
 			break
@@ -1394,6 +1498,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetID(childComplexity), true
+
+	case "Query.getNewAddedCategoryBox":
+		if e.complexity.Query.GetNewAddedCategoryBox == nil {
+			break
+		}
+
+		return e.complexity.Query.GetNewAddedCategoryBox(childComplexity), true
 
 	case "Query.getNewAddedProducts":
 		if e.complexity.Query.GetNewAddedProducts == nil {
@@ -1432,6 +1543,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetProduct(childComplexity, args["id"].(string)), true
+
+	case "Query.getProductsByCategory":
+		if e.complexity.Query.GetProductsByCategory == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getProductsByCategory_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetProductsByCategory(childComplexity, args["categoryId"].(string)), true
 
 	case "Query.getUserById":
 		if e.complexity.Query.GetUserByID == nil {
@@ -1634,6 +1757,69 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.UserInfor.TotalitemsOrdered(childComplexity), true
 
+	case "ViewcategoryBox.categoryBox":
+		if e.complexity.ViewcategoryBox.CategoryBox == nil {
+			break
+		}
+
+		return e.complexity.ViewcategoryBox.CategoryBox(childComplexity), true
+
+	case "ViewcategoryBox.products":
+		if e.complexity.ViewcategoryBox.Products == nil {
+			break
+		}
+
+		return e.complexity.ViewcategoryBox.Products(childComplexity), true
+
+	case "categoryBox.createdAt":
+		if e.complexity.CategoryBox.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.CategoryBox.CreatedAt(childComplexity), true
+
+	case "categoryBox.id":
+		if e.complexity.CategoryBox.ID == nil {
+			break
+		}
+
+		return e.complexity.CategoryBox.ID(childComplexity), true
+
+	case "categoryBox.imageUrl":
+		if e.complexity.CategoryBox.ImageUrl == nil {
+			break
+		}
+
+		return e.complexity.CategoryBox.ImageUrl(childComplexity), true
+
+	case "categoryBox.itemsIds":
+		if e.complexity.CategoryBox.ItemsIds == nil {
+			break
+		}
+
+		return e.complexity.CategoryBox.ItemsIds(childComplexity), true
+
+	case "categoryBox.name":
+		if e.complexity.CategoryBox.Name == nil {
+			break
+		}
+
+		return e.complexity.CategoryBox.Name(childComplexity), true
+
+	case "categoryBox.state":
+		if e.complexity.CategoryBox.State == nil {
+			break
+		}
+
+		return e.complexity.CategoryBox.State(childComplexity), true
+
+	case "categoryBox.updatedAt":
+		if e.complexity.CategoryBox.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.CategoryBox.UpdatedAt(childComplexity), true
+
 	case "jobRequest.createdAt":
 		if e.complexity.JobRequest.CreatedAt == nil {
 			break
@@ -1754,6 +1940,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputCategoryBoxInput,
 		ec.unmarshalInputChatMessageAdminInput,
 		ec.unmarshalInputChatMessageInput,
 		ec.unmarshalInputCreateAdminInput,
@@ -1928,6 +2115,29 @@ func (ec *executionContext) field_Mutation_VendorUpload_argsInput(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation_addProductToCategoryBox_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_addProductToCategoryBox_argsInput(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_addProductToCategoryBox_argsInput(
+	ctx context.Context,
+	rawArgs map[string]any,
+) ([]*model.CategoryBoxInput, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+	if tmp, ok := rawArgs["input"]; ok {
+		return ec.unmarshalOCategoryBoxInput2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBoxInput(ctx, tmp)
+	}
+
+	var zeroVal []*model.CategoryBoxInput
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation_adminLogin_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1971,6 +2181,29 @@ func (ec *executionContext) field_Mutation_createAdmin_argsInput(
 	}
 
 	var zeroVal model.CreateAdminInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_createCategoryBox_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_createCategoryBox_argsName(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["name"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_createCategoryBox_argsName(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+	if tmp, ok := rawArgs["name"]; ok {
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
 	return zeroVal, nil
 }
 
@@ -2059,6 +2292,29 @@ func (ec *executionContext) field_Mutation_deleteAllChatMessageByNumber_argsCust
 ) (string, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("customerNumber"))
 	if tmp, ok := rawArgs["customerNumber"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteCategoryBox_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_deleteCategoryBox_argsCategoryID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["categoryId"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_deleteCategoryBox_argsCategoryID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("categoryId"))
+	if tmp, ok := rawArgs["categoryId"]; ok {
 		return ec.unmarshalNString2string(ctx, tmp)
 	}
 
@@ -2265,6 +2521,47 @@ func (ec *executionContext) field_Mutation_markMessagesAsRead_argsSender(
 	}
 
 	var zeroVal model.SenderType
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_removeProductFromCategoryBox_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_removeProductFromCategoryBox_argsCategoryID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["categoryId"] = arg0
+	arg1, err := ec.field_Mutation_removeProductFromCategoryBox_argsProductID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["productId"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_removeProductFromCategoryBox_argsCategoryID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("categoryId"))
+	if tmp, ok := rawArgs["categoryId"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_removeProductFromCategoryBox_argsProductID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("productId"))
+	if tmp, ok := rawArgs["productId"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
 	return zeroVal, nil
 }
 
@@ -2744,6 +3041,29 @@ func (ec *executionContext) field_Query_getAllOrderItemsByProductId_argsOrderID(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Query_getCategoryBox_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getCategoryBox_argsCategoryID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["categoryId"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_getCategoryBox_argsCategoryID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("categoryId"))
+	if tmp, ok := rawArgs["categoryId"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Query_getGrowthData_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2806,6 +3126,29 @@ func (ec *executionContext) field_Query_getProduct_argsID(
 ) (string, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 	if tmp, ok := rawArgs["id"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getProductsByCategory_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getProductsByCategory_argsCategoryID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["categoryId"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_getProductsByCategory_argsCategoryID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("categoryId"))
+	if tmp, ok := rawArgs["categoryId"]; ok {
 		return ec.unmarshalNString2string(ctx, tmp)
 	}
 
@@ -6127,6 +6470,262 @@ func (ec *executionContext) fieldContext_Mutation_updateProductByAdmin(ctx conte
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_createCategoryBox(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createCategoryBox(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateCategoryBox(rctx, fc.Args["name"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.CategoryBox)
+	fc.Result = res
+	return ec.marshalOcategoryBox2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBox(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createCategoryBox(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_categoryBox_id(ctx, field)
+			case "name":
+				return ec.fieldContext_categoryBox_name(ctx, field)
+			case "imageUrl":
+				return ec.fieldContext_categoryBox_imageUrl(ctx, field)
+			case "state":
+				return ec.fieldContext_categoryBox_state(ctx, field)
+			case "itemsIds":
+				return ec.fieldContext_categoryBox_itemsIds(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_categoryBox_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_categoryBox_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type categoryBox", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createCategoryBox_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteCategoryBox(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteCategoryBox(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteCategoryBox(rctx, fc.Args["categoryId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteCategoryBox(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteCategoryBox_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addProductToCategoryBox(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_addProductToCategoryBox(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddProductToCategoryBox(rctx, fc.Args["input"].([]*model.CategoryBoxInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.CategoryBox)
+	fc.Result = res
+	return ec.marshalOcategoryBox2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBox(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addProductToCategoryBox(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_categoryBox_id(ctx, field)
+			case "name":
+				return ec.fieldContext_categoryBox_name(ctx, field)
+			case "imageUrl":
+				return ec.fieldContext_categoryBox_imageUrl(ctx, field)
+			case "state":
+				return ec.fieldContext_categoryBox_state(ctx, field)
+			case "itemsIds":
+				return ec.fieldContext_categoryBox_itemsIds(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_categoryBox_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_categoryBox_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type categoryBox", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addProductToCategoryBox_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_removeProductFromCategoryBox(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_removeProductFromCategoryBox(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RemoveProductFromCategoryBox(rctx, fc.Args["categoryId"].(string), fc.Args["productId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.CategoryBox)
+	fc.Result = res
+	return ec.marshalOcategoryBox2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBox(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_removeProductFromCategoryBox(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_categoryBox_id(ctx, field)
+			case "name":
+				return ec.fieldContext_categoryBox_name(ctx, field)
+			case "imageUrl":
+				return ec.fieldContext_categoryBox_imageUrl(ctx, field)
+			case "state":
+				return ec.fieldContext_categoryBox_state(ctx, field)
+			case "itemsIds":
+				return ec.fieldContext_categoryBox_itemsIds(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_categoryBox_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_categoryBox_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type categoryBox", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeProductFromCategoryBox_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_deleteTable(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_deleteTable(ctx, field)
 	if err != nil {
@@ -9246,6 +9845,257 @@ func (ec *executionContext) fieldContext_Query_getAllRequestItems(_ context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_getAllCategoryBox(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getAllCategoryBox(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetAllCategoryBox(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.ViewcategoryBox)
+	fc.Result = res
+	return ec.marshalNViewcategoryBox2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐViewcategoryBoxᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getAllCategoryBox(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "categoryBox":
+				return ec.fieldContext_ViewcategoryBox_categoryBox(ctx, field)
+			case "products":
+				return ec.fieldContext_ViewcategoryBox_products(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ViewcategoryBox", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getNewAddedCategoryBox(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getNewAddedCategoryBox(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetNewAddedCategoryBox(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.CategoryBox)
+	fc.Result = res
+	return ec.marshalNcategoryBox2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBoxᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getNewAddedCategoryBox(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_categoryBox_id(ctx, field)
+			case "name":
+				return ec.fieldContext_categoryBox_name(ctx, field)
+			case "imageUrl":
+				return ec.fieldContext_categoryBox_imageUrl(ctx, field)
+			case "state":
+				return ec.fieldContext_categoryBox_state(ctx, field)
+			case "itemsIds":
+				return ec.fieldContext_categoryBox_itemsIds(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_categoryBox_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_categoryBox_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type categoryBox", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getCategoryBox(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getCategoryBox(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetCategoryBox(rctx, fc.Args["categoryId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.CategoryBox)
+	fc.Result = res
+	return ec.marshalOcategoryBox2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBox(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getCategoryBox(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_categoryBox_id(ctx, field)
+			case "name":
+				return ec.fieldContext_categoryBox_name(ctx, field)
+			case "imageUrl":
+				return ec.fieldContext_categoryBox_imageUrl(ctx, field)
+			case "state":
+				return ec.fieldContext_categoryBox_state(ctx, field)
+			case "itemsIds":
+				return ec.fieldContext_categoryBox_itemsIds(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_categoryBox_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_categoryBox_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type categoryBox", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getCategoryBox_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getProductsByCategory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getProductsByCategory(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetProductsByCategory(rctx, fc.Args["categoryId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Product)
+	fc.Result = res
+	return ec.marshalNProduct2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐProductᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getProductsByCategory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Product_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Product_name(ctx, field)
+			case "price":
+				return ec.fieldContext_Product_price(ctx, field)
+			case "state":
+				return ec.fieldContext_Product_state(ctx, field)
+			case "categories":
+				return ec.fieldContext_Product_categories(ctx, field)
+			case "imageUrls":
+				return ec.fieldContext_Product_imageUrls(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Product_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Product_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getProductsByCategory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_getID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_getID(ctx, field)
 	if err != nil {
@@ -10566,6 +11416,122 @@ func (ec *executionContext) fieldContext_UserInfor_firstlastOrderDate(_ context.
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ViewcategoryBox_categoryBox(ctx context.Context, field graphql.CollectedField, obj *model.ViewcategoryBox) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ViewcategoryBox_categoryBox(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CategoryBox, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.CategoryBox)
+	fc.Result = res
+	return ec.marshalOcategoryBox2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBox(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ViewcategoryBox_categoryBox(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ViewcategoryBox",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_categoryBox_id(ctx, field)
+			case "name":
+				return ec.fieldContext_categoryBox_name(ctx, field)
+			case "imageUrl":
+				return ec.fieldContext_categoryBox_imageUrl(ctx, field)
+			case "state":
+				return ec.fieldContext_categoryBox_state(ctx, field)
+			case "itemsIds":
+				return ec.fieldContext_categoryBox_itemsIds(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_categoryBox_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_categoryBox_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type categoryBox", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ViewcategoryBox_products(ctx context.Context, field graphql.CollectedField, obj *model.ViewcategoryBox) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ViewcategoryBox_products(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Products, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Product)
+	fc.Result = res
+	return ec.marshalOProduct2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐProduct(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ViewcategoryBox_products(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ViewcategoryBox",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Product_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Product_name(ctx, field)
+			case "price":
+				return ec.fieldContext_Product_price(ctx, field)
+			case "state":
+				return ec.fieldContext_Product_state(ctx, field)
+			case "categories":
+				return ec.fieldContext_Product_categories(ctx, field)
+			case "imageUrls":
+				return ec.fieldContext_Product_imageUrls(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Product_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Product_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
 	}
 	return fc, nil
@@ -12518,6 +13484,299 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _categoryBox_id(ctx context.Context, field graphql.CollectedField, obj *model.CategoryBox) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_categoryBox_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.CategoryBox().ID(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_categoryBox_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "categoryBox",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _categoryBox_name(ctx context.Context, field graphql.CollectedField, obj *model.CategoryBox) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_categoryBox_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_categoryBox_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "categoryBox",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _categoryBox_imageUrl(ctx context.Context, field graphql.CollectedField, obj *model.CategoryBox) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_categoryBox_imageUrl(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ImageUrl, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_categoryBox_imageUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "categoryBox",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _categoryBox_state(ctx context.Context, field graphql.CollectedField, obj *model.CategoryBox) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_categoryBox_state(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.State, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.ProductState)
+	fc.Result = res
+	return ec.marshalOProductState2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐProductState(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_categoryBox_state(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "categoryBox",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ProductState does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _categoryBox_itemsIds(ctx context.Context, field graphql.CollectedField, obj *model.CategoryBox) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_categoryBox_itemsIds(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.CategoryBox().ItemsIds(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*string)
+	fc.Result = res
+	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_categoryBox_itemsIds(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "categoryBox",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _categoryBox_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.CategoryBox) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_categoryBox_createdAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_categoryBox_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "categoryBox",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _categoryBox_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.CategoryBox) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_categoryBox_updatedAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_categoryBox_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "categoryBox",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _jobRequest_id(ctx context.Context, field graphql.CollectedField, obj *model.JobRequest) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_jobRequest_id(ctx, field)
 	if err != nil {
@@ -13234,6 +14493,47 @@ func (ec *executionContext) fieldContext_orderproductInfor_quantity(_ context.Co
 // endregion **************************** field.gotpl *****************************
 
 // region    **************************** input.gotpl *****************************
+
+func (ec *executionContext) unmarshalInputCategoryBoxInput(ctx context.Context, obj any) (model.CategoryBoxInput, error) {
+	var it model.CategoryBoxInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"categoryName", "files", "productId"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "categoryName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("categoryName"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CategoryName = data
+		case "files":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("files"))
+			data, err := ec.unmarshalOUpload2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Files = data
+		case "productId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("productId"))
+			data, err := ec.unmarshalOString2ᚕᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ProductID = data
+		}
+	}
+
+	return it, nil
+}
 
 func (ec *executionContext) unmarshalInputChatMessageAdminInput(ctx context.Context, obj any) (model.ChatMessageAdminInput, error) {
 	var it model.ChatMessageAdminInput
@@ -14601,6 +15901,22 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateProductByAdmin(ctx, field)
 			})
+		case "createCategoryBox":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createCategoryBox(ctx, field)
+			})
+		case "deleteCategoryBox":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteCategoryBox(ctx, field)
+			})
+		case "addProductToCategoryBox":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addProductToCategoryBox(ctx, field)
+			})
+		case "removeProductFromCategoryBox":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeProductFromCategoryBox(ctx, field)
+			})
 		case "deleteTable":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteTable(ctx, field)
@@ -15608,6 +16924,91 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getAllCategoryBox":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getAllCategoryBox(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getNewAddedCategoryBox":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getNewAddedCategoryBox(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getCategoryBox":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getCategoryBox(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getProductsByCategory":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getProductsByCategory(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "getID":
 			field := field
 
@@ -16049,6 +17450,44 @@ func (ec *executionContext) _UserInfor(ctx context.Context, sel ast.SelectionSet
 	return out
 }
 
+var viewcategoryBoxImplementors = []string{"ViewcategoryBox"}
+
+func (ec *executionContext) _ViewcategoryBox(ctx context.Context, sel ast.SelectionSet, obj *model.ViewcategoryBox) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, viewcategoryBoxImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ViewcategoryBox")
+		case "categoryBox":
+			out.Values[i] = ec._ViewcategoryBox_categoryBox(ctx, field, obj)
+		case "products":
+			out.Values[i] = ec._ViewcategoryBox_products(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var __DirectiveImplementors = []string{"__Directive"}
 
 func (ec *executionContext) ___Directive(ctx context.Context, sel ast.SelectionSet, obj *introspection.Directive) graphql.Marshaler {
@@ -16357,6 +17796,122 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = ec.___Type_specifiedByURL(ctx, field, obj)
 		case "isOneOf":
 			out.Values[i] = ec.___Type_isOneOf(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var categoryBoxImplementors = []string{"categoryBox"}
+
+func (ec *executionContext) _categoryBox(ctx context.Context, sel ast.SelectionSet, obj *model.CategoryBox) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, categoryBoxImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("categoryBox")
+		case "id":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._categoryBox_id(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "name":
+			out.Values[i] = ec._categoryBox_name(ctx, field, obj)
+		case "imageUrl":
+			out.Values[i] = ec._categoryBox_imageUrl(ctx, field, obj)
+		case "state":
+			out.Values[i] = ec._categoryBox_state(ctx, field, obj)
+		case "itemsIds":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._categoryBox_itemsIds(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "createdAt":
+			out.Values[i] = ec._categoryBox_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updatedAt":
+			out.Values[i] = ec._categoryBox_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -17392,6 +18947,60 @@ func (ec *executionContext) marshalNUserInfor2ᚖgithubᚗcomᚋmineracailᚋser
 	return ec._UserInfor(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNViewcategoryBox2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐViewcategoryBoxᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ViewcategoryBox) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNViewcategoryBox2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐViewcategoryBox(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNViewcategoryBox2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐViewcategoryBox(ctx context.Context, sel ast.SelectionSet, v *model.ViewcategoryBox) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ViewcategoryBox(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
 	return ec.___Directive(ctx, sel, &v)
 }
@@ -17645,6 +19254,60 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
+func (ec *executionContext) marshalNcategoryBox2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBoxᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.CategoryBox) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNcategoryBox2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBox(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNcategoryBox2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBox(ctx context.Context, sel ast.SelectionSet, v *model.CategoryBox) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._categoryBox(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNinputUser2githubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐInputUser(ctx context.Context, v any) (model.InputUser, error) {
 	res, err := ec.unmarshalInputinputUser(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -17769,6 +19432,34 @@ func (ec *executionContext) marshalOCartItemOrder2ᚖgithubᚗcomᚋmineracail�
 	return ec._CartItemOrder(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOCategoryBoxInput2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBoxInput(ctx context.Context, v any) ([]*model.CategoryBoxInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]*model.CategoryBoxInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalOCategoryBoxInput2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBoxInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalOCategoryBoxInput2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBoxInput(ctx context.Context, v any) (*model.CategoryBoxInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputCategoryBoxInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalOChatMessage2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐChatMessage(ctx context.Context, sel ast.SelectionSet, v *model.ChatMessage) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -17890,6 +19581,47 @@ func (ec *executionContext) unmarshalOOrderItemInput2ᚖgithubᚗcomᚋmineracai
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalOProduct2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐProduct(ctx context.Context, sel ast.SelectionSet, v []*model.Product) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOProduct2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐProduct(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
 func (ec *executionContext) marshalOProduct2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐProduct(ctx context.Context, sel ast.SelectionSet, v *model.Product) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -17918,6 +19650,16 @@ func (ec *executionContext) marshalORequestItem2ᚖgithubᚗcomᚋmineracailᚋs
 		return graphql.Null
 	}
 	return ec._RequestItem(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOString2string(ctx context.Context, v any) (string, error) {
+	res, err := graphql.UnmarshalString(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalString(v)
+	return res
 }
 
 func (ec *executionContext) unmarshalOString2ᚕᚖstring(ctx context.Context, v any) ([]*string, error) {
@@ -18277,6 +20019,54 @@ func (ec *executionContext) marshalO__Type2ᚖgithubᚗcomᚋ99designsᚋgqlgen�
 		return graphql.Null
 	}
 	return ec.___Type(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOcategoryBox2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBox(ctx context.Context, sel ast.SelectionSet, v []*model.CategoryBox) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOcategoryBox2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBox(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
+func (ec *executionContext) marshalOcategoryBox2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCategoryBox(ctx context.Context, sel ast.SelectionSet, v *model.CategoryBox) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._categoryBox(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOjobRequest2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐJobRequest(ctx context.Context, sel ast.SelectionSet, v []*model.JobRequest) graphql.Marshaler {

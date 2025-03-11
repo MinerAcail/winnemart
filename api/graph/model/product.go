@@ -18,7 +18,16 @@ type CartItem struct {
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
+type CategoryBox struct {
+	ID uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primary_key" json:"id"`
+	Name    string `json:"name"`
+	ImageUrl string `json:"imageUrl"`
+	State     *ProductState `json:"state,omitempty"`
+	ItemsIds 	 pq.StringArray `gorm:"type:text[]" json:"itemsIds,omitempty"`
 
+	CreatedAt time.Time     `json:"createdAt"`
+	UpdatedAt time.Time     `json:"updatedAt"`
+}
 type ItemFiles struct {
 	ID uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primary_key" json:"id"`
 

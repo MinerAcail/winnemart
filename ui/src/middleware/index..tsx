@@ -7,6 +7,7 @@ const API_URL =
 
 const link = createUploadLink({
   uri: API_URL,
+  // uri: "http://localhost:4001/query",
   credentials: "include",
 });
 

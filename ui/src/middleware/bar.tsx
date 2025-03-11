@@ -20,7 +20,7 @@ const items = [
     icon: Home,
   },
   {
-    title: "Shop",
+    title: "Combo",
     url: "/shop",
     icon: ShoppingBag,
   },

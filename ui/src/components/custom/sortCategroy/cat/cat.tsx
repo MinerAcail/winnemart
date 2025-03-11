@@ -134,12 +134,9 @@ const ViewCate = () => {
       </div>
     );
 
-    if (data?.getAllCategoryBox.length === 0) {
-      return (
-       <NoItemsFound/>
-      );
-        
-    }
+  if (data?.getAllCategoryBox.length === 0) {
+    return <NoItemsFound />;
+  }
 
   return (
     <div className="maincontainer mx-auto px-4">
@@ -259,11 +256,14 @@ const ViewCate = () => {
                       )}
                     </span>
                     <span className="text-xs text-gray-500">
-                      From{" "}
                       {products.length > 0
-                        ? `${ghSim}${parseFloat(
-                            products[0].price
-                          ).toLocaleString()}`
+                        ? ` ${ghSim}${products
+                            .reduce(
+                              (total, product) =>
+                                total + parseFloat(product.price),
+                              0
+                            )
+                            .toLocaleString()}`
                         : "N/A"}
                     </span>
                   </div>
@@ -303,9 +303,19 @@ const ViewCate = () => {
               })),
             }}
             onClose={() => setSelectedCategory(null)}
-            onDeleteItem={(categoryId, itemId) =>
-              console.log(`Delete item ${itemId} from category ${categoryId}`)
-            }
+            onDeleteItem={(categoryId, itemId) => {
+              const updatedProducts = selectedCategory.products.filter(
+                (product) => product.id !== itemId
+              );
+              setSelectedCategory({
+                ...selectedCategory,
+                products: updatedProducts,
+              });
+              toast.warning(
+                `Deleted item ${itemId} from category ${categoryId}`
+              );
+              // console.log(`Deleted item ${itemId} from category ${categoryId}`);
+            }}
           />
         )}
       </div>

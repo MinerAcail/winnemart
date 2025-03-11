@@ -73,7 +73,7 @@ const InputWithButton: React.FC<SearchProps> = ({ onSearch,isExpanded, setIsExpa
         variant="ghost"
         onClick={toggleSearch}
         className={`
-          z-10 h-10 w-10 rounded-full transition-all duration-300 ease-in-out
+            rounded-full transition-all duration-300 ease-in-out
           ${
             isExpanded
               ? "bg-background hover:bg-secondary"

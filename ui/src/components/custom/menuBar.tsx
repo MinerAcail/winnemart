@@ -1,11 +1,16 @@
 import React, { useState } from "react";
-import { ShoppingBasket, MenuSquare } from "lucide-react";
+import {
+  ShoppingBasket,
+  MenuSquare,
+  ShoppingBag,
+  LucideHome,
+} from "lucide-react";
 // import SelectCategoryFilter from "./SelectCategoryFilter";
 import { SheetSide } from "./sideBar";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { CartSidebarProps } from "./CartSidebar";
 import { Button } from "../ui/button";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { useSidebar } from "../ui/sidebar";
 import logo from "../../assets/ww.png";
 import Search from "../../../icons/input-with-button.tsx";
@@ -25,6 +30,8 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
     placeOrder,
   },
 }) => {
+  const location = useLocation();
+  const isShopPage = location.pathname === "/shop";
   const { isDesktop } = useDeviceType();
   const { toggleSidebar } = useSidebar();
   const [isSearchExpanded, setIsSearchExpanded] = useState<boolean>(false);
@@ -46,9 +53,8 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
         )}
       </Link>
 
-      <div className="flex cursor-pointer items-center ">
+      <div className="flex items-center space-x-4">
         {/* Show the shopping basket icon on mobile */}
-
         {!isDesktop && (
           <SheetSide
             CartSidebarProps={{
@@ -60,13 +66,12 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
             }}
           >
             {/* Shopping Basket Icon with Cart Badge */}
-            {!isSearchExpanded && !isDesktop && (
+            {!isSearchExpanded && (
               <div className="relative ">
                 <ShoppingBasket className="w-6 h-6 text-slate-700" />
-
                 {/* Conditionally render the badge if there are items in the cart */}
                 {cart.length > 0 && (
-                  <div className="absolute top-[-8px] right-[20px] bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs z-50">
+                  <div className="absolute top-[-8px] right-[-8px] bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs z-50">
                     {cart.length}
                   </div>
                 )}
@@ -76,35 +81,54 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
         )}
 
         {!isSearchExpanded && !isDesktop && (
-          <div className={""}>
-            <MenuSquare onClick={toggleSidebar} className="" />
+          <div className="flex items-center space-x-4">
+            <Link to={isShopPage ? "/" : "/shop"}>
+              {isShopPage ? (
+                <LucideHome className="w-6 h-6 text-slate-700" />
+              ) : (
+                <ShoppingBag className="w-6 h-6 text-slate-700" />
+              )}
+            </Link>
+            <MenuSquare
+              onClick={toggleSidebar}
+              className="w-6 h-6 text-slate-700"
+            />
           </div>
         )}
+
         <Search
           isExpanded={isSearchExpanded}
           setIsExpanded={setIsSearchExpanded}
         />
 
         {isDesktop && (
-          <>
-            <Link to={"/shop"} className="px-3">
-              <Button variant="outline" className="flex items-center gap-1 p3">
-                Shop
-              </Button>
-            </Link>
-            <Link to={"/request"} className="px-3">
-              <Button variant="outline" className="flex items-center gap-1 p3">
+          <div className="flex items-center space-x-4">
+            {isShopPage ? (
+              <Link to={"/"}>
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-1 p-3"
+                >
+                  Home
+                </Button>
+              </Link>
+            ) : (
+              <Link to={"/shop"}>
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-1 p-3"
+                >
+                  Shop
+                </Button>
+              </Link>
+            )}
+            <Link to={"/request"}>
+              <Button variant="outline" className="flex items-center gap-1 p-3">
                 Request Item
               </Button>
             </Link>
-          </>
+          </div>
         )}
-        {/* Show SelectCategoryFilter on desktop */}
-        {/* <SelectCategoryFilter
-          categories={categories}
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-        /> */}
       </div>
     </nav>
   );

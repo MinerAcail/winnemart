@@ -111,9 +111,9 @@ extend type Query {
   getAllOrderHistory: [Order]
   getAllOrderItemsByProductId(orderId: String!): CartItemOrder
   getAllOrderItemsByProductIdDelivery: [CartItemOrder]
-  useGetordertracking: CartItemOrder
+  useGetordertracking(orderId: String): CartItemOrder
   getAllUserStats: [UserInfor!]!
-  getOrderChat: OrderChat
+  getOrderChat(orderId:String): OrderChat
   getAllChatMessageByNumber(customerNumber: String!): [ChatMessage]!
 
   getAllRequestItems: [RequestItem!]!
@@ -130,7 +130,7 @@ extend type Mutation {
   deleteProduct(id: String!): Boolean
   createOrderItems(input: OrderInput): Order
   updateOrderStatus(orderID: String, status: String!): Boolean
-  sendChatMessage(input: ChatMessageInput!): ChatMessage!
+  sendChatMessage(input: ChatMessageInput!,orderId: String): ChatMessage!
   sendChatMessageByNumber(input: ChatMessageAdminInput!): ChatMessage!
   markMessagesAsRead(sender: SenderType!): Boolean!
   deleteAllChatMessageByNumber(customerNumber: String!): Boolean!
@@ -144,7 +144,7 @@ extend type Mutation {
   deleteAllRequestItems: Boolean
   deleteProductByAdmin(productId: String!): Boolean
   updateProductByAdmin(productId: String!, input: ProductInput!): Product
-
+clearLocalStore(orderId:String): Boolean
   createCategoryBox(name: String): categoryBox
   deleteCategoryBox(categoryId: String!): Boolean
   addProductToCategoryBox(input: [CategoryBoxInput]): [categoryBox]

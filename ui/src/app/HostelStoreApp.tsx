@@ -1,15 +1,15 @@
-
 // HostelStoreApp.tsx
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { gql } from "@apollo/client";
 import CartSidebar from "@/components/custom/CartSidebar";
 import ItemGrid from "@/components/custom/ItemGrid";
 import ItemCarousel from "@/components/custom/view";
-import Loading from '../components/ui/loading.tsx';
-import {  useCart, Item } from "@/hooks/CartContext.tsx";
+import Loading from "../components/ui/loading.tsx";
+import { useCart, Item } from "@/hooks/CartContext.tsx";
 import NavBar from "./navBar.tsx";
+import { ClearLocalStore } from "@/middleware/bar.tsx";
 
 const GET_PRODUCTS = gql`
   query getAllProducts {
@@ -29,7 +29,14 @@ const HostelStoreContent: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [searchTerm] = useState<string>("");
   const [selectedProduct, setSelectedProduct] = useState<Item | null>(null);
-  const { cart, hostelDetails, setHostelDetails, removeFromCart, addToCart, placeOrder } = useCart();
+  const {
+    cart,
+    hostelDetails,
+    setHostelDetails,
+    removeFromCart,
+    addToCart,
+    placeOrder,
+  } = useCart();
 
   const { data, loading, error } = useQuery(GET_PRODUCTS);
 
@@ -43,7 +50,7 @@ const HostelStoreContent: React.FC = () => {
   // Update URL when category changes
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    
+
     // Add category to URL if not "All"
     if (selectedCategory !== "All") {
       params.set("category", selectedCategory);
@@ -63,8 +70,6 @@ const HostelStoreContent: React.FC = () => {
 
   // Extract items from the fetched data
   const products: Item[] = data.getAllProducts;
-
-
 
   const filteredItems: Item[] = products.filter(
     (item) =>
@@ -112,12 +117,27 @@ const HostelStoreContent: React.FC = () => {
     </div>
   );
 };
-
 const HostelStoreApp: React.FC = () => {
-  return (
+  const rawOrderId = localStorage.getItem("foodie_last_order_id");
+  const orderId = rawOrderId ? rawOrderId.replace(/^"|"$/g, "").trim() : null;
+  const sanitizedOrderId = orderId && orderId.length > 0 ? orderId : null;
 
-      <HostelStoreContent />
-  );
+  const [clearLocalStore, { data }] = useMutation(ClearLocalStore);
+
+  useEffect(() => {
+    if (!sanitizedOrderId) return;
+
+    clearLocalStore({
+      variables: { orderId: sanitizedOrderId },
+    });
+  }, [sanitizedOrderId, clearLocalStore]);
+
+  useEffect(() => {
+    if (data?.clearLocalStore) {
+      localStorage.removeItem("foodie_last_order_id");
+    }
+  }, [data]);
+
+  return <HostelStoreContent />;
 };
-
 export default HostelStoreApp;

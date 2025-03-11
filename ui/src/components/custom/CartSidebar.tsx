@@ -30,15 +30,28 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   placeOrder,
 }) => {
   const [showReceipt, setShowReceipt] = React.useState(false);
-  const { error } = useQuery(GET_ORDER_TRACKING);
-  const OrderTimestamp = localStorage.getItem("lastOrderTimestamp");
+  const rawOrderId = localStorage.getItem("foodie_last_order_id");
+  const orderId = rawOrderId ? rawOrderId.replace(/^"|"$/g, "").trim() : null;
+  const sanitizedOrderId = orderId && orderId.length > 0 ? orderId : null;
 
+  const { data, error, loading } = useQuery(GET_ORDER_TRACKING, {
+    variables: { orderId: sanitizedOrderId },
+    skip: !sanitizedOrderId, // Skip query if orderId is null
+  });
+
+  const OrderTimestamp = localStorage.getItem("lastOrderTimestamp");
+  // const orderId = localStorage.getItem("foodie_last_order_id");
+  console.log("error", error);
+  console.log("data", data);
   useEffect(() => {
+    if (loading) return; // Wait for query to finish loading
+
     if (error) {
+      console.error("GraphQL Error:", error.message);
       if (error.message.includes("no tracking cookie found")) {
         setShowReceipt(false);
       }
-    } else {
+    } else if (data) {
       const currentTime = new Date().getTime();
       const orderTime = OrderTimestamp ? new Date(OrderTimestamp).getTime() : 0;
       const timeDifference = currentTime - orderTime;
@@ -47,10 +60,23 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
       if (timeDifference > oneHour) {
         setShowReceipt(false);
       } else {
-        setShowReceipt(true); // Show receipt if no error and within 1 hour
+        setShowReceipt(true);
       }
     }
-  }, [error, OrderTimestamp]);
+
+    const timer = setTimeout(() => {
+      if (!sanitizedOrderId) {
+        setShowReceipt(false);
+        return;
+      }
+      if (!error) {
+        setShowReceipt(true);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [loading, error, data, OrderTimestamp]);
+
   return (
     <>
       {!showReceipt ? (

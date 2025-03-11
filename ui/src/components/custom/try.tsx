@@ -12,7 +12,7 @@ interface Product {
 
 interface ProductInfo {
   quantity: number;
-  product: Product[];
+  product: Product[]; // Array of products
 }
 
 interface OrderTrackingData {
@@ -22,10 +22,15 @@ interface OrderTrackingData {
     deliveryAddress: string;
     estimatedDeliveryDate: string;
     createdAt: string;
-
     status: string;
     productInfor: ProductInfo[];
   };
+}
+
+export interface OrderItem {
+  name: string;
+  price: number;
+  quantity: number;
 }
 
 export interface ReceiptProps {
@@ -33,19 +38,15 @@ export interface ReceiptProps {
   date: string;
   userLocation: string;
   vendorNumber: string;
-  items: {
-    name: string;
-    price: number;
-    quantity: number;
-  }[];
+  items: OrderItem[];
   subtotal: number;
   tax: number;
   total: number;
 }
 
 export const GET_ORDER_TRACKING = gql`
-  query useGetordertracking {
-    useGetordertracking {
+  query useGetordertracking($orderId: String) {
+    useGetordertracking(orderId: $orderId) {
       orderId
       customerNumber
       deliveryAddress
@@ -64,9 +65,18 @@ export const GET_ORDER_TRACKING = gql`
   }
 `;
 
-export default function CardReceipt() {
-  const { data, loading, error } =
-    useQuery<OrderTrackingData>(GET_ORDER_TRACKING);
+export default function CardReceipt(): JSX.Element {
+  const rawOrderId = localStorage.getItem("foodie_last_order_id");
+  const ordId = rawOrderId ? rawOrderId.replace(/^"|"$/g, "").trim() : null;
+  const sanitizedOrderId = ordId && ordId.length > 0 ? ordId : null;
+
+  const { data, error, loading } = useQuery<OrderTrackingData>(
+    GET_ORDER_TRACKING,
+    {
+      variables: { orderId: sanitizedOrderId },
+      skip: !sanitizedOrderId, // Skip query if orderId is null
+    }
+  );
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error loading order details.</p>;
@@ -76,8 +86,10 @@ export default function CardReceipt() {
   if (!order) return <p>No order details available.</p>;
 
   // Map the order items
-  const items = order.productInfor.flatMap((info) => {
+  const items: OrderItem[] = order.productInfor.flatMap((info) => {
     const product = info.product[0]; // Assuming only one product per "product" array
+    if (!product) return [];
+
     return {
       name: product.name,
       price: parseFloat(product.price), // Convert price from string to number
@@ -91,10 +103,11 @@ export default function CardReceipt() {
   );
   const tax = 5; // Example tax amount
   const total = subtotal + tax;
-const orderId =order.orderId.slice(0, 5)
+  const orderId = order.orderId.slice(0, 5);
+
   return (
-    <ScrollArea className="mx-auto bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
-      <div className="h-[600px] w-full max-w-md mx-auto">
+    <ScrollArea className="mx-auto  bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
+      <div className="h-full w-full max-w-md mx-auto">
         {/* Header */}
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
@@ -141,7 +154,7 @@ const orderId =order.orderId.slice(0, 5)
               className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
             >
               <span className="text-sm text-zinc-700 dark:text-zinc-300">
-              Momo number or Assistance:  {order.customerNumber}
+                Momo number or Assistance: {order.customerNumber}
               </span>
               <Copy className="w-4 h-4 text-zinc-500" />
             </div>
@@ -155,13 +168,10 @@ const orderId =order.orderId.slice(0, 5)
               className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
             >
               <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                {/* {order.customerNumber} */}
-                Momo Reference : {orderId}
-
+                Momo Reference: {orderId}
               </span>
               <Copy className="w-4 h-4 text-zinc-500" />
             </div>
-           
           </div>
 
           {/* Items Section */}
@@ -184,7 +194,8 @@ const orderId =order.orderId.slice(0, 5)
                     </span>
                   </div>
                   <span className="text-zinc-900 dark:text-zinc-100">
-                   {ghSim}{(item.price * item.quantity).toFixed(2)}
+                    {ghSim}
+                    {(item.price * item.quantity).toFixed(2)}
                   </span>
                 </div>
               ))}
@@ -196,7 +207,8 @@ const orderId =order.orderId.slice(0, 5)
             <div className="flex justify-between text-sm">
               <span className="text-zinc-600 dark:text-zinc-400">Subtotal</span>
               <span className="text-zinc-900 dark:text-zinc-100">
-               {ghSim}{subtotal.toFixed(2)}
+                {ghSim}
+                {subtotal.toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between text-sm">
@@ -204,19 +216,19 @@ const orderId =order.orderId.slice(0, 5)
                 Delivery Fee
               </span>
               <span className="text-zinc-900 dark:text-zinc-100">
-               {ghSim}{tax.toFixed(2)}
+                {ghSim}
+                {tax.toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between text-base font-medium pt-2 border-t border-zinc-200 dark:border-zinc-800">
               <span className="text-zinc-900 dark:text-zinc-100">Total</span>
               <span className="text-zinc-900 dark:text-zinc-100">
-               {ghSim}{total.toFixed(2)}
+                {ghSim}
+                {total.toFixed(2)}
               </span>
             </div>
           </div>
         </div>
-
-        
       </div>
     </ScrollArea>
   );

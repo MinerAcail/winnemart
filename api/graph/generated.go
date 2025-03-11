@@ -130,6 +130,7 @@ type ComplexityRoot struct {
 		AddProductToCategoryBox      func(childComplexity int, input []*model.CategoryBoxInput) int
 		AdminLogin                   func(childComplexity int, input model.LoginInput) int
 		ClearCart                    func(childComplexity int) int
+		ClearLocalStore              func(childComplexity int, orderID *string) int
 		CreateAdmin                  func(childComplexity int, input model.CreateAdminInput) int
 		CreateCategoryBox            func(childComplexity int, name *string) int
 		CreateOrderItems             func(childComplexity int, input *model.OrderInput) int
@@ -150,7 +151,7 @@ type ComplexityRoot struct {
 		MarkMessagesAsRead           func(childComplexity int, sender model.SenderType) int
 		RemoveProductFromCategoryBox func(childComplexity int, categoryID string, productID string) int
 		RequestItem                  func(childComplexity int, input model.RequestInput) int
-		SendChatMessage              func(childComplexity int, input model.ChatMessageInput) int
+		SendChatMessage              func(childComplexity int, input model.ChatMessageInput, orderID *string) int
 		SendChatMessageByNumber      func(childComplexity int, input model.ChatMessageAdminInput) int
 		UpdateAdmin                  func(childComplexity int, id string, input model.UpdateAdminInput) int
 		UpdateAdminStatus            func(childComplexity int, id string, status string) int
@@ -234,7 +235,7 @@ type ComplexityRoot struct {
 		GetNewAddedCategoryBox              func(childComplexity int) int
 		GetNewAddedProducts                 func(childComplexity int) int
 		GetOrder                            func(childComplexity int, id string) int
-		GetOrderChat                        func(childComplexity int) int
+		GetOrderChat                        func(childComplexity int, orderID *string) int
 		GetProduct                          func(childComplexity int, id string) int
 		GetProductsByCategory               func(childComplexity int, categoryID string) int
 		GetUserByID                         func(childComplexity int, id string) int
@@ -242,7 +243,7 @@ type ComplexityRoot struct {
 		ListAdmins                          func(childComplexity int) int
 		ReviewAllWorks                      func(childComplexity int) int
 		ReviewApplicate                     func(childComplexity int) int
-		UseGetordertracking                 func(childComplexity int) int
+		UseGetordertracking                 func(childComplexity int, orderID *string) int
 	}
 
 	RequestItem struct {
@@ -352,7 +353,7 @@ type MutationResolver interface {
 	DeleteProduct(ctx context.Context, id string) (*bool, error)
 	CreateOrderItems(ctx context.Context, input *model.OrderInput) (*model.Order, error)
 	UpdateOrderStatus(ctx context.Context, orderID *string, status string) (*bool, error)
-	SendChatMessage(ctx context.Context, input model.ChatMessageInput) (*model.ChatMessage, error)
+	SendChatMessage(ctx context.Context, input model.ChatMessageInput, orderID *string) (*model.ChatMessage, error)
 	SendChatMessageByNumber(ctx context.Context, input model.ChatMessageAdminInput) (*model.ChatMessage, error)
 	MarkMessagesAsRead(ctx context.Context, sender model.SenderType) (bool, error)
 	DeleteAllChatMessageByNumber(ctx context.Context, customerNumber string) (bool, error)
@@ -362,6 +363,7 @@ type MutationResolver interface {
 	DeleteAllRequestItems(ctx context.Context) (*bool, error)
 	DeleteProductByAdmin(ctx context.Context, productID string) (*bool, error)
 	UpdateProductByAdmin(ctx context.Context, productID string, input model.ProductInput) (*model.Product, error)
+	ClearLocalStore(ctx context.Context, orderID *string) (*bool, error)
 	CreateCategoryBox(ctx context.Context, name *string) (*model.CategoryBox, error)
 	DeleteCategoryBox(ctx context.Context, categoryID string) (*bool, error)
 	AddProductToCategoryBox(ctx context.Context, input []*model.CategoryBoxInput) ([]*model.CategoryBox, error)
@@ -407,9 +409,9 @@ type QueryResolver interface {
 	GetAllOrderHistory(ctx context.Context) ([]*model.Order, error)
 	GetAllOrderItemsByProductID(ctx context.Context, orderID string) (*model.CartItemOrder, error)
 	GetAllOrderItemsByProductIDDelivery(ctx context.Context) ([]*model.CartItemOrder, error)
-	UseGetordertracking(ctx context.Context) (*model.CartItemOrder, error)
+	UseGetordertracking(ctx context.Context, orderID *string) (*model.CartItemOrder, error)
 	GetAllUserStats(ctx context.Context) ([]*model.UserInfor, error)
-	GetOrderChat(ctx context.Context) (*model.OrderChat, error)
+	GetOrderChat(ctx context.Context, orderID *string) (*model.OrderChat, error)
 	GetAllChatMessageByNumber(ctx context.Context, customerNumber string) ([]*model.ChatMessage, error)
 	GetAllRequestItems(ctx context.Context) ([]*model.RequestItem, error)
 	GetAllCategoryBox(ctx context.Context) ([]*model.ViewcategoryBox, error)
@@ -769,6 +771,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.ClearCart(childComplexity), true
 
+	case "Mutation.clearLocalStore":
+		if e.complexity.Mutation.ClearLocalStore == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_clearLocalStore_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ClearLocalStore(childComplexity, args["orderId"].(*string)), true
+
 	case "Mutation.createAdmin":
 		if e.complexity.Mutation.CreateAdmin == nil {
 			break
@@ -1004,7 +1018,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.SendChatMessage(childComplexity, args["input"].(model.ChatMessageInput)), true
+		return e.complexity.Mutation.SendChatMessage(childComplexity, args["input"].(model.ChatMessageInput), args["orderId"].(*string)), true
 
 	case "Mutation.sendChatMessageByNumber":
 		if e.complexity.Mutation.SendChatMessageByNumber == nil {
@@ -1530,7 +1544,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.GetOrderChat(childComplexity), true
+		args, err := ec.field_Query_getOrderChat_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetOrderChat(childComplexity, args["orderId"].(*string)), true
 
 	case "Query.getProduct":
 		if e.complexity.Query.GetProduct == nil {
@@ -1601,7 +1620,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.UseGetordertracking(childComplexity), true
+		args, err := ec.field_Query_useGetordertracking_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.UseGetordertracking(childComplexity, args["orderId"].(*string)), true
 
 	case "RequestItem.categories":
 		if e.complexity.RequestItem.Categories == nil {
@@ -2161,6 +2185,29 @@ func (ec *executionContext) field_Mutation_adminLogin_argsInput(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation_clearLocalStore_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_clearLocalStore_argsOrderID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["orderId"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_clearLocalStore_argsOrderID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("orderId"))
+	if tmp, ok := rawArgs["orderId"]; ok {
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation_createAdmin_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2619,6 +2666,11 @@ func (ec *executionContext) field_Mutation_sendChatMessage_args(ctx context.Cont
 		return nil, err
 	}
 	args["input"] = arg0
+	arg1, err := ec.field_Mutation_sendChatMessage_argsOrderID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["orderId"] = arg1
 	return args, nil
 }
 func (ec *executionContext) field_Mutation_sendChatMessage_argsInput(
@@ -2631,6 +2683,19 @@ func (ec *executionContext) field_Mutation_sendChatMessage_argsInput(
 	}
 
 	var zeroVal model.ChatMessageInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_sendChatMessage_argsOrderID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("orderId"))
+	if tmp, ok := rawArgs["orderId"]; ok {
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
 	return zeroVal, nil
 }
 
@@ -3087,6 +3152,29 @@ func (ec *executionContext) field_Query_getGrowthData_argsID(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Query_getOrderChat_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getOrderChat_argsOrderID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["orderId"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_getOrderChat_argsOrderID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("orderId"))
+	if tmp, ok := rawArgs["orderId"]; ok {
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Query_getOrder_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3176,6 +3264,29 @@ func (ec *executionContext) field_Query_getUserById_argsID(
 	}
 
 	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_useGetordertracking_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_useGetordertracking_argsOrderID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["orderId"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_useGetordertracking_argsOrderID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("orderId"))
+	if tmp, ok := rawArgs["orderId"]; ok {
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
 	return zeroVal, nil
 }
 
@@ -5873,7 +5984,7 @@ func (ec *executionContext) _Mutation_sendChatMessage(ctx context.Context, field
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().SendChatMessage(rctx, fc.Args["input"].(model.ChatMessageInput))
+		return ec.resolvers.Mutation().SendChatMessage(rctx, fc.Args["input"].(model.ChatMessageInput), fc.Args["orderId"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6464,6 +6575,58 @@ func (ec *executionContext) fieldContext_Mutation_updateProductByAdmin(ctx conte
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_updateProductByAdmin_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_clearLocalStore(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_clearLocalStore(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().ClearLocalStore(rctx, fc.Args["orderId"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_clearLocalStore(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_clearLocalStore_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -9564,7 +9727,7 @@ func (ec *executionContext) _Query_useGetordertracking(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().UseGetordertracking(rctx)
+		return ec.resolvers.Query().UseGetordertracking(rctx, fc.Args["orderId"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9578,7 +9741,7 @@ func (ec *executionContext) _Query_useGetordertracking(ctx context.Context, fiel
 	return ec.marshalOCartItemOrder2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCartItemOrder(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_useGetordertracking(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_useGetordertracking(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -9603,6 +9766,17 @@ func (ec *executionContext) fieldContext_Query_useGetordertracking(_ context.Con
 			}
 			return nil, fmt.Errorf("no field named %q was found under type CartItemOrder", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_useGetordertracking_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -9677,7 +9851,7 @@ func (ec *executionContext) _Query_getOrderChat(ctx context.Context, field graph
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetOrderChat(rctx)
+		return ec.resolvers.Query().GetOrderChat(rctx, fc.Args["orderId"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9691,7 +9865,7 @@ func (ec *executionContext) _Query_getOrderChat(ctx context.Context, field graph
 	return ec.marshalOOrderChat2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐOrderChat(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_getOrderChat(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_getOrderChat(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -9706,6 +9880,17 @@ func (ec *executionContext) fieldContext_Query_getOrderChat(_ context.Context, f
 			}
 			return nil, fmt.Errorf("no field named %q was found under type OrderChat", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getOrderChat_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -15900,6 +16085,10 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "updateProductByAdmin":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateProductByAdmin(ctx, field)
+			})
+		case "clearLocalStore":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_clearLocalStore(ctx, field)
 			})
 		case "createCategoryBox":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {

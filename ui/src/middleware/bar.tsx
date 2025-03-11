@@ -11,6 +11,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { gql, useMutation } from "@apollo/client"
+import { useEffect } from "react"
 
 // Menu items.
 const items = [
@@ -38,7 +40,33 @@ const items = [
 
 ]
 
+export const ClearLocalStore = gql`
+mutation ClearLocalStore($orderId: String){
+  clearLocalStore(orderId:$orderId)
+}
+`
+
 export function AppSidebar() {
+  const rawOrderId = localStorage.getItem("foodie_last_order_id");
+  const orderId = rawOrderId ? rawOrderId.replace(/^"|"$/g, "").trim() : null;
+  const sanitizedOrderId = orderId && orderId.length > 0 ? orderId : null;
+
+  const [clearLocalStore, { data }] = useMutation(ClearLocalStore);
+
+  useEffect(() => {
+    if (!sanitizedOrderId) return;
+
+    clearLocalStore({
+      variables: { orderId: sanitizedOrderId },
+    });
+  }, [sanitizedOrderId, clearLocalStore]);
+
+  useEffect(() => {
+    if (data?.clearLocalStore) {
+      localStorage.removeItem("foodie_last_order_id");
+    }
+  }, [data]);
+
   return (
     <Sidebar className={""}>
       <SidebarContent>

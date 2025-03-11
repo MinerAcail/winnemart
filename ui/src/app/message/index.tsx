@@ -6,18 +6,19 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const SEND_MESSAGE = gql`
-  mutation sendChatMessage($input: ChatMessageInput!) {
-    sendChatMessage(input: $input) {
+  mutation sendChatMessage($input: ChatMessageInput!,$orderId:String) {
+    sendChatMessage(input: $input,orderId:$orderId) {
       id
       orderId
       sender
       Read
     }
-  }`;
+  }
+  `;
 
 const GET_CHAT = gql`
-  query getOrderChat {
-    getOrderChat {
+   query getOrderChat($orderId:String){
+    getOrderChat(orderId:$orderId) {
       orderId
       messages {
         id
@@ -45,6 +46,11 @@ export default function MinChat() {
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const rawOrderId = localStorage.getItem("foodie_last_order_id");
+  const orderId = rawOrderId ? rawOrderId.replace(/^"|"$/g, "").trim() : null;
+  const sanitizedOrderId = orderId && orderId.length > 0 ? orderId : null;
+
+  
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -57,6 +63,7 @@ export default function MinChat() {
 
   // Query to fetch chat messages
   const { data, loading, error } = useQuery<ChatData>(GET_CHAT, {
+    variables: { orderId: sanitizedOrderId },
     pollInterval: 5000, // Poll every 5 seconds for new messages
   });
 
@@ -69,7 +76,8 @@ export default function MinChat() {
   useEffect(() => {
     scrollToBottom();
   }, [data?.getOrderChat.messages]);
-
+  // variables: { orderId: sanitizedOrderId },
+  // skip: !sanitizedOrderId, // Skip query if orderId is null
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -80,6 +88,7 @@ export default function MinChat() {
             input: {
               sender: "CUSTOMER",
               content: newMessage.trim(),
+              orderId: sanitizedOrderId,
             },
           },
         });

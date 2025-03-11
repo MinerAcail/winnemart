@@ -222,10 +222,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         setLastOrderDate(orderDate);
         setCart([]);
         
+        // Save order ID to localStorage
+        setStorageItem('foodie_last_order_id', data.createOrderItems.id);
+        
         toast.success(
           `Order placed successfully! Your order ID is: ${data.createOrderItems.id.slice(
-            0,
-            5
+        0,
+        5
           )}`
         );
       }

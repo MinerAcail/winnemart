@@ -88,8 +88,8 @@ export default function MinChat() {
             input: {
               sender: "CUSTOMER",
               content: newMessage.trim(),
-              orderId: sanitizedOrderId,
             },
+            orderId: sanitizedOrderId,
           },
         });
         setNewMessage("");

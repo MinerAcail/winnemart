@@ -119,7 +119,18 @@ export default function MinChat() {
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error loading chat: {error.message}</div>;
 
-  const messages = data?.getOrderChat.messages || [];
+  let messages = data?.getOrderChat.messages || [];
+
+  // Add vendor greeting if there are no messages
+  if (messages.length === 0) {
+    messages = [
+      {
+        id: -1,
+        sender: "VENDOR",
+        content: "You Shop in Comfort, We Deliver with Speed. Please we'll attend to you shortly. 😊",
+      },
+    ];
+  }
 
   return (
     <Card className="w-full max-w-md mx-auto h-[450px] flex flex-col">

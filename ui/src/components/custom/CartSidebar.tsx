@@ -164,15 +164,53 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
 
 export default CartSidebar;
 
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MinChat from "@/app/message";
+// import { CardReceipt } from "@/components/ui/card-receipt"; // Assuming this component exists
 
 export function SideTabs() {
+  const [activeTab, setActiveTab] = useState("receipt");
+  const [hasNewMessage, setHasNewMessage] = useState(false);
+
+  // This function would be called when a new message arrives
+  const handleNewMessage = () => {
+    if (activeTab !== "message") {
+      setHasNewMessage(true);
+    }
+  };
+
+  // Example: Simulate a new message every 5 seconds (remove this in production)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      handleNewMessage();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [activeTab]);
+
+  // Reset the notification when user switches to message tab
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === "message") {
+      setHasNewMessage(false);
+    }
+  };
+
   return (
-    <Tabs defaultValue="receipt" className="w-full sticky lg:mt-32 ">
+    <Tabs
+      value={activeTab}
+      onValueChange={handleTabChange}
+      className="w-full sticky lg:mt-32"
+    >
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="receipt">Receipt</TabsTrigger>
-        <TabsTrigger value="message">Message</TabsTrigger>
+        <TabsTrigger
+          value="message"
+          className={hasNewMessage ? "animate-bounce" : ""}
+        >
+          {hasNewMessage ? "Message 1" : "Message"}
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="receipt">
         <CardReceipt />

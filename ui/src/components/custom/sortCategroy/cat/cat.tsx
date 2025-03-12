@@ -14,8 +14,8 @@ import { ghSim } from "../../ItemGrid";
 import { NoItemsFound } from "../../Empty";
 
 const GET_ALL_CATEGORY_BOX = gql`
-  query getAllCategoryBox {
-    getAllCategoryBox {
+  query getAllCategoryBox($query:String) {
+    getAllCategoryBox(query:$query) {
       categoryBox {
         id
         name
@@ -53,8 +53,11 @@ interface Category {
 
 const ViewCate = () => {
   const { isDesktop } = useDeviceType();
-  const { loading, error, data } = useQuery<{ getAllCategoryBox: Category[] }>(
-    GET_ALL_CATEGORY_BOX
+  const [searchTerm, setSearchTerm] = useState<string>("");
+
+  const { loading, error, data, refetch } = useQuery<{ getAllCategoryBox: Category[] }>(
+    GET_ALL_CATEGORY_BOX,
+    { variables: { query: searchTerm } } // Initial query with the search term
   );
 
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
@@ -113,6 +116,11 @@ const ViewCate = () => {
       `Added all ${products.length} items from this category to cart`
     );
   };
+const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    refetch({ query: value || "" }); // Ensure the query variable is passed correctly
+
+}
 
   if (loading)
     return (
@@ -143,7 +151,7 @@ const ViewCate = () => {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Main content */}
         <div className="w-full">
-          <NavBar />
+          <NavBar onSearch={handleSearch} />
           <h1 className="text-2xl font-bold mb-4">Order Receipt</h1>
 
           <div className="grid grid-cols-1 pt-14 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

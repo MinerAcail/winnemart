@@ -27,6 +27,8 @@ type CategoryBox struct {
 
 	CreatedAt time.Time     `json:"createdAt"`
 	UpdatedAt time.Time     `json:"updatedAt"`
+	SearchVector string         `gorm:"type:tsvector" json:"-"`
+
 }
 type ItemFiles struct {
 	ID uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primary_key" json:"id"`

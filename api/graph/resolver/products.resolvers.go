@@ -1454,26 +1454,59 @@ func (r *queryResolver) GetAllRequestItems(ctx context.Context) ([]*model.Reques
 }
 
 // GetAllCategoryBox is the resolver for the getAllCategoryBox field.
-func (r *queryResolver) GetAllCategoryBox(ctx context.Context) ([]*model.ViewcategoryBox, error) {
+func (r *queryResolver) GetAllCategoryBox(ctx context.Context, query *string) ([]*model.ViewcategoryBox, error) {
 	var categoryBoxes []*model.CategoryBox
-	if err := r.DB.Find(&categoryBoxes).Error; err != nil {
-		return nil, err
+	var products []*model.Product
+
+	// Apply search if query is provided
+	if query != nil && *query != "" {
+		searchedCategories, err := helper.ExecuteCategorySearchQuery(r.DB, *query)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(searchedCategories) > 0 {
+			categoryBoxes = searchedCategories
+		} else {
+			// No categories found, search in products
+			searchedProducts, err := helper.ExecuteSearchQuery(r.DB, *query)
+			if err != nil {
+				return nil, err
+			}
+
+			if len(searchedProducts) > 0 {
+				products = searchedProducts
+
+				// Get all categories that contain any of these products
+				var productIDs []string
+				for _, product := range products {
+					productIDs = append(productIDs, product.ID.String())
+				}
+
+				if err := r.DB.Where("items_ids && ?", pq.Array(productIDs)).Find(&categoryBoxes).Error; err != nil {
+					return nil, err
+				}
+			}
+		}
+	} else {
+		// Fetch all categories if no search query
+		if err := r.DB.Find(&categoryBoxes).Error; err != nil {
+			return nil, err
+		}
 	}
 
 	var result []*model.ViewcategoryBox
 	for _, categoryBox := range categoryBoxes {
-		var products []*model.Product
-
-		// Ensure ItemsIds is not empty
+		var categoryProducts []*model.Product
 		if len(categoryBox.ItemsIds) > 0 {
-			if err := r.DB.Where("id = ANY(?)", pq.Array(categoryBox.ItemsIds)).Find(&products).Error; err != nil {
+			if err := r.DB.Where("id = ANY(?)", pq.Array(categoryBox.ItemsIds)).Find(&categoryProducts).Error; err != nil {
 				return nil, err
 			}
 		}
 
 		viewCategoryBox := &model.ViewcategoryBox{
 			CategoryBox: categoryBox,
-			Products:    products,
+			Products:    categoryProducts,
 		}
 		result = append(result, viewCategoryBox)
 	}

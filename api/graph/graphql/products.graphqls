@@ -104,6 +104,7 @@ type UserInfor {
 extend type Query {
   getProduct(id: String!): Product!
   getAllProducts(query: String): [Product!]!
+
   searchProducts(query: String!): [Product!]!
   getAllProductsByAdmin: [ProductInfor!]!
   getNewAddedProducts: [Product!]!
@@ -119,7 +120,7 @@ extend type Query {
 
   getAllRequestItems: [RequestItem!]!
 
-  getAllCategoryBox: [ViewcategoryBox!]!
+  getAllCategoryBox(query: String): [ViewcategoryBox!]!
   getNewAddedCategoryBox: [categoryBox!]!
   getCategoryBox(categoryId: String!): categoryBox
   getProductsByCategory(categoryId: String!): [Product!]!

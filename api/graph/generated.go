@@ -216,7 +216,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		GetAdmin                            func(childComplexity int, id string) int
-		GetAllCategoryBox                   func(childComplexity int) int
+		GetAllCategoryBox                   func(childComplexity int, query *string) int
 		GetAllChatMessageByNumber           func(childComplexity int, customerNumber string) int
 		GetAllOrderHistory                  func(childComplexity int) int
 		GetAllOrderItemsByProductID         func(childComplexity int, orderID string) int
@@ -416,7 +416,7 @@ type QueryResolver interface {
 	GetOrderChat(ctx context.Context, orderID *string) (*model.OrderChat, error)
 	GetAllChatMessageByNumber(ctx context.Context, customerNumber string) ([]*model.ChatMessage, error)
 	GetAllRequestItems(ctx context.Context) ([]*model.RequestItem, error)
-	GetAllCategoryBox(ctx context.Context) ([]*model.ViewcategoryBox, error)
+	GetAllCategoryBox(ctx context.Context, query *string) ([]*model.ViewcategoryBox, error)
 	GetNewAddedCategoryBox(ctx context.Context) ([]*model.CategoryBox, error)
 	GetCategoryBox(ctx context.Context, categoryID string) (*model.CategoryBox, error)
 	GetProductsByCategory(ctx context.Context, categoryID string) ([]*model.Product, error)
@@ -1388,7 +1388,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.GetAllCategoryBox(childComplexity), true
+		args, err := ec.field_Query_getAllCategoryBox_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetAllCategoryBox(childComplexity, args["query"].(*string)), true
 
 	case "Query.getAllChatMessageByNumber":
 		if e.complexity.Query.GetAllChatMessageByNumber == nil {
@@ -3076,6 +3081,29 @@ func (ec *executionContext) field_Query_getAdmin_argsID(
 	}
 
 	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getAllCategoryBox_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getAllCategoryBox_argsQuery(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["query"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_getAllCategoryBox_argsQuery(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("query"))
+	if tmp, ok := rawArgs["query"]; ok {
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
 	return zeroVal, nil
 }
 
@@ -10193,7 +10221,7 @@ func (ec *executionContext) _Query_getAllCategoryBox(ctx context.Context, field 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetAllCategoryBox(rctx)
+		return ec.resolvers.Query().GetAllCategoryBox(rctx, fc.Args["query"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10210,7 +10238,7 @@ func (ec *executionContext) _Query_getAllCategoryBox(ctx context.Context, field 
 	return ec.marshalNViewcategoryBox2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐViewcategoryBoxᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_getAllCategoryBox(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_getAllCategoryBox(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -10225,6 +10253,17 @@ func (ec *executionContext) fieldContext_Query_getAllCategoryBox(_ context.Conte
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ViewcategoryBox", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getAllCategoryBox_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }

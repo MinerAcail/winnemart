@@ -69,6 +69,8 @@ type Product struct {
 	ImageUrls  pq.StringArray `gorm:"type:text[]" json:"imageUrls,omitempty"`
 	CreatedAt  *time.Time     `json:"createdAt,omitempty"`
 	UpdatedAt  *time.Time     `json:"updatedAt,omitempty"`
+	SearchVector string         `gorm:"type:tsvector" json:"-"`
+	
 }
 type PurchaseHistory struct {
 	ID             uuid.UUID              `gorm:"type:uuid;default:uuid_generate_v4();primary_key" json:"id"`

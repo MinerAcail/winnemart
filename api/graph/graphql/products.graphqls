@@ -103,7 +103,8 @@ type UserInfor {
 }
 extend type Query {
   getProduct(id: String!): Product!
-  getAllProducts: [Product!]!
+  getAllProducts(query: String): [Product!]!
+  searchProducts(query: String!): [Product!]!
   getAllProductsByAdmin: [ProductInfor!]!
   getNewAddedProducts: [Product!]!
   getOrder(id: String!): Order!

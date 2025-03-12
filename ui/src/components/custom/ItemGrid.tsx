@@ -18,26 +18,29 @@ const ItemGrid: React.FC<ItemGridProps> = ({ filteredItems, addToCart,className,
     e.stopPropagation();
     onItemSelect(item);
   };
-return   (
-  
-  <div className={className}>
-    {filteredItems.map((item,idx) => (
-      <Card key={idx}   className="hover:shadow-xl transition-all">
+return (
+<div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 ${className}`}>
+
+    {filteredItems.map((item, idx) => (
+      <Card key={idx} className="hover:shadow-xl transition-all">
         <CardContent
-        onClick={(e) => handleItemClick(item, e)}
-        className="p-4 text-center">
+          onClick={(e) => handleItemClick(item, e)}
+          className="p-4 text-center"
+        >
           <img
             src={item.imageUrls[0]}
             alt={item.name}
-            className="w-full h-40 object-cover rounded-lg mb-4"
-            
+            className="w-full h-[160px] object-cover rounded-lg mb-4"
+
           />
+          
           <h3 className="font-bold">{item.name}</h3>
-          <p className="text-muted-foreground mb-2">{ghSim}{item.price}</p>
-         
+          <p className="text-muted-foreground mb-2">
+            {ghSim}
+            {item.price}
+          </p>
         </CardContent>
         <CardContent className=" text-center bgred6">
-         
           <Button
             onClick={() => addToCart(item)}
             className="w-full"
@@ -49,6 +52,6 @@ return   (
       </Card>
     ))}
   </div>
-)};
+);};
 
 export default ItemGrid;

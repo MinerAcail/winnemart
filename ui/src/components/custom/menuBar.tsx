@@ -19,6 +19,7 @@ interface SelectCategoryFilterProps {
   selectedCategory: string;
   setSelectedCategory: React.Dispatch<React.SetStateAction<string>>;
   CartSidebarProps: CartSidebarProps;
+  onSearch?: (value: string) => void;
 }
 
 const MenuBar: React.FC<SelectCategoryFilterProps> = ({
@@ -29,12 +30,17 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
     removeFromCart,
     placeOrder,
   },
+  onSearch,
 }) => {
   const location = useLocation();
   const isShopPage = location.pathname === "/shop";
   const { isDesktop } = useDeviceType();
   const { toggleSidebar } = useSidebar();
   const [isSearchExpanded, setIsSearchExpanded] = useState<boolean>(false);
+
+  // const onSearch = (value: string) => {
+  //   console.log(value);
+  // };
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-[#76a683] shadow-md py-3 px-4 flex justify-between items-center">
       {/* Logo */}
@@ -99,6 +105,7 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
         <Search
           isExpanded={isSearchExpanded}
           setIsExpanded={setIsSearchExpanded}
+          onSearch={onSearch}
         />
 
         {isDesktop && (

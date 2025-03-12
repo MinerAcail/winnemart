@@ -9,7 +9,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // uri:"http://16.16.208.207:4001/query",
+
   
   server:{
     proxy: {
@@ -31,4 +31,10 @@ export default defineConfig({
     allowedHosts: ["winnemart.com"], // Allow winnemart.com
   },
 })
-// 4173
+// 
+
+
+// const API_URL =
+//   window.location.hostname === "localhost"
+//     ? "http://16.16.208.207:9000"
+//     : `https://${window.location.hostname}/9000`; // Changed HTTPS to HTTP

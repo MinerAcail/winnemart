@@ -1,8 +1,11 @@
 import MenuBar from '@/components/custom/menuBar'
 import { useCart } from '@/hooks/CartContext';
-import  { useState } from 'react'
+import  React, { useState } from 'react'
+type NavBarProps = {
+  onSearch?: (value: string) => void;
+}
 
-function NavBar() {
+const NavBar: React.FC<NavBarProps> = ({ onSearch }) => {
       const [selectedCategory, setSelectedCategory] = useState<string>("All");
     
       const { cart, hostelDetails, setHostelDetails, removeFromCart,  placeOrder } = useCart();
@@ -22,6 +25,7 @@ function NavBar() {
     categories={categories}
     selectedCategory={selectedCategory}
     setSelectedCategory={setSelectedCategory}
+    onSearch={onSearch}
   />
   )
 }

@@ -52,6 +52,7 @@ const InputWithButton: React.FC<SearchProps> = ({ onSearch,isExpanded, setIsExpa
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchValue.trim() && onSearch) {
+      
       onSearch(searchValue);
     }
   };

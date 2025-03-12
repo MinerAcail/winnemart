@@ -673,8 +673,6 @@ func (r *mutationResolver) ClearLocalStore(ctx context.Context, orderID *string)
 		return &success, nil
 	}
 
-
-
 	// If the order is completed, return true
 	if order.Status == "COMPLETED" {
 		success = true
@@ -909,13 +907,38 @@ func (r *queryResolver) GetProduct(ctx context.Context, id string) (*model.Produ
 }
 
 // GetAllProducts is the resolver for the getAllProducts field.
-func (r *queryResolver) GetAllProducts(ctx context.Context) ([]*model.Product, error) {
+func (r *queryResolver) GetAllProducts(ctx context.Context, query *string) ([]*model.Product, error) {
 	middleware.CleanupOrderTrackingCookie(ctx, r.DB)
-	var products []*model.Product
-	if err := r.DB.Find(&products).Error; err != nil {
-		return nil, fmt.Errorf("failed to fetch products: %v", err)
+
+	// Clean query
+	// cleanQuery := helper.CleanSearchQuery(*query)
+	// var products []*model.Product
+
+	// Handle empty query
+	if query == nil {
+		return helper.FetchAllProducts(r.DB)
 	}
-	return products, nil
+
+	// Execute search query
+	return helper.ExecuteSearchQuery(r.DB, *query)
+}
+
+// SearchProducts is the resolver for the searchProducts field.
+// SearchProducts is the resolver for the searchProducts field.
+func (r *queryResolver) SearchProducts(ctx context.Context, query string) ([]*model.Product, error) {
+	middleware.CleanupOrderTrackingCookie(ctx, r.DB)
+
+	// Clean query
+	cleanQuery := helper.CleanSearchQuery(query)
+	// var products []*model.Product
+
+	// Handle empty query
+	if cleanQuery == "" {
+		return helper.FetchAllProducts(r.DB)
+	}
+
+	// Execute search query
+	return helper.ExecuteSearchQuery(r.DB, cleanQuery)
 }
 
 // GetAllProductsByAdmin is the resolver for the getAllProductsByAdmin field.

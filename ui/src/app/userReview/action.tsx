@@ -18,7 +18,7 @@ export async function submitItem(data: z.infer<typeof formSchema>) {
 
   // TODO: Implement actual item submission logic here
   // This could involve saving to a database, sending an email to admins, etc.
-  console.log("Item submitted:", result.data)
+  // console.log("Item submitted:", result.data)
 
   // Simulate a delay to show loading state
   await new Promise((resolve) => setTimeout(resolve, 1000))

@@ -143,6 +143,7 @@ const HostelStoreApp: React.FC = () => {
       variables: { orderId: sanitizedOrderId },
     });
   }, [sanitizedOrderId, clearLocalStore]);
+// console.log("data",data);
 
   useEffect(() => {
     if (data?.clearLocalStore) {

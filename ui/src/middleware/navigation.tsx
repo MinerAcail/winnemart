@@ -1,6 +1,6 @@
  import { ApolloProvider } from "@apollo/client";
 import { createBrowserRouter, RouterProvider } from "react-router";
-import Client from "./index.";
+import Client from ".";
 import HostelStoreApp from "@/app/HostelStoreApp";
 import { Toaster } from "@/components/ui/sonner";
 import DeliveryList from "@/app/works/delivery";

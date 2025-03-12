@@ -41,8 +41,8 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
 
   const OrderTimestamp = localStorage.getItem("lastOrderTimestamp");
   // const orderId = localStorage.getItem("foodie_last_order_id");
-  console.log("error", error);
-  console.log("data", data);
+  // console.log("error", error);
+  // console.log("data", data);
   useEffect(() => {
     if (loading) return; // Wait for query to finish loading
 

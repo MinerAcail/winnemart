@@ -666,10 +666,10 @@ func (r *mutationResolver) ClearLocalStore(ctx context.Context, orderID *string)
 		return &success, err // Return the error properly
 	}
 
-	// Check if the order was created more than 1 hour ago
-	oneHourAgo := time.Now().Add(-30 * time.Hour)
-	if order.CreatedAt.Before(oneHourAgo) {
-		success = true // Return true if order is older than 1 hour
+	// Check if the order was created more thano 1 30 minute
+	min := time.Now().Add(-30 * time.Minute)
+	if order.CreatedAt.Before(min) {
+		success = true // Return true if order is older than 30 minute
 		return &success, nil
 	}
 

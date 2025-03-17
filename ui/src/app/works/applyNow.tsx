@@ -100,7 +100,7 @@ const ApplyNowSection = ({ children }: ApplyNowSectionProps) => {
     console.error('Apollo error:', error);
   }
   return (
-    <div className="text-center mt-12">
+    <div className=" ">
       <Dialog>
         <DialogTrigger asChild>
           <Button className="group relative px-8 py-6 text-lg font-semibold overflow-hidden bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300">
@@ -128,7 +128,7 @@ const ApplyNowSection = ({ children }: ApplyNowSectionProps) => {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+          <form onSubmit={handleSubmit} className="mt-4 overflow-y-scroll">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input
@@ -144,7 +144,7 @@ const ApplyNowSection = ({ children }: ApplyNowSectionProps) => {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"

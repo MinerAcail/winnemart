@@ -83,13 +83,14 @@ const Login = ({ children }: { children: ReactNode }) => {
 
         // You can check the type to navigate to different routes if needed
         const userType = result.data.deliveryLogin.type;
+        console.log(userType);
+        
         if (userType === ProtectType.Driver) {
           navigate("/delivery");
-        }
-        if (userType === ProtectType.vendor) {
+        } else if (userType === ProtectType.vendor) {
           navigate("/vendor");
         } else {
-          navigate("/");
+          setError("Invalid user type. Please contact support.");
         }
 
         // For now, navigate to delivery page

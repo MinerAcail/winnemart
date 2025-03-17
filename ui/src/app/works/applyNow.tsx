@@ -51,7 +51,7 @@ interface ApplyNowSectionProps {
 }
 
 const ApplyNowSection = ({ children }: ApplyNowSectionProps) => {
-  const [jobRequest, { loading,error }] = useMutation<
+  const [jobRequest, { loading, error }] = useMutation<
     { jobRequest: JobRequestResponse },
     { input: FormData }
   >(JOB_REQUEST_MUTATION);
@@ -96,11 +96,13 @@ const ApplyNowSection = ({ children }: ApplyNowSectionProps) => {
       toast.error(`An error occurred: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
+  
   if (error) {
     console.error('Apollo error:', error);
   }
+  
   return (
-    <div className=" ">
+    <div>
       <Dialog>
         <DialogTrigger asChild>
           <Button className="group relative px-8 py-6 text-lg font-semibold overflow-hidden bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300">
@@ -117,9 +119,8 @@ const ApplyNowSection = ({ children }: ApplyNowSectionProps) => {
           </Button>
         </DialogTrigger>
 
-        <DialogContent className="sm:max-w-md max-h-screen overflow-y-auto">
-
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md max-h-[80vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Join Our Team
             </DialogTitle>
@@ -128,114 +129,116 @@ const ApplyNowSection = ({ children }: ApplyNowSectionProps) => {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="mt-4 overflow-y-scroll">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                type="text"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                placeholder="John Doe"
-                required
-                className="border-blue-200 focus:border-blue-500"
-              />
-            </div>
+          <div className="overflow-y-auto flex-grow pb-4 px-1 -mx-1">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder="John Doe"
+                  required
+                  className="border-blue-200 focus:border-blue-500"
+                />
+              </div>
 
-            <div className="">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                placeholder="you@example.com"
-                required
-                className="border-blue-200 focus:border-blue-500"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  placeholder="you@example.com"
+                  required
+                  className="border-blue-200 focus:border-blue-500"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="number">Phone Number</Label>
-              <Input
-                id="number"
-                type="tel"
-                value={formData.number}
-                onChange={(e) =>
-                  setFormData({ ...formData, number: e.target.value })
-                }
-                placeholder="(123) 456-7890"
-                required
-                className="border-blue-200 focus:border-blue-500"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="number">Phone Number</Label>
+                <Input
+                  id="number"
+                  type="tel"
+                  value={formData.number}
+                  onChange={(e) =>
+                    setFormData({ ...formData, number: e.target.value })
+                  }
+                  placeholder="(123) 456-7890"
+                  required
+                  className="border-blue-200 focus:border-blue-500"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label>Position Interest</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(value: "Driver" | "Dispatch") =>
-                  setFormData({ ...formData, type: value })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a position" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Dispatch" className="flex items-center">
-                    <div className="flex items-center">
-                      <Package className="w-4 h-4 mr-2 text-blue-500" />
-                      Dispatch Team
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="Driver" className="flex items-center">
-                    <div className="flex items-center">
-                      <Bike className="w-4 h-4 mr-2 text-purple-500" />
-                      Driver
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="experience">Relevant Experience</Label>
-              <Input
-                id="experience"
-                type="text"
-                value={formData.experience}
-                onChange={(e) =>
-                  setFormData({ ...formData, experience: e.target.value })
-                }
-                placeholder="Brief description of your experience"
-                className="border-blue-200 focus:border-blue-500"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white py-6"
-            >
-              {loading ? (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              <div className="space-y-2">
+                <Label>Position Interest</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value: "Driver" | "Dispatch") =>
+                    setFormData({ ...formData, type: value })
+                  }
                 >
-                  <Send className="w-5 h-5" />
-                </motion.div>
-              ) : (
-                <>
-                  Submit Application
-                  <Send className="w-4 h-4 ml-2" />
-                </>
-              )}
-            </Button>
-          </form>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a position" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Dispatch" className="flex items-center">
+                      <div className="flex items-center">
+                        <Package className="w-4 h-4 mr-2 text-blue-500" />
+                        Dispatch Team
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="Driver" className="flex items-center">
+                      <div className="flex items-center">
+                        <Bike className="w-4 h-4 mr-2 text-purple-500" />
+                        Driver
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="experience">Relevant Experience</Label>
+                <Input
+                  id="experience"
+                  type="text"
+                  value={formData.experience}
+                  onChange={(e) =>
+                    setFormData({ ...formData, experience: e.target.value })
+                  }
+                  placeholder="Brief description of your experience"
+                  className="border-blue-200 focus:border-blue-500"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white py-6"
+              >
+                {loading ? (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Send className="w-5 h-5" />
+                  </motion.div>
+                ) : (
+                  <>
+                    Submit Application
+                    <Send className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </form>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

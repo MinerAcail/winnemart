@@ -10,7 +10,7 @@ import CardReceipt, { GET_ORDER_TRACKING } from "./try";
 import { useQuery } from "@apollo/client";
 import locations from "./sortCategroy/cat/data";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ScrollBar } from "@/components/ui/scroll-area.tsx";
+// import { ScrollBar } from "@/components/ui/scroll-area.tsx";
 
 export interface HostelDetails {
     hostelName: string;
@@ -141,7 +141,6 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
                                 }
                             />
                         </div>
-
                         {cart.map((item, index) => (
                             <div key={index} className="flex justify-between items-center border-b pb-2 mb-2">
                                 <div>

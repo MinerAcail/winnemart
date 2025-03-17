@@ -26,6 +26,7 @@ const NavBar: React.FC<NavBarProps> = ({ onSearch }) => {
     selectedCategory={selectedCategory}
     setSelectedCategory={setSelectedCategory}
     onSearch={onSearch}
+
   />
   )
 }

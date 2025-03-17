@@ -42,7 +42,7 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
   //   console.log(value);
   // };
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 bg-[#76a683] shadow-md py-3 px-4 flex justify-between items-center">
+    <nav className="fixed top-0 left-0 w-full z-50 bg-[#76a683] shadow-md py-2 px-4 flex justify-between items-center">
       {/* Logo */}
       <Link to={"/"} className="flex items-center">
         <img src={logo} alt="WinneMart Logo" className="w-12 pr-[5px]" />
@@ -59,7 +59,7 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
         )}
       </Link>
 
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center gap-2">
         {/* Show the shopping basket icon on mobile */}
         {!isDesktop && (
           <SheetSide
@@ -87,7 +87,7 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
         )}
 
         {!isSearchExpanded && !isDesktop && (
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-2">
             <Link to={isShopPage ? "/" : "/shop"}>
               {isShopPage ? (
                 <LucideHome className="w-6 h-6 text-slate-700" />

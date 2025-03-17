@@ -144,7 +144,7 @@ const handleSearch = (value: string) => {
   }
 
   return (
-    <div className="maincontainer mx-auto px-4">
+    <div className="maincontainer mx-auto p-[1px]">
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Main content */}
         <div className="w-full">

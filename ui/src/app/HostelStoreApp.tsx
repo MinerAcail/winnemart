@@ -99,7 +99,7 @@ const HostelStoreContent: React.FC = () => {
               filteredItems={filteredItems}
               addToCart={addToCart}
               onItemSelect={setSelectedProduct}
-              className="grid grid-cols-1 pt-14 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"
+              className="grid grid-cols-1 pt-14 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-4"
               
             />
           )}

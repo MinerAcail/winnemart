@@ -49,7 +49,7 @@ func (ca *CookieAccess) SetToken(token string) {
 		Secure:   true,                           // Ensures the cookie is only sent over HTTPS
 		Path:     "/",                            // Path for which the cookie is valid
 		Expires:  time.Now().Add(24 * time.Hour), // Cookie expiration time set to 24 hours from now
-		SameSite: http.SameSiteStrictMode,        // Helps mitigate CSRF attacks by ensuring the cookie is only sent for same-site requests
+		SameSite: http.SameSiteLaxMode,        // Helps mitigate CSRF attacks by ensuring the cookie is only sent for same-site requests
 	})
 }
 
@@ -64,7 +64,7 @@ func (ca *CookieAccess) Logout() error {
 		HttpOnly: true,                    // Indicates that the cookie is not accessible via JavaScript
 		Secure:   true,                    // Ensures the cookie is only sent over HTTPS
 		Expires:  time.Unix(0, 0),         // Expiration time set to the Unix epoch, effectively expiring the cookie immediately
-		SameSite: http.SameSiteStrictMode, // Helps mitigate CSRF attacks by ensuring the cookie is only sent for same-site requests
+		SameSite: http.SameSiteLaxMode, // Helps mitigate CSRF attacks by ensuring the cookie is only sent for same-site requests
 	}
 
 	// Set the expired cookie in the response to invalidate it.
@@ -156,7 +156,7 @@ func ExtractCtxInfoForAllAccess(ctx context.Context) error {
 	userType = strings.ToLower(userType) // Convert userType to lowercase
 
 	// Check if the userType is not one of the allowed values.
-	if userType != "vendor" && userType != "user" && userType != "swapper" {
+	if userType != "Vendor" && userType != "driver" {
 		return fmt.Errorf("%s is not allowed", userType)
 	}
 

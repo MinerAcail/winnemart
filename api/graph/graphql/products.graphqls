@@ -3,11 +3,13 @@ type Product {
   name: String
   price: String
   state: ProductState
+  VendorId: String
   categories: [String]
   imageUrls: [String]
   createdAt: Time
   updatedAt: Time
 }
+
 type ProductInfor {
   product: Product
   ItemSoldCount: Int
@@ -18,7 +20,14 @@ input ProductInput {
   state: ProductState!
   categories: [String]
 }
-
+input ProductInputUpdate {
+  name: String
+  price: String
+  state: ProductState
+  categories: [String]
+  VendorId: String
+  
+}
 enum ProductState {
   ACTIVE
   INACTIVE
@@ -27,6 +36,7 @@ enum ProductState {
 type CartItem {
   id: String!
   productId: String!
+  product: Product
   quantity: Int!
   orderId: String
   createdAt: Time!
@@ -77,6 +87,8 @@ type ChatMessage {
 enum SenderType {
   CUSTOMER
   VENDOR
+  ADMIN
+  DELIVERY
 }
 type OrderChat {
   orderId: String!
@@ -145,7 +157,7 @@ extend type Mutation {
   deleteRequestItem(requestId: String!): Boolean
   deleteAllRequestItems: Boolean
   deleteProductByAdmin(productId: String!): Boolean
-  updateProductByAdmin(productId: String!, input: ProductInput!): Product
+  updateProductByAdmin(productId: String!, input: ProductInputUpdate!): Product
 clearLocalStore(orderId:String): Boolean
   createCategoryBox(name: String): categoryBox
   deleteCategoryBox(categoryId: String!): Boolean

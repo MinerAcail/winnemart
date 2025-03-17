@@ -88,18 +88,18 @@ const Login = ({ children }: { children: ReactNode }) => {
         }
         if (userType === ProtectType.vendor) {
           navigate("/vendor");
-        }
-        else {
+        } else {
           navigate("/");
         }
 
         // For now, navigate to delivery page
-        navigate("/login");
       } else {
         setError("Login failed. Please check your credentials.");
       }
     } catch (err) {
       setError("An unexpected error occurred");
+      navigate("/login");
+
       console.error("Login error:", err);
     }
   };

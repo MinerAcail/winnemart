@@ -5,12 +5,12 @@ import { ShoppingCart } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "../ui/card";
 import { ghSim } from "./ItemGrid";
-import { Item } from "@/app/CartContext.tsx";
+// import { Item } from "@/app/CartContext.tsx";
 import CardReceipt, { GET_ORDER_TRACKING } from "./try";
 import { useQuery } from "@apollo/client";
 import locations from "./sortCategroy/cat/data";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ScrollBar } from "@/components/ui/scroll-area.tsx";
+// import { ScrollBar } from "@/components/ui/scroll-area.tsx";
 
 export interface HostelDetails {
     hostelName: string;
@@ -183,6 +183,7 @@ export default CartSidebar;
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MinChat from "@/app/message";
+import { Item } from "@/hooks/CartContext";
 
 export function SideTabs() {
     return (

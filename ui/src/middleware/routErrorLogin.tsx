@@ -1,35 +1,34 @@
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import { useAuth } from "./context/authContext";
 import { useState } from "react";
 import { useMutation } from "@apollo/client";
-import { WORKERS_LOGIN } from "@/app/Login";
+import { LOGIN } from "@/app/Login";
+import { ProtectType } from "./useProtect";
 
 export default function ErrorLogin() {
   const navigate = useNavigate();
   const { login: Auth } = useAuth();
 
   const [formData, setFormData] = useState({
-      number: "",
+    number: "",
     password: "",
   });
   const [error, setError] = useState("");
 
-  const [workersLogin, { loading }] = useMutation(WORKERS_LOGIN, {
-    onCompleted: (data) => {
-      if (data?.workersLogin?.id) {
-        Auth(data.workersLogin);
-        navigate("/delivery");
-      }
-    },
+  const [deliveryLogin, { loading }] = useMutation(LOGIN, {
     onError: (error) => {
       setError(error.message || "Login failed. Please try again.");
     },
   });
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
@@ -43,7 +42,7 @@ export default function ErrorLogin() {
         return;
       }
 
-      await workersLogin({
+      const result = await deliveryLogin({
         variables: {
           input: {
             number: formData.number,
@@ -51,6 +50,26 @@ export default function ErrorLogin() {
           },
         },
       });
+
+      if (result?.data?.deliveryLogin) {
+        // Authenticate the user
+        Auth(result.data.deliveryLogin);
+
+        // Get user type
+        const userType = result.data.deliveryLogin.type;
+        console.log("userType", userType);
+
+        // Navigate based on userType
+        if (userType === ProtectType.Driver) {
+          navigate("/delivery");
+        } else if (userType === ProtectType.vendor) {
+          navigate("/vendor");
+        } else {
+          navigate("/");
+        }
+      } else {
+        setError("Login failed. Please check your credentials.");
+      }
     } catch (err) {
       setError("An unexpected error occurred");
       console.error("Login error:", err);
@@ -96,14 +115,12 @@ export default function ErrorLogin() {
             </div>
           )}
         </CardContent>
-        <CardFooter>
-          <Button
-            onClick={handleLogin}
-            className="w-full"
-            disabled={loading}
-          >
+        <CardFooter className="flex flex-col">
+          <Button onClick={handleLogin} className="w-full" disabled={loading}>
             {loading ? "Logging in..." : "Login"}
           </Button>
+
+          <Link className="text-blue-700 pt-2" to={"/"}>Home</Link>
         </CardFooter>
       </Card>
     </div>

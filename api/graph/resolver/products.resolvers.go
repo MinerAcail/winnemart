@@ -203,7 +203,13 @@ func (r *mutationResolver) CreateOrderItems(ctx context.Context, input *model.Or
 		return nil, fmt.Errorf("failed to set tracking cookie: %v", err)
 	}
 
-	// Commit the transaction
+	// Assign driver to order
+	if err := helper.AssignDriverToOrder(tx, order, orderIDStr); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// Commit the transaction - MOVED TO END
 	if err := tx.Commit().Error; err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %v", err)
 	}
@@ -646,8 +652,55 @@ func (r *mutationResolver) DeleteProductByAdmin(ctx context.Context, productID s
 }
 
 // UpdateProductByAdmin is the resolver for the updateProductByAdmin field.
-func (r *mutationResolver) UpdateProductByAdmin(ctx context.Context, productID string, input model.ProductInput) (*model.Product, error) {
-	panic(fmt.Errorf("not implemented: UpdateProductByAdmin - updateProductByAdmin"))
+func (r *mutationResolver) UpdateProductByAdmin(ctx context.Context, productID string, input model.ProductInputUpdate) (*model.Product, error) {
+	// Parse the UUID from the string
+	id, err := uuid.Parse(productID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid product ID: %w", err)
+	}
+
+	// Find the existing product
+	var product model.Product
+	if err := r.DB.Where("id = ?", id).First(&product).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("product not found with ID: %s", productID)
+		}
+		return nil, fmt.Errorf("failed to fetch product: %w", err)
+	}
+
+	// Update the product fields
+	if input.Name != nil {
+		product.Name = input.Name
+	}
+	if input.Price != nil {
+		product.Price = input.Price
+	}
+	if input.State != nil {
+		product.State = input.State
+	}
+
+	// Update categories if provided
+	if len(input.Categories) > 0 {
+		var categories pq.StringArray
+		for _, category := range input.Categories {
+			if category != nil {
+				categories = append(categories, *category)
+			}
+		}
+		product.Categories = categories
+	}
+
+	// Update vendor ID if provided
+	if input.VendorID != nil {
+		product.VendorID = input.VendorID
+	}
+
+	// Save the updated product
+	if err := r.DB.Save(&product).Error; err != nil {
+		return nil, fmt.Errorf("failed to update product: %w", err)
+	}
+
+	return &product, nil
 }
 
 // ClearLocalStore is the resolver for the clearLocalStore field.

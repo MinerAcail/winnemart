@@ -11,6 +11,10 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 )
 
+type Returns interface {
+	IsReturns()
+}
+
 type CartItemOrder struct {
 	OrderID               string               `json:"orderId"`
 	ProductInfor          []*OrderproductInfor `json:"productInfor"`
@@ -44,6 +48,25 @@ type CreateAdminInput struct {
 	Number   string  `json:"number"`
 	Password *string `json:"password,omitempty"`
 	Status   *string `json:"status,omitempty"`
+}
+
+type CreateUnavailablePeriodInput struct {
+	Day       string `json:"day"`
+	StartTime string `json:"startTime"`
+	EndTime   string `json:"endTime"`
+}
+
+type CreateVendorInput struct {
+	Name     string  `json:"name"`
+	Type     string  `json:"type"`
+	Number   string  `json:"number"`
+	Password *string `json:"password,omitempty"`
+}
+
+type DriverWorkload struct {
+	DriverID   *string     `json:"driverID,omitempty"`
+	Count      *int32      `json:"count,omitempty"`
+	JobRequest *JobRequest `json:"jobRequest,omitempty"`
 }
 
 type GrowthData struct {
@@ -88,6 +111,14 @@ type ProductInput struct {
 	Categories []*string    `json:"categories,omitempty"`
 }
 
+type ProductInputUpdate struct {
+	Name       *string       `json:"name,omitempty"`
+	Price      *string       `json:"price,omitempty"`
+	State      *ProductState `json:"state,omitempty"`
+	Categories []*string     `json:"categories,omitempty"`
+	VendorID   *string       `json:"VendorId,omitempty"`
+}
+
 type Query struct {
 }
 
@@ -105,6 +136,13 @@ type SystemInfo struct {
 }
 
 type UpdateAdminInput struct {
+	Name     *string `json:"name,omitempty"`
+	Type     *string `json:"type,omitempty"`
+	Number   *string `json:"number,omitempty"`
+	Password *string `json:"password,omitempty"`
+}
+
+type UpdateVendorInput struct {
 	Name     *string `json:"name,omitempty"`
 	Type     *string `json:"type,omitempty"`
 	Number   *string `json:"number,omitempty"`
@@ -206,16 +244,20 @@ type SenderType string
 const (
 	SenderTypeCustomer SenderType = "CUSTOMER"
 	SenderTypeVendor   SenderType = "VENDOR"
+	SenderTypeAdmin    SenderType = "ADMIN"
+	SenderTypeDelivery SenderType = "DELIVERY"
 )
 
 var AllSenderType = []SenderType{
 	SenderTypeCustomer,
 	SenderTypeVendor,
+	SenderTypeAdmin,
+	SenderTypeDelivery,
 }
 
 func (e SenderType) IsValid() bool {
 	switch e {
-	case SenderTypeCustomer, SenderTypeVendor:
+	case SenderTypeCustomer, SenderTypeVendor, SenderTypeAdmin, SenderTypeDelivery:
 		return true
 	}
 	return false

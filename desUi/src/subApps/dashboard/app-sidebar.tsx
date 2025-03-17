@@ -68,6 +68,10 @@ const data = {
       icon: Settings,
       items: [
         {
+          title: "Vendors",
+          url: "/vendors",
+        },
+        {
           title: "All Works",
           url: "/workers",
         },

@@ -21,4 +21,5 @@ export default useProtect;
 export const ProtectType = {
   Driver: "Driver",
   Dispatch: "Dispatch",
+  vendor: "VENDOR",
 } as const;

@@ -71,6 +71,7 @@ type Product struct {
 	ImageUrls  pq.StringArray `gorm:"type:text[]" json:"imageUrls,omitempty"`
 	CreatedAt  *time.Time     `json:"createdAt,omitempty"`
 	UpdatedAt  *time.Time     `json:"updatedAt,omitempty"`
+	VendorID   *string        `json:"vendorId,omitempty"`
 	SearchVector string         `gorm:"type:tsvector" json:"-"`
 	
 }

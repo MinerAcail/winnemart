@@ -365,7 +365,7 @@ export function ReviewApplicate() {
                         className="text-red-600"
                       >
                         <XCircle className="mr-2 h-4 w-4" />
-                        <span>Reject</span>
+                        <span>Rejectkkll</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

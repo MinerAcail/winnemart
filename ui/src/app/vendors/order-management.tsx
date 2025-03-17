@@ -93,7 +93,10 @@ const GET_VENDOR_ORDERS = gql`
 `;
 
 export default function OrderManagement() {
-  const { data, loading, error } = useQuery(GET_VENDOR_ORDERS);
+  const { data, loading, error } = useQuery(GET_VENDOR_ORDERS,{
+    pollInterval:9000,
+
+  });
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const isMobile = useIsMobile();
 

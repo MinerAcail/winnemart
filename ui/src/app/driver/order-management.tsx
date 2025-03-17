@@ -74,9 +74,9 @@ interface ProcessedOrder {
   items: ProcessedItem[];
 }
 const GET_VENDOR_ORDERS = gql`
-query GetAssignedOrders{
-  getAssignedOrders{
-         id
+  query GetAssignedOrders {
+    getAssignedOrders {
+      id
       customerNumber
       status
       estimatedDeliveryDate
@@ -93,13 +93,14 @@ query GetAssignedOrders{
       }
       createdAt
       updatedAt
-    
+    }
   }
-}
 `;
 
 export default function OrderManagement() {
-  const { data, loading, error } = useQuery(GET_VENDOR_ORDERS);
+  const { data, loading, error } = useQuery(GET_VENDOR_ORDERS, {
+    pollInterval: 9000,
+  });
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
@@ -222,7 +223,7 @@ export default function OrderManagement() {
                       </div>
                       <p className="font-bold">
                         {ghSim}
-                        {5 + order.total} 
+                        {5 + order.total}
                       </p>
                     </div>
 
@@ -273,13 +274,13 @@ export default function OrderManagement() {
                                 <p className="font-medium">{item.name}</p>
                                 <p className="text-sm text-muted-foreground">
                                   Qty: {item.quantity} × {ghSim}
-                                  {item.price} 
+                                  {item.price}
                                 </p>
                               </div>
                             </div>
                             <p className="font-bold">
                               {ghSim}
-                              {item.quantity * item.price} 
+                              {item.quantity * item.price}
                             </p>
                           </div>
                         ))}

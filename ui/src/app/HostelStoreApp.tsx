@@ -1,30 +1,20 @@
+// HostelStoreApp.tsx
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@apollo/client";
 import { useDeviceType } from "@/hooks/useDeviceType";
-import MenuBar from "@/components/custom/menuBar";
-import CartSidebar, { HostelDetails } from "@/components/custom/CartSidebar";
-import ItemGrid from "@/components/custom/ItemGrid";
 import { gql } from "@apollo/client";
+import CartSidebar from "@/components/custom/CartSidebar";
+import ItemGrid from "@/components/custom/ItemGrid";
 import ItemCarousel from "@/components/custom/view";
-import {
-  CREATE_ORDER_ITEMS,
-  OrderInput,
-  OrderItem,
-} from "@/middleware/api/createorder";
-import { toast } from "sonner";
-import Loading from '../components/ui/loading.tsx'
-
-export interface Item {
-  id: string;
-  name: string;
-  price: number;
-  categories: string[];
-  imageUrls: string[];
-}
+import Loading from "../components/ui/loading.tsx";
+import { useCart, Item } from "@/hooks/CartContext.tsx";
+import NavBar from "./navBar.tsx";
+import { ClearLocalStore } from "@/middleware/bar.tsx";
+import { NoItemsFound } from "@/components/custom/Empty.tsx";
 
 const GET_PRODUCTS = gql`
-  query getAllProducts {
-    getAllProducts {
+  query getAllProducts($query: String) {
+    getAllProducts(query: $query) {
       id
       name
       price
@@ -35,183 +25,84 @@ const GET_PRODUCTS = gql`
   }
 `;
 
-const HostelStoreApp: React.FC = () => {
+const HostelStoreContent: React.FC = () => {
   const { isDesktop } = useDeviceType();
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [cart, setCart] = useState<Item[]>([]);
-  const [searchTerm] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>(""); // Controlled search state
   const [selectedProduct, setSelectedProduct] = useState<Item | null>(null);
+  const {
+    cart,
+    hostelDetails,
+    setHostelDetails,
+    removeFromCart,
+    addToCart,
+    placeOrder,
+  } = useCart();
 
-  const [createOrder] = useMutation(
-    CREATE_ORDER_ITEMS,
-    { refetchQueries: ["useGetordertracking"] }
-  );
-
-  // Replace the existing placeOrder function with the new async version
-  const placeOrder = async (): Promise<void> => {
-    if (cart.length === 0) return;
-
-    // Group cart items by product ID and sum quantities
-    const groupedItems = cart.reduce((acc: { [key: string]: number }, item) => {
-      acc[item.id] = (acc[item.id] || 0) + 1;
-      return acc;
-    }, {});
-
-    const orderItems: OrderItem[] = Object.entries(groupedItems).map(
-      ([productId, quantity]) => ({
-        ProductID: productId,
-        quantity: quantity,
-      })
-    );
-
-    const orderInput: OrderInput = {
-      customerNumber: hostelDetails.phoneNumber,
-      deliveryAddress: hostelDetails.hostelName,
-      item: orderItems,
-    };
-
-    try {
-      const { data } = await createOrder({
-        variables: {
-          input: orderInput,
-        },
-      });
-
-      if (data?.createOrderItems) {
-        setCart([]);
-        toast.success(
-          `Order placed successfully! Your order ID is: ${data.createOrderItems.id.slice(0,5)}`
-        );
-
-        // Save timestamp to localStorage
-        const timestamp = new Date().toISOString();
-        localStorage.setItem("lastOrderTimestamp", timestamp);
-      }
-    } catch (error) {
-      console.error("Error placing order:", error);
-      toast.error(
-        "Failed to place order. Please try again.");
-    }
-  };
-  const [hostelDetails, setHostelDetails] = useState<HostelDetails>({
-    hostelName: "",
-    phoneNumber: "",
+  // Fetch products with search term
+  const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, {
+    variables: { query: searchTerm },
   });
 
-  const { data, loading, error } = useQuery(GET_PRODUCTS);
-
-  // Parse URL parameters on component mount
+  // Load category from URL on component mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-
-    // Load cart items from URL
-    const cartParam = params.get("cart");
-    if (cartParam) {
-      try {
-        const decodedCart = JSON.parse(atob(cartParam));
-        setCart(decodedCart);
-      } catch (e) {
-        console.error("Failed to parse cart from URL:", e);
-      }
-    }
-
-    // Load hostel details from URL
-    const hostelName = params.get("hostel") || "";
-    const phoneNumber = params.get("room") || "";
-    setHostelDetails({ hostelName, phoneNumber });
-
-    // Load category from URL
     const category = params.get("category") || "All";
     setSelectedCategory(category);
   }, []);
 
-  // Update URL parameters when state changes
+  // Update URL when category changes
   useEffect(() => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(window.location.search);
 
-    // Add cart to URL if not empty
-    if (cart.length > 0) {
-      const encodedCart = btoa(JSON.stringify(cart));
-      params.set("cart", encodedCart);
-    }
-
-    // Add hostel details to URL if present
-    if (hostelDetails.hostelName) {
-      params.set("hostel", hostelDetails.hostelName);
-    }
-    if (hostelDetails.phoneNumber) {
-      params.set("room", hostelDetails.phoneNumber);
-    }
-
-    // Add category to URL if not "All"
     if (selectedCategory !== "All") {
       params.set("category", selectedCategory);
+    } else {
+      params.delete("category");
     }
 
-    // Update URL without reloading the page
     const newUrl = `${window.location.pathname}${
       params.toString() ? "?" + params.toString() : ""
     }`;
     window.history.pushState({}, "", newUrl);
-  }, [cart, hostelDetails, selectedCategory]);
+  }, [selectedCategory]);
 
+  // Handle search input changes
+  function handleSearch(value: string): void {
+    setSearchTerm(value);
+    refetch({ query: value }); // Refetch data with new search term
+  }
 
-  if (loading) return <Loading/>;
-  // if (error) return <p>Error: {error.message}</p>;
+  if (loading) return <Loading />;
+  if (error) return <p>Error: {error.message}</p>;
 
   // Extract items from the fetched data
-  const products: Item[] = data.getAllProducts;
+  const products: Item[] = data?.getAllProducts ?? [];
 
-  const categories: string[] = [
-    "All",
-    ...new Set(products.flatMap((item) => item.categories)),
-  ];
-
+  // Filter products by selected category
   const filteredItems: Item[] = products.filter(
     (item) =>
-      (selectedCategory === "All" ||
-        item.categories.includes(selectedCategory)) &&
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      selectedCategory === "All" || item.categories.includes(selectedCategory)
   );
-
-  const addToCart = (item: Item): void => {
-    setCart((prevCart) => [...prevCart, item]);
-  };
-
-  const removeFromCart = (index: number): void => {
-    setCart((prevCart) => {
-      const newCart = [...prevCart];
-      newCart.splice(index, 1);
-      return newCart;
-    });
-  };
 
   return (
     <div className="maincontainer mx-auto px-4">
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Main content */}
         <div className="w-full">
-          <MenuBar
-            CartSidebarProps={{
-              cart,
-              hostelDetails,
-              setHostelDetails,
-              removeFromCart,
-              placeOrder,
-            }}
-            categories={categories}
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
-          />
+          <NavBar onSearch={handleSearch} />
           <h1 className="text-2xl font-bold mb-4">Order Receipt</h1>
-
-          {/* <AICardGeneration {...orderData} /> */}
-          <ItemGrid
-            filteredItems={filteredItems}
-            addToCart={addToCart}
-            onItemSelect={setSelectedProduct}
-            className="grid grid-cols-1 pt-14 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4"
-          />
+          {filteredItems.length === 0 ? (
+            <NoItemsFound />
+          ) : (
+            <ItemGrid
+              filteredItems={filteredItems}
+              addToCart={addToCart}
+              onItemSelect={setSelectedProduct}
+              className="grid grid-cols-1 pt-14 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-4"
+              
+            />
+          )}
           <ItemCarousel
             selectedProduct={selectedProduct}
             setSelectedProduct={setSelectedProduct}
@@ -220,7 +111,7 @@ const HostelStoreApp: React.FC = () => {
         </div>
 
         {/* Cart sidebar */}
-        {isDesktop && (
+        {filteredItems.length !== 0 && isDesktop && (
           <div className="w-full lg:w-1/4">
             <div className="sticky top-4">
               <CartSidebar
@@ -238,4 +129,28 @@ const HostelStoreApp: React.FC = () => {
   );
 };
 
+const HostelStoreApp: React.FC = () => {
+  const rawOrderId = localStorage.getItem("foodie_last_order_id");
+  const orderId = rawOrderId ? rawOrderId.replace(/^"|"$/g, "").trim() : null;
+  const sanitizedOrderId = orderId && orderId.length > 0 ? orderId : null;
+
+  const [clearLocalStore, { data }] = useMutation(ClearLocalStore);
+
+  useEffect(() => {
+    if (!sanitizedOrderId) return;
+
+    clearLocalStore({
+      variables: { orderId: sanitizedOrderId },
+    });
+  }, [sanitizedOrderId, clearLocalStore]);
+// console.log("data",data);
+
+  useEffect(() => {
+    if (data?.clearLocalStore) {
+      localStorage.removeItem("foodie_last_order_id");
+    }
+  }, [data]);
+
+  return <HostelStoreContent />;
+};
 export default HostelStoreApp;

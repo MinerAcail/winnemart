@@ -15,11 +15,14 @@ type jobRequest {
   number: String!
   state: String!
   password: String
-
+  availability: Boolean
+  location: String
   experience: String!
   createdAt: Time
   updatedAt: Time
 }
+
+
 input jobRequestInput {
   name: String!
   email: String!

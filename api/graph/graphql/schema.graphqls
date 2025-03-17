@@ -1,10 +1,6 @@
 scalar Time
 scalar Upload
 
-
-
-
-
 type SystemInfo {
   bdTable: String!
   dbName: String!
@@ -21,7 +17,7 @@ extend type Mutation {
   userLogin(input: LoginInput!): User
   adminLogin(input: LoginInput!): Admin
   workersLogin(input: LoginInput!): jobRequest
-
+  deliveryLogin(input: LoginInput): Returns
   logOut: Boolean!
 }
 
@@ -45,3 +41,5 @@ type PurchaseHistory {
   status: String!
   trackingNumber: String
 }
+
+union Returns = Vendor | jobRequest

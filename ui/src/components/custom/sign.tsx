@@ -48,14 +48,14 @@ export default function AuthDialog() {
     },
   })
 
-  function onSignIn(values: SignInValues) {
-    console.log("Sign In:", values)
+  function onSignIn() {
+    // console.log("Sign In:", values)
     // Here you would typically call your authentication API
     setIsOpen(false) // Close the dialog after submission
   }
 
-  function onSignUp(values: SignUpValues) {
-    console.log("Sign Up:", values)
+  function onSignUp() {
+    // console.log("Sign Up:", values)
     // Here you would typically call your registration API
     setIsOpen(false) // Close the dialog after submission
   }

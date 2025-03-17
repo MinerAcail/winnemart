@@ -1,0 +1,31 @@
+type AssignRider {
+  id: String!
+  riderID: String
+  orderID: String
+  estimatedDeliveryDate: String!
+  createdAt: Time!
+  updatedAt: Time!
+}
+type DriverWorkload {
+  driverID: String
+  count: Int
+  jobRequest: jobRequest
+}
+
+extend type Query {
+  getAllRiders: [jobRequest]
+
+  getRider(id: String!): jobRequest
+  getAllAssignRiders: [AssignRider]
+  getAllAssignRider: [AssignRider]
+  getAssignedOrders: [Order]
+  getOrderAssignment(orderID: String!): AssignRider
+}
+
+extend type Mutation {
+  AssignOrderToRider(orderID: String, riderID: String): AssignRider
+
+  updateRiderStatus(riderID: String!, status: String!): jobRequest
+  unassignOrder(orderID: String!): Boolean
+  updateEstimatedDelivery(assignmentID: String!, newDate: String!): AssignRider
+}

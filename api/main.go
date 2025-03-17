@@ -39,16 +39,29 @@ func PerformMigrations(db *gorm.DB) error {
 	// Run GORM AutoMigrate for your models
 	if err := db.AutoMigrate(
 
-	&model.Product{},
-	&model.Order{},
-	&model.CartItem{},
-	&model.Admin{},
-	&model.ChatMessage{},
-	&model.JobRequest{},
-	&model.RequestItem{},
-
+		&model.Product{},
+		&model.Order{},
+		&model.CartItem{},
+		&model.Admin{},
+		&model.ChatMessage{},
+		&model.JobRequest{},
+		&model.AssignRider{},
+		&model.RequestItem{},
+		&model.CategoryBox{},
+		&model.Vendor{},
+		&model.VendorOrder{},
 	); err != nil {
 		return fmt.Errorf("failed to run AutoMigrate: %w", err)
+	}
+
+	// Read the configSearch.sql file
+	sqlSearchFile, err := helper.ReadFile("database/configSearch.sql")
+	if err != nil {
+		log.Fatalf("Err: %v", err)
+	}
+	// Execute the SQL commands in the file
+	if err := db.Exec(string(sqlSearchFile)).Error; err != nil {
+		return fmt.Errorf("failed to execute SQL commands from configSearch.sql: %w", err)
 	}
 	return nil
 }
@@ -108,7 +121,7 @@ func main() {
 	// Configure CORS
 	corsConfig := cors.New(cors.Options{
 		// { "http://localhost:5173", "http://yourdomain.com", "https://anotherdomain.com"},
-		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedOrigins: []string{"https://*", "http://*"},
 
 		// AllowedOrigins:   []string{"http://localhost:5173","http://localhost:1420"}, // You can configure specific origins here
 		// AllowedOrigins:   []string{"*"}, // You can configure specific origins here

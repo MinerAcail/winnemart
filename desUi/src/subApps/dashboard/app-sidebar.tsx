@@ -31,6 +31,10 @@ const data = {
           url: "/products/new",
         },
         {
+          title: "Categorize",
+          url: "/products/cate",
+        },
+        {
           title: "Request items",
           url: "/products/request",
         }
@@ -63,6 +67,10 @@ const data = {
       url: "/settings",
       icon: Settings,
       items: [
+        {
+          title: "Vendors",
+          url: "/vendors",
+        },
         {
           title: "All Works",
           url: "/workers",

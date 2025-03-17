@@ -32,12 +32,13 @@ func SetOrderTrackingCookie(w http.ResponseWriter, orderID string) error {
 		Name:     "order_tracking",
 		Value:    orderID,
 		Path:     "/",
-		// Domain:  getLocalIP(),
-		HttpOnly: true, // Prevent access from JavaScript
-		Secure:   false, // Use Secure (enable in production)
+		Domain:   "winnemart.com", // Ensure this matches your main domain
+		HttpOnly: true,
+		Secure:   true, // Must be true for HTTPS
 		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().Add(24 * time.Hour), // Cookie expires in 24 hours
+		Expires:  time.Now().Add(24 * time.Hour),
 	}
+	
 	log.Println("4 Order ID:", orderID)
 
 	http.SetCookie(w, cookie)
@@ -155,6 +156,7 @@ func CleanupOrderTrackingCookie(ctx context.Context, db *gorm.DB) {
 			SameSite: http.SameSiteLaxMode,
 			MaxAge:   -1, // Immediately expires the cookie
 		}
+		
 		http.SetCookie(w, cookie)
 		log.Println("Cleared order tracking cookie for completed order:", orderID)
 	}

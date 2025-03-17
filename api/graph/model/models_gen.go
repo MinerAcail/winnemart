@@ -11,6 +11,10 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 )
 
+type Returns interface {
+	IsReturns()
+}
+
 type CartItemOrder struct {
 	OrderID               string               `json:"orderId"`
 	ProductInfor          []*OrderproductInfor `json:"productInfor"`
@@ -19,6 +23,12 @@ type CartItemOrder struct {
 	Status                string               `json:"status"`
 	EstimatedDeliveryDate string               `json:"estimatedDeliveryDate"`
 	CreatedAt             time.Time            `json:"createdAt"`
+}
+
+type CategoryBoxInput struct {
+	CategoryName *string         `json:"categoryName,omitempty"`
+	Files        *graphql.Upload `json:"files,omitempty"`
+	ProductID    []*string       `json:"productId,omitempty"`
 }
 
 type ChatMessageAdminInput struct {
@@ -38,6 +48,25 @@ type CreateAdminInput struct {
 	Number   string  `json:"number"`
 	Password *string `json:"password,omitempty"`
 	Status   *string `json:"status,omitempty"`
+}
+
+type CreateUnavailablePeriodInput struct {
+	Day       string `json:"day"`
+	StartTime string `json:"startTime"`
+	EndTime   string `json:"endTime"`
+}
+
+type CreateVendorInput struct {
+	Name     string  `json:"name"`
+	Type     string  `json:"type"`
+	Number   string  `json:"number"`
+	Password *string `json:"password,omitempty"`
+}
+
+type DriverWorkload struct {
+	DriverID   *string     `json:"driverID,omitempty"`
+	Count      *int32      `json:"count,omitempty"`
+	JobRequest *JobRequest `json:"jobRequest,omitempty"`
 }
 
 type GrowthData struct {
@@ -82,6 +111,14 @@ type ProductInput struct {
 	Categories []*string    `json:"categories,omitempty"`
 }
 
+type ProductInputUpdate struct {
+	Name       *string       `json:"name,omitempty"`
+	Price      *string       `json:"price,omitempty"`
+	State      *ProductState `json:"state,omitempty"`
+	Categories []*string     `json:"categories,omitempty"`
+	VendorID   *string       `json:"VendorId,omitempty"`
+}
+
 type Query struct {
 }
 
@@ -105,12 +142,24 @@ type UpdateAdminInput struct {
 	Password *string `json:"password,omitempty"`
 }
 
+type UpdateVendorInput struct {
+	Name     *string `json:"name,omitempty"`
+	Type     *string `json:"type,omitempty"`
+	Number   *string `json:"number,omitempty"`
+	Password *string `json:"password,omitempty"`
+}
+
 type UserInfor struct {
 	CustomerNumber     string   `json:"customerNumber"`
 	DeliveryAddresses  []string `json:"deliveryAddresses"`
 	TotalitemsOrdered  int32    `json:"totalitemsOrdered"`
 	TotalOrders        int32    `json:"totalOrders"`
 	FirstlastOrderDate string   `json:"firstlastOrderDate"`
+}
+
+type ViewcategoryBox struct {
+	CategoryBox *CategoryBox `json:"categoryBox,omitempty"`
+	Products    []*Product   `json:"products,omitempty"`
 }
 
 type InputUser struct {
@@ -195,16 +244,20 @@ type SenderType string
 const (
 	SenderTypeCustomer SenderType = "CUSTOMER"
 	SenderTypeVendor   SenderType = "VENDOR"
+	SenderTypeAdmin    SenderType = "ADMIN"
+	SenderTypeDelivery SenderType = "DELIVERY"
 )
 
 var AllSenderType = []SenderType{
 	SenderTypeCustomer,
 	SenderTypeVendor,
+	SenderTypeAdmin,
+	SenderTypeDelivery,
 }
 
 func (e SenderType) IsValid() bool {
 	switch e {
-	case SenderTypeCustomer, SenderTypeVendor:
+	case SenderTypeCustomer, SenderTypeVendor, SenderTypeAdmin, SenderTypeDelivery:
 		return true
 	}
 	return false

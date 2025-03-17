@@ -3,11 +3,13 @@ type Product {
   name: String
   price: String
   state: ProductState
+  VendorId: String
   categories: [String]
   imageUrls: [String]
   createdAt: Time
   updatedAt: Time
 }
+
 type ProductInfor {
   product: Product
   ItemSoldCount: Int
@@ -18,7 +20,14 @@ input ProductInput {
   state: ProductState!
   categories: [String]
 }
-
+input ProductInputUpdate {
+  name: String
+  price: String
+  state: ProductState
+  categories: [String]
+  VendorId: String
+  
+}
 enum ProductState {
   ACTIVE
   INACTIVE
@@ -27,6 +36,7 @@ enum ProductState {
 type CartItem {
   id: String!
   productId: String!
+  product: Product
   quantity: Int!
   orderId: String
   createdAt: Time!
@@ -77,6 +87,8 @@ type ChatMessage {
 enum SenderType {
   CUSTOMER
   VENDOR
+  ADMIN
+  DELIVERY
 }
 type OrderChat {
   orderId: String!
@@ -103,7 +115,9 @@ type UserInfor {
 }
 extend type Query {
   getProduct(id: String!): Product!
-  getAllProducts: [Product!]!
+  getAllProducts(query: String): [Product!]!
+
+  searchProducts(query: String!): [Product!]!
   getAllProductsByAdmin: [ProductInfor!]!
   getNewAddedProducts: [Product!]!
   getOrder(id: String!): Order!
@@ -111,14 +125,17 @@ extend type Query {
   getAllOrderHistory: [Order]
   getAllOrderItemsByProductId(orderId: String!): CartItemOrder
   getAllOrderItemsByProductIdDelivery: [CartItemOrder]
-  useGetordertracking: CartItemOrder
+  useGetordertracking(orderId: String): CartItemOrder
   getAllUserStats: [UserInfor!]!
-  getOrderChat: OrderChat
+  getOrderChat(orderId:String): OrderChat
   getAllChatMessageByNumber(customerNumber: String!): [ChatMessage]!
 
   getAllRequestItems: [RequestItem!]!
-  
-  
+
+  getAllCategoryBox(query: String): [ViewcategoryBox!]!
+  getNewAddedCategoryBox: [categoryBox!]!
+  getCategoryBox(categoryId: String!): categoryBox
+  getProductsByCategory(categoryId: String!): [Product!]!
 }
 
 extend type Mutation {
@@ -127,18 +144,34 @@ extend type Mutation {
   deleteProduct(id: String!): Boolean
   createOrderItems(input: OrderInput): Order
   updateOrderStatus(orderID: String, status: String!): Boolean
-  sendChatMessage(input: ChatMessageInput!): ChatMessage!
+  sendChatMessage(input: ChatMessageInput!,orderId: String): ChatMessage!
   sendChatMessageByNumber(input: ChatMessageAdminInput!): ChatMessage!
   markMessagesAsRead(sender: SenderType!): Boolean!
   deleteAllChatMessageByNumber(customerNumber: String!): Boolean!
 
   requestItem(input: RequestInput!): RequestItem
-  updateRequestItemStatus(requestId: String!, status: ProductState!): RequestItem
+  updateRequestItemStatus(
+    requestId: String!
+    status: ProductState!
+  ): RequestItem
   deleteRequestItem(requestId: String!): Boolean
   deleteAllRequestItems: Boolean
   deleteProductByAdmin(productId: String!): Boolean
-  updateProductByAdmin(productId: String!, input: ProductInput!): Product
+  updateProductByAdmin(productId: String!, input: ProductInputUpdate!): Product
+clearLocalStore(orderId:String): Boolean
+  createCategoryBox(name: String): categoryBox
+  deleteCategoryBox(categoryId: String!): Boolean
+  addProductToCategoryBox(input: [CategoryBoxInput]): [categoryBox]
+  removeProductFromCategoryBox(
+    categoryId: String!
+    productId: String!
+  ): [categoryBox]
 
+}
+input CategoryBoxInput {
+  categoryName: String
+  files: Upload
+  productId: [String]
 }
 type RequestItem {
   id: String
@@ -158,4 +191,19 @@ input RequestInput {
   category: String
   description: String
   images: [Upload!]
+}
+
+type categoryBox {
+  id: String
+  name: String
+  imageUrl: String
+
+  state: ProductState
+  itemsIds: [String]
+    createdAt: Time!
+  updatedAt: Time!
+}
+type ViewcategoryBox {
+  categoryBox: categoryBox
+  products: [Product]
 }

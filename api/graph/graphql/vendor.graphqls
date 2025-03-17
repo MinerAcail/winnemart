@@ -1,0 +1,80 @@
+type Vendor {
+  id: String!
+  name: String!
+  type: String!
+  number: String!
+  password: String
+  createdAt: Time
+  updatedAt: Time
+}
+
+type UnavailablePeriod {
+  id: String!
+  VendorId: String!
+  day: String! # e.g., "Monday", "Tuesday"
+  startTime: String! # e.g., "18:00" (6 PM)
+  endTime: String! # e.g., "22:00" (10 PM)
+}
+
+
+type VendorOrder {
+  id: String!
+  CartItemIDs: [String!]!
+  estimatedDeliveryDate: String!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+extend type Query {
+  getVendor(id: String!): Vendor
+  getVendorProducts: [Product]
+  listVendors: [Vendor!]!
+  getUnavailablePeriods: [UnavailablePeriod!]!
+
+  getVendorOrders: [Order]!
+  getVendorOrder(id: String!): VendorOrder
+
+  getVendorChat(id: String!): [OrderChat]!
+  getVendorChatMessages(id: String!): [ChatMessage]!
+  getVendorOrderChatMessageAdmin(
+    orderId: String!
+    messageId: String!
+  ): ChatMessage
+  getVendorOrderChatMessageAdmins(orderId: String!): [ChatMessage]!
+}
+
+extend type Mutation {
+  createVendor(input: CreateVendorInput!): Vendor
+  updateVendor(id: String!, input: UpdateVendorInput!): Vendor
+  deleteVendor(id: String!): Boolean
+  createUnavailablePeriod(
+    input: CreateUnavailablePeriodInput!
+    VendorId: String!
+  ): UnavailablePeriod
+  deleteUnavailablePeriod(id: String!, VendorId: String!): Boolean
+  getGrowthData(id: String!): GrowthData
+
+  updateProductByVendor(productId: String!, input: ProductInputUpdate!): Product
+
+
+
+
+}
+
+input CreateVendorInput {
+  name: String!
+  type: String!
+  number: String!
+  password: String
+}
+input UpdateVendorInput {
+  name: String
+  type: String
+  number: String
+  password: String
+}
+input CreateUnavailablePeriodInput {
+  day: String!
+  startTime: String!
+  endTime: String!
+}

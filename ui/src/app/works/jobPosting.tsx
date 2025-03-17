@@ -1,16 +1,11 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Package, Bike, LucideIcon, LogIn } from "lucide-react";
+import { Package, Bike, LucideIcon } from "lucide-react";
 import ApplyNowSection from "./applyNow";
-import Login from "../Login";
-import { Link } from "react-router";
-import { useAuth } from "@/middleware/context/authContext";
-import useProtect, { ProtectType } from "@/middleware/useProtect";
-import { gql, useMutation } from "@apollo/client";
-const ghSim = "GH¢"
+import WorksNav from "@/components/custom/nav";
+const ghSim = "GH¢";
 
 interface BubbleProps {
   x: number;
@@ -140,86 +135,18 @@ function JobPostingCard({
     </Card>
   );
 }
-export const LOGOUT = gql`
-  mutation logOut {
-    logOut
-  }
-`;
+
 const JobPosting: React.FC = () => {
-  const { logout, isAuthenticated } = useAuth(); // Access the logout function from the auth context
-  const { hasAccess: driver } = useProtect([ProtectType.Driver]);
-  const [logoutMutation] = useMutation(LOGOUT); // Apollo useMutation hook
-
-  const handleLogout = async () => {
-    try {
-      // Call the GraphQL logout mutation
-      await logoutMutation();
-
-      // Perform the local logout (clear localStorage and update state)
-      logout();
-
-      // Optionally, you can display a message or redirect elsewhere
-      setTimeout(() => {
-        // navigate("/login",{replace:true})
-      }, 1000);
-    } catch (err) {
-      console.error("Error logging out:", err);
-    }
-  };
+  
+ 
   return (
     <div className="  min-h-screen w-full bgcontainer">
       <FloatingBubbles />
 
-      <div className="relative z-10">
-        <header className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg">
-          <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-            <Link
-              to={"/"}
-              className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-            >
-              WinneMart
-            </Link>
-            {isAuthenticated ? (
-              <div className="flex items-center gap-2">
-                {driver && (
-                  <Link to="/Delivery">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <Package className="w-4 h-4" />
-                      Delivery
-                    </Button>
-                  </Link>
-                )}
+      <div className="relative z-10 ">
+       <WorksNav navName="Vendor" to="/vendor"/>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="flex items-center gap-2"
-                >
-                  <LogIn className="w-4 h-4" />
-                  Sign Out
-                </Button>
-              </div>
-            ) : (
-              <Login>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <LogIn className="w-4 h-4" />
-                  Sign In
-                </Button>
-              </Login>
-            )}
-          </div>
-        </header>
-
-        <main className="container mx-auto px-4 py-12 md:py-20">
+        <main className="container mx-auto px-4 mt-10 py-12 md:py-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

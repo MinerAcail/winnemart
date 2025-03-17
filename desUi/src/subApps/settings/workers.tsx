@@ -459,7 +459,7 @@ export function Workers() {
               done.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+            <div className="space-y-4">
             <Input
               placeholder="Name"
               value={editApplication?.name || ""}
@@ -480,12 +480,15 @@ export function Workers() {
               value={editApplication?.type || ""}
               onChange={(e) => handleEditChange("type", e.target.value)}
             />
-            <Input
-              placeholder="State"
+            <select
               value={editApplication?.state || ""}
               onChange={(e) => handleEditChange("state", e.target.value)}
-            />
-          </div>
+              className="w-full p-2 border rounded-md"
+            >
+              <option value="APPROVED">APPROVED</option>
+              <option value="REJECTED">REJECTED</option>
+            </select>
+            </div>
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>

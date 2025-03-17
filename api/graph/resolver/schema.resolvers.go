@@ -11,6 +11,7 @@ import (
 	"github.com/mineracail/sergi/graph"
 	"github.com/mineracail/sergi/graph/model"
 	"github.com/mineracail/sergi/middleware"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // DeleteTable is the resolver for the deleteTable field.
@@ -63,6 +64,43 @@ func (r *mutationResolver) WorkersLogin(ctx context.Context, input model.LoginIn
 	return user, fmt.Errorf("invalid number or pin")
 }
 
+// DeliveryLogin is the resolver for the deliveryLogin field.
+func (r *mutationResolver) DeliveryLogin(ctx context.Context, input *model.LoginInput) (model.Returns, error) {
+	// Try to find a user with the given number
+	user := &model.Vendor{}
+	if err := r.DB.Where("number = ?", input.Number).First(user).Error; err == nil {
+		// Compare the provided password with the stored hash
+		if user.Password != nil && bcrypt.CompareHashAndPassword([]byte(*user.Password), []byte(input.Password)) == nil {
+			// Password matches, generate a token
+			middleware.SetTokenForContext(ctx, user.Type, user.ID.String())
+			return user, nil
+		}
+	}
+
+	// If no vendor found or password didn't match, try to find a job request
+	rj := &model.JobRequest{}
+	if err := r.DB.Where("number = ?", input.Number).First(rj).Error; err == nil {
+		if rj.Password != nil {
+			// First, check if it's a direct match (for generated passwords)
+			if *rj.Password == input.Password {
+				middleware.SetTokenForContext(ctx, rj.Type, rj.ID.String())
+				return rj, nil
+			}
+
+			// If direct match fails, try bcrypt comparison (for hashed passwords)
+			// This will not error if the stored password isn't actually a bcrypt hash
+			err := bcrypt.CompareHashAndPassword([]byte(*rj.Password), []byte(input.Password))
+			if err == nil {
+				middleware.SetTokenForContext(ctx, rj.Type, rj.ID.String())
+				return rj, nil
+			}
+		}
+	}
+
+	// Return an error if no matching record found or password didn't match
+	return nil, fmt.Errorf("invalid number or password")
+}
+
 // LogOut is the resolver for the logOut field.
 func (r *mutationResolver) LogOut(ctx context.Context) (bool, error) {
 	// Retrieve the CookieAccess object from the context
@@ -95,7 +133,11 @@ func (r *purchaseHistoryItemResolver) ID(ctx context.Context, obj *model.Purchas
 
 // GetID is the resolver for the getID field.
 func (r *queryResolver) GetID(ctx context.Context) (*string, error) {
-	panic(fmt.Errorf("not implemented: GetID - getID"))
+	id, err := middleware.GetIDFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ID from context: %w", err)
+	}
+	return &id, nil
 }
 
 // GetAllSystemInfo is the resolver for the getAllSystemInfo field.

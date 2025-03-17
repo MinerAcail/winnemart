@@ -13,8 +13,8 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { Item } from "@/app/HostelStoreApp";
 import { Badge } from "../ui/badge";
+import {   Item } from "@/hooks/CartContext.tsx";
 
 interface ItemCarouselProps {
   selectedProduct: Item | null;

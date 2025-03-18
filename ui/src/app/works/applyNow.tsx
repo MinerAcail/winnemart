@@ -129,7 +129,7 @@ const ApplyNowSection = ({ children }: ApplyNowSectionProps) => {
             </DialogDescription>
           </DialogHeader>
 
-          <Card className="max-h-screen overflow-y-auto h-full flex flex-col p-4 overscroll-contain" >
+          <Card className="max-h-screen overflow-y-scroll h-full flex flex-col p-4 overscroll-contain" >
             <form onSubmit={handleSubmit} className="mt-8 p-1 h- ">
               <div className="gap-2">
                 <Label htmlFor="name">Full Name</Label>

@@ -1,4 +1,4 @@
-import { gql } from '@apollo/client';
+import { gql } from "@apollo/client";
 
 // Define the mutation
 export const CREATE_ORDER_ITEMS = gql`

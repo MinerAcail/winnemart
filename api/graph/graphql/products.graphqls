@@ -125,7 +125,7 @@ extend type Query {
   getAllOrderHistory: [Order]
   getAllOrderItemsByProductId(orderId: String!): CartItemOrder
   getAllOrderItemsByProductIdDelivery: [CartItemOrder]
-  useGetordertracking(orderId: String): CartItemOrder
+  useGetordertracking(orderId: [String]): [CartItemOrder]
   getAllUserStats: [UserInfor!]!
   getOrderChat(orderId:String): OrderChat
   getAllChatMessageByNumber(customerNumber: String!): [ChatMessage]!

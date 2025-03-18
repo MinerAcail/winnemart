@@ -293,7 +293,7 @@ type ComplexityRoot struct {
 		ReviewAllWorks                      func(childComplexity int) int
 		ReviewApplicate                     func(childComplexity int) int
 		SearchProducts                      func(childComplexity int, query string) int
-		UseGetordertracking                 func(childComplexity int, orderID *string) int
+		UseGetordertracking                 func(childComplexity int, orderID []*string) int
 	}
 
 	RequestItem struct {
@@ -503,7 +503,7 @@ type QueryResolver interface {
 	GetAllOrderHistory(ctx context.Context) ([]*model.Order, error)
 	GetAllOrderItemsByProductID(ctx context.Context, orderID string) (*model.CartItemOrder, error)
 	GetAllOrderItemsByProductIDDelivery(ctx context.Context) ([]*model.CartItemOrder, error)
-	UseGetordertracking(ctx context.Context, orderID *string) (*model.CartItemOrder, error)
+	UseGetordertracking(ctx context.Context, orderID []*string) ([]*model.CartItemOrder, error)
 	GetAllUserStats(ctx context.Context) ([]*model.UserInfor, error)
 	GetOrderChat(ctx context.Context, orderID *string) (*model.OrderChat, error)
 	GetAllChatMessageByNumber(ctx context.Context, customerNumber string) ([]*model.ChatMessage, error)
@@ -2140,7 +2140,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.UseGetordertracking(childComplexity, args["orderId"].(*string)), true
+		return e.complexity.Query.UseGetordertracking(childComplexity, args["orderId"].([]*string)), true
 
 	case "RequestItem.categories":
 		if e.complexity.RequestItem.Categories == nil {
@@ -4607,13 +4607,13 @@ func (ec *executionContext) field_Query_useGetordertracking_args(ctx context.Con
 func (ec *executionContext) field_Query_useGetordertracking_argsOrderID(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (*string, error) {
+) ([]*string, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("orderId"))
 	if tmp, ok := rawArgs["orderId"]; ok {
-		return ec.unmarshalOString2ᚖstring(ctx, tmp)
+		return ec.unmarshalOString2ᚕᚖstring(ctx, tmp)
 	}
 
-	var zeroVal *string
+	var zeroVal []*string
 	return zeroVal, nil
 }
 
@@ -12445,7 +12445,7 @@ func (ec *executionContext) _Query_useGetordertracking(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().UseGetordertracking(rctx, fc.Args["orderId"].(*string))
+		return ec.resolvers.Query().UseGetordertracking(rctx, fc.Args["orderId"].([]*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -12454,9 +12454,9 @@ func (ec *executionContext) _Query_useGetordertracking(ctx context.Context, fiel
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.CartItemOrder)
+	res := resTmp.([]*model.CartItemOrder)
 	fc.Result = res
-	return ec.marshalOCartItemOrder2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCartItemOrder(ctx, field.Selections, res)
+	return ec.marshalOCartItemOrder2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐCartItemOrder(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_useGetordertracking(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {

@@ -7,6 +7,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import CartSidebar, { CartSidebarProps } from "./CartSidebar";
+import MultipleCountdown from "./timer";
 
 
 export function SheetSide({
@@ -29,8 +30,8 @@ export function SheetSide({
     <SheetTrigger asChild>{children}</SheetTrigger>
     <SheetContent side="top">
       <SheetHeader>
-        <SheetTitle>Cart profile</SheetTitle>
-        <SheetDescription>
+      <SheetTitle><MultipleCountdown/></SheetTitle>
+      <SheetTitle>Cart profile</SheetTitle>        <SheetDescription>
           Add Your Hostel Information and Your Number Here. Click save when you're done.
         </SheetDescription>
       </SheetHeader>

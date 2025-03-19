@@ -229,6 +229,63 @@ func (r *mutationResolver) CreateOrderItems(ctx context.Context, input *model.Or
 	return order, nil
 }
 
+// UpdateOrderbyUser is the resolver for the updateOrderbyUser field.
+func (r *mutationResolver) UpdateOrderbyUser(ctx context.Context, orderID *string) (*bool, error) {
+	if orderID == nil {
+		return nil, fmt.Errorf("order ID cannot be nil")
+	}
+
+	// Start a new transaction
+	tx := r.DB.Begin()
+	if tx.Error != nil {
+		return nil, fmt.Errorf("failed to start transaction: %v", tx.Error)
+	}
+
+	// Update the order status to "DELETED"
+	if err := tx.Model(&model.Order{}).Where("id = ?", *orderID).Update("status", "DELETED").Error; err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("failed to update order status: %v", err)
+	}
+
+	// Extract HTTP request
+	req := middleware.GetRequest(ctx)
+	if req == nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("request is nil")
+	}
+
+	// Extract response writer from context
+	w, ok := middleware.GetResponseWriter(ctx)
+	if !ok {
+		tx.Rollback()
+		return nil, fmt.Errorf("unable to access response writer")
+	}
+
+	// Extract existing order tracking cookie
+	existsOrderIDs, err := middleware.GetOrderTrackingCookie(req)
+	if err != nil {
+		log.Println("No existing tracking cookie found, initializing new one.")
+		existsOrderIDs = []string{} // Ensure we start with an empty slice
+	}
+
+	log.Println("Cookies passed successfully:", existsOrderIDs)
+
+	// Remove the order from the tracking cookie
+	if err := middleware.RemoveOrderFromTrackingCookie(w, ctx, *orderID, existsOrderIDs); err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("failed to remove order from tracking cookie: %v", err)
+	}
+
+	// Commit transaction
+	if err := tx.Commit().Error; err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %v", err)
+	}
+
+	result := true
+	return &result, nil
+
+}
+
 // UpdateOrderStatus is the resolver for the updateOrderStatus field.
 func (r *mutationResolver) UpdateOrderStatus(ctx context.Context, orderID *string, status string) (*bool, error) {
 	if orderID == nil {
@@ -256,8 +313,6 @@ func (r *mutationResolver) UpdateOrderStatus(ctx context.Context, orderID *strin
 // SendChatMessage is the resolver for the sendChatMessage field.
 func (r *mutationResolver) SendChatMessage(ctx context.Context, input model.ChatMessageInput, orderID *string) (*model.ChatMessage, error) {
 	middleware.CleanupOrderTrackingCookie(ctx, r.DB)
-
-	
 
 	// Parse the order ID
 	parsedOrderID, err := uuid.Parse(*orderID)
@@ -1342,7 +1397,6 @@ func (r *queryResolver) UseGetordertracking(ctx context.Context, orderID []*stri
 	}
 
 	return result, nil
-
 }
 
 // GetAllUserStats is the resolver for the getAllUserStats field.
@@ -1424,8 +1478,6 @@ func (r *queryResolver) GetAllUserStats(ctx context.Context) ([]*model.UserInfor
 func (r *queryResolver) GetOrderChat(ctx context.Context, orderID *string) (*model.OrderChat, error) {
 	middleware.CleanupOrderTrackingCookie(ctx, r.DB)
 
-
-	
 	// Parse the order ID
 	parsedOrderID, err := uuid.Parse(*orderID)
 	if err != nil {

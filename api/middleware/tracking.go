@@ -198,6 +198,41 @@ func GetOrderTrackingCookie(r *http.Request) ([]string, error) {
 
     return orderIDs, nil
 }
+func RemoveOrderFromTrackingCookie(w http.ResponseWriter, ctx context.Context, orderID string, existsOrderIDs []string) error {
+    const cookieName = "order_tracking"
+
+    // Filter out the order ID to be removed
+    updatedOrders := []string{}
+    for _, id := range existsOrderIDs {
+        if id != orderID {
+            updatedOrders = append(updatedOrders, id)
+        }
+    }
+
+    // Convert updated orders back to JSON
+    newValue, err := json.Marshal(updatedOrders)
+    if err != nil {
+        return err
+    }
+
+    // Determine if secure mode should be enabled (based on HTTPS)
+    secureFlag := ctx.Value("isHTTPS") == true // Adjust based on actual implementation
+
+    // Set the updated cookie
+    newCookie := &http.Cookie{
+        Name:     cookieName,
+        Value:    string(newValue),
+        Path:     "/",
+        HttpOnly: true,
+        Secure:   secureFlag,
+        SameSite: http.SameSiteLaxMode,
+        Expires:  time.Now().Add(24 * time.Hour),
+    }
+
+    http.SetCookie(w, newCookie)
+    log.Println("Updated Order Tracking Cookie after removal:", string(newValue))
+    return nil
+}
 
 func GetjobRequestCookie(r *http.Request) (string, error) {
 	cookie, err := r.Cookie("job_request")

@@ -1,4 +1,3 @@
-// HostelStoreApp.tsx
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@apollo/client";
 import { useDeviceType } from "@/hooks/useDeviceType";
@@ -91,7 +90,10 @@ const HostelStoreContent: React.FC = () => {
         {/* Main content */}
         <div className="w-full">
           <NavBar onSearch={handleSearch} />
+          {/* removetodo */}
           <h1 className="text-2xl font-bold mb-4">Order Receipt</h1>
+  {/* <MultipleCountdown/> */}
+
           {filteredItems.length === 0 ? (
             <NoItemsFound />
           ) : (

@@ -17,6 +17,7 @@ import { CartProvider } from "@/hooks/CartContext";
 import { VendorDashboard, VendorItems } from "@/app/vendors";
 import ProtectedIsAuthRoute from "./protectedIsAuth";
 import { DriverOrderItems } from "@/app/driver";
+import { OrderTrackingProvider } from "@/hooks/orderTrackingContext";
 
 const router = createBrowserRouter([
   { path: "/", element: <HostelStoreApp /> },
@@ -54,13 +55,15 @@ export function Navigation() {
   return (
     <ApolloProvider client={Client}>
       <SidebarProvider>
-        <AppSidebar />
-        <CartProvider>
-          <AuthProvider>
-            <RouterProvider router={router} />
-            <Toaster />
-          </AuthProvider>
-        </CartProvider>
+        <OrderTrackingProvider>
+          <AppSidebar />
+          <CartProvider>
+            <AuthProvider>
+              <RouterProvider router={router} />
+              <Toaster />
+            </AuthProvider>
+          </CartProvider>
+        </OrderTrackingProvider>
       </SidebarProvider>
     </ApolloProvider>
   );

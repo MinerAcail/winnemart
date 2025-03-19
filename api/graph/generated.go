@@ -185,6 +185,7 @@ type ComplexityRoot struct {
 		UpdateAdminStatus            func(childComplexity int, id string, status string) int
 		UpdateEstimatedDelivery      func(childComplexity int, assignmentID string, newDate string) int
 		UpdateOrderStatus            func(childComplexity int, orderID *string, status string) int
+		UpdateOrderbyUser            func(childComplexity int, orderID *string) int
 		UpdateProductByAdmin         func(childComplexity int, productID string, input model.ProductInputUpdate) int
 		UpdateProductByVendor        func(childComplexity int, productID string, input model.ProductInputUpdate) int
 		UpdateRequestItemStatus      func(childComplexity int, requestID string, status model.ProductState) int
@@ -433,6 +434,7 @@ type MutationResolver interface {
 	VendorUpload(ctx context.Context, files []*graphql.Upload, input model.ProductInput) (*model.Product, error)
 	DeleteProduct(ctx context.Context, id string) (*bool, error)
 	CreateOrderItems(ctx context.Context, input *model.OrderInput) (*model.Order, error)
+	UpdateOrderbyUser(ctx context.Context, orderID *string) (*bool, error)
 	UpdateOrderStatus(ctx context.Context, orderID *string, status string) (*bool, error)
 	SendChatMessage(ctx context.Context, input model.ChatMessageInput, orderID *string) (*model.ChatMessage, error)
 	SendChatMessageByNumber(ctx context.Context, input model.ChatMessageAdminInput) (*model.ChatMessage, error)
@@ -1365,6 +1367,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateOrderStatus(childComplexity, args["orderID"].(*string), args["status"].(string)), true
+
+	case "Mutation.updateOrderbyUser":
+		if e.complexity.Mutation.UpdateOrderbyUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateOrderbyUser_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateOrderbyUser(childComplexity, args["orderID"].(*string)), true
 
 	case "Mutation.updateProductByAdmin":
 		if e.complexity.Mutation.UpdateProductByAdmin == nil {
@@ -3752,6 +3766,29 @@ func (ec *executionContext) field_Mutation_updateOrderStatus_argsStatus(
 	}
 
 	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateOrderbyUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_updateOrderbyUser_argsOrderID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["orderID"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_updateOrderbyUser_argsOrderID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("orderID"))
+	if tmp, ok := rawArgs["orderID"]; ok {
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
 	return zeroVal, nil
 }
 
@@ -7725,6 +7762,58 @@ func (ec *executionContext) fieldContext_Mutation_createOrderItems(ctx context.C
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_createOrderItems_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateOrderbyUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateOrderbyUser(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateOrderbyUser(rctx, fc.Args["orderID"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateOrderbyUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateOrderbyUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -20953,6 +21042,10 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "createOrderItems":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createOrderItems(ctx, field)
+			})
+		case "updateOrderbyUser":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateOrderbyUser(ctx, field)
 			})
 		case "updateOrderStatus":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {

@@ -15,12 +15,12 @@ interface Product {
   price: string; // Price comes as a string in the response
 }
 
-interface ProductInfo {
+export interface ProductInfo {
   quantity: number;
   product: Product[]; // Array of products
 }
 
-interface OrderTrackingData {
+export interface OrderTrackingData {
   useGetordertracking: {
     orderId: string;
     customerNumber: string;

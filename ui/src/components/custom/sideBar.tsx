@@ -27,27 +27,30 @@ export function SheetSide({
 }) {
   return (
     <Sheet key="top">
-    <SheetTrigger asChild>{children}</SheetTrigger>
-    <SheetContent side="top">
-      <SheetHeader>
-      <SheetTitle><MultipleCountdown/></SheetTitle>
-      <SheetTitle>Cart profile</SheetTitle>        <SheetDescription>
-          Add Your Hostel Information and Your Number Here. Click save when you're done.
-        </SheetDescription>
-      </SheetHeader>
-      <div className="w-full lg:w-1/4">
-        <div className="sticky top-4">
-          <CartSidebar
-            cart={cart}
-            hostelDetails={hostelDetails}
-            setHostelDetails={setHostelDetails}
-            removeFromCart={removeFromCart}
-            placeOrder={placeOrder}
-          />
+      <SheetTrigger asChild>{children}</SheetTrigger>
+      <SheetContent side="top">
+        <SheetHeader>
+          <SheetTitle>
+            <MultipleCountdown />
+          </SheetTitle>
+          <SheetTitle>Cart profile</SheetTitle>
+          <SheetDescription>
+            Add Your Hostel Information and Your Number Here. Click save when
+            you're done.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="w-full lg:w-1/4">
+          <div className="sticky top-4">
+            <CartSidebar
+              cart={cart}
+              hostelDetails={hostelDetails}
+              setHostelDetails={setHostelDetails}
+              removeFromCart={removeFromCart}
+              placeOrder={placeOrder}
+            />
+          </div>
         </div>
-      </div>
-  
-    </SheetContent>
-  </Sheet>
+      </SheetContent>
+    </Sheet>
   );
 }

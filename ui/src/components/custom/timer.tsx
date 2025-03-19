@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { useOrderTracking } from "@/hooks/orderTrackingContext";
 import { useCart } from "@/hooks/CartContext";
 import { useMutation, gql } from "@apollo/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Types updated to match API structure
 interface APIProduct {
@@ -147,7 +148,7 @@ const MultipleCountdown = () => {
   const [timers, setTimers] = useState<OrderTimer[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-
+const isMobile = useIsMobile();
   useEffect(() => {
     if (!data?.useGetordertracking) return;
 
@@ -219,9 +220,9 @@ const MultipleCountdown = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [handleClickOutside]);
-
+  const position = isMobile ? "left-2 top-2" : "right-18 top-20";
   return (
-    <div className="fixed top-2 left-2 z-50" ref={dropdownRef}>
+    <div className={`fixed  ${position} z-50`} ref={dropdownRef}>
       <Button
         variant="outline"
         className="w-10 h-10 rounded-full bg-emerald-100 border-green-200"

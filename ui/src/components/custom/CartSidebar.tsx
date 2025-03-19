@@ -125,11 +125,12 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
     return () => clearTimeout(timer);
   }, [loading, error, data, OrderTimestamp]);
 
-  console.log("newOrder", newOrder);
-  console.log("data", data);
+  // console.log("newOrder", newOrder);
+  // console.log("data", data);
   return (
     <>
       {!showReceipt ? (
+        
         <>
           {newOrder === false && (
             <CartComponent
@@ -238,6 +239,7 @@ export default CartSidebar;
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MinChat from "@/app/message";
 import { Item } from "@/hooks/CartContext";
+import { TermsConditions } from "../ui/term_and_condition_ui";
 // import { Trigger } from "@radix-ui/react-tabs";
 
 export function SideTabs({
@@ -247,12 +249,14 @@ export function SideTabs({
   newOrder: boolean | null;
   setNewOrderValue: (value: boolean) => void;
 }) {
-
   const [activeTab, setActiveTab] = useState("receipt");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sticky lg:mt-32">
-
+    <Tabs
+      value={activeTab}
+      onValueChange={setActiveTab}
+      className="w-full sticky lg:mt-32"
+    >
       <TabsList className="grid w-full grid-cols-2">
         {/* <TabsTrigger value="add">Add</TabsTrigger> */}
         <TabsTrigger value="receipt">Receipt</TabsTrigger>
@@ -260,13 +264,13 @@ export function SideTabs({
       </TabsList>
 
       <TabsContent value="receipt">
-        <CardReceipt 
-        // showReceipt={showReceipt}
-         newOrder={!!newOrder} 
-         setNewOrderValue={setNewOrderValue} 
-         setActiveTab={setActiveTab}  // Pass activeTab handler
-         setSelectedOrderId={setSelectedOrderId}  // Pass selected order handler
-         />
+        <CardReceipt
+          // showReceipt={showReceipt}
+          newOrder={!!newOrder}
+          setNewOrderValue={setNewOrderValue}
+          setActiveTab={setActiveTab} // Pass activeTab handler
+          setSelectedOrderId={setSelectedOrderId} // Pass selected order handler
+        />
       </TabsContent>
       <TabsContent value="message">
         <MinChat id={selectedOrderId} />
@@ -381,8 +385,7 @@ const CartComponent = ({
                 .reduce((total, item) => total + Number(item.price), 0)
                 .toFixed(2)}
             </p>
-
-            <Button
+            <TermsConditions
               onClick={() => {
                 placeOrder();
                 setNewOrderValue(!newOrder);
@@ -391,7 +394,7 @@ const CartComponent = ({
               disabled={!hostelDetails.hostelName || !hostelDetails.phoneNumber}
             >
               Place Order
-            </Button>
+            </TermsConditions>
           </div>
         )}
       </CardContent>

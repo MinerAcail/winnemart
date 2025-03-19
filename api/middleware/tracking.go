@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
-	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -14,30 +13,15 @@ import (
 	"gorm.io/gorm"
 )
 
-func getLocalIP() string {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return "localhost"
-	}
-	for _, addr := range addrs {
-		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
-			if ipNet.IP.To4() != nil { // IPv4 only
-				return ipNet.IP.String()
-			}
-		}
-	}
-	return "localhost"
-}
-
 // SetOrderTrackingCookie sets an HTTP-only cookie containing the order tracking ID.
 func SetOrderTrackingCookieold(w http.ResponseWriter, orderID string) error {
 	cookie := &http.Cookie{
-		Name:  "order_tracking",
-		Value: orderID,
-		Path:  "/",
-		// Domain:   "winnemart.com", // Ensure this matches your main domain
+		Name:     "order_tracking",
+		Value:    orderID,
+		Path:     "/",
+		Domain:   "winnemart.com", // Ensure this matches your main domain
+		Secure:   true,            // Must be true for HTTPS
 		HttpOnly: true,
-		Secure:   false, // Must be true for HTTPS
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().Add(24 * time.Hour),
 	}
@@ -78,7 +62,8 @@ func SetOrderTrackingCookie(w http.ResponseWriter, ctx context.Context, orderID 
 		Value:    string(newValue),
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   secureFlag, // Secure should be true only if HTTPS is used
+		Domain:   "winnemart.com", // Ensure this matches your main domain
+		Secure:   secureFlag,      // Secure should be true only if HTTPS is used
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().Add(24 * time.Hour),
 	}
@@ -90,12 +75,13 @@ func SetOrderTrackingCookie(w http.ResponseWriter, ctx context.Context, orderID 
 
 func SetjobRequestCookie(w http.ResponseWriter, requestId string) error {
 	cookie := &http.Cookie{
-		Name:  "job_request",
-		Value: requestId,
-		// Domain:   "http://*",
+		Name:   "job_request",
+		Value:  requestId,
+		Domain: "winnemart.com", // Ensure this matches your main domain
+
 		Path:     "/",
-		HttpOnly: true,  // Prevent access from JavaScript
-		Secure:   false, // Use Secure (enable in production)
+		HttpOnly: true, // Prevent access from JavaScript
+		Secure:   true, // Use Secure (enable in production)
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().Add(3 * time.Hour),
 	}
@@ -163,75 +149,77 @@ func GetOrderTrackingCookie1(r *http.Request) ([]string, error) {
 	return orderIDs, nil
 }
 func GetOrderTrackingCookie(r *http.Request) ([]string, error) {
-    cookie, err := r.Cookie("order_tracking")
-    if err != nil {
-        if errors.Is(err, http.ErrNoCookie) {
-            return []string{}, nil
-        }
-        return nil, err
-    }
+	cookie, err := r.Cookie("order_tracking")
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			return []string{}, nil
+		}
+		return nil, err
+	}
 
-    var orderIDs []string
-    rawValue := cookie.Value
+	var orderIDs []string
+	rawValue := cookie.Value
 
-    // First, attempt to unmarshal as JSON array
-    if json.Valid([]byte(rawValue)) {
-        if err := json.Unmarshal([]byte(rawValue), &orderIDs); err == nil {
-            return orderIDs, nil
-        }
-    }
+	// First, attempt to unmarshal as JSON array
+	if json.Valid([]byte(rawValue)) {
+		if err := json.Unmarshal([]byte(rawValue), &orderIDs); err == nil {
+			return orderIDs, nil
+		}
+	}
 
-    log.Println("Malformed JSON detected in cookie:", rawValue)
+	log.Println("Malformed JSON detected in cookie:", rawValue)
 
-    // Remove outer brackets
-    rawValue = strings.Trim(rawValue, "[]\"")
+	// Remove outer brackets
+	rawValue = strings.Trim(rawValue, "[]\"")
 
-    // Handle cases where IDs are inside inner brackets
-    rawValue = strings.ReplaceAll(rawValue, "[", "")
-    rawValue = strings.ReplaceAll(rawValue, "]", "")
-    rawValue = strings.ReplaceAll(rawValue, "\"", "")
+	// Handle cases where IDs are inside inner brackets
+	rawValue = strings.ReplaceAll(rawValue, "[", "")
+	rawValue = strings.ReplaceAll(rawValue, "]", "")
+	rawValue = strings.ReplaceAll(rawValue, "\"", "")
 
-    // Split by comma
-    if rawValue != "" {
-        orderIDs = strings.Split(rawValue, ",")
-    }
+	// Split by comma
+	if rawValue != "" {
+		orderIDs = strings.Split(rawValue, ",")
+	}
 
-    return orderIDs, nil
+	return orderIDs, nil
 }
 func RemoveOrderFromTrackingCookie(w http.ResponseWriter, ctx context.Context, orderID string, existsOrderIDs []string) error {
-    const cookieName = "order_tracking"
+	const cookieName = "order_tracking"
 
-    // Filter out the order ID to be removed
-    updatedOrders := []string{}
-    for _, id := range existsOrderIDs {
-        if id != orderID {
-            updatedOrders = append(updatedOrders, id)
-        }
-    }
+	// Filter out the order ID to be removed
+	updatedOrders := []string{}
+	for _, id := range existsOrderIDs {
+		if id != orderID {
+			updatedOrders = append(updatedOrders, id)
+		}
+	}
 
-    // Convert updated orders back to JSON
-    newValue, err := json.Marshal(updatedOrders)
-    if err != nil {
-        return err
-    }
+	// Convert updated orders back to JSON
+	newValue, err := json.Marshal(updatedOrders)
+	if err != nil {
+		return err
+	}
 
-    // Determine if secure mode should be enabled (based on HTTPS)
-    secureFlag := ctx.Value("isHTTPS") == true // Adjust based on actual implementation
+	// Determine if secure mode should be enabled (based on HTTPS)
+	secureFlag := ctx.Value("isHTTPS") == true // Adjust based on actual implementation
 
-    // Set the updated cookie
-    newCookie := &http.Cookie{
-        Name:     cookieName,
-        Value:    string(newValue),
-        Path:     "/",
-        HttpOnly: true,
-        Secure:   secureFlag,
-        SameSite: http.SameSiteLaxMode,
-        Expires:  time.Now().Add(24 * time.Hour),
-    }
+	// Set the updated cookie
+	newCookie := &http.Cookie{
+		Name:   cookieName,
+		Value:  string(newValue),
+		Path:   "/",
+		Domain: "winnemart.com", // Ensure this matches your main domain
 
-    http.SetCookie(w, newCookie)
-    log.Println("Updated Order Tracking Cookie after removal:", string(newValue))
-    return nil
+		HttpOnly: true,
+		Secure:   secureFlag,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(24 * time.Hour),
+	}
+
+	http.SetCookie(w, newCookie)
+	log.Println("Updated Order Tracking Cookie after removal:", string(newValue))
+	return nil
 }
 
 func GetjobRequestCookie(r *http.Request) (string, error) {
@@ -314,11 +302,13 @@ func CleanupOrderTrackingCookie1(ctx context.Context, db *gorm.DB) {
 
 		// Clear the cookie
 		cookie := &http.Cookie{
-			Name:     "order_tracking",
-			Value:    "",
-			Path:     "/",
+			Name:   "order_tracking",
+			Value:  "",
+			Path:   "/",
+			Domain: "winnemart.com", // Ensure this matches your main domain
+
 			HttpOnly: true,
-			Secure:   false,
+			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 			MaxAge:   -1, // Immediately expires the cookie
 		}
@@ -373,7 +363,9 @@ func CleanupOrderTrackingCookie(ctx context.Context, db *gorm.DB) {
 			Value:    "",
 			Path:     "/",
 			HttpOnly: true,
-			Secure:   false,
+			Domain:   "winnemart.com", // Ensure this matches your main domain
+
+			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 			MaxAge:   -1, // Immediately expires the cookie
 		}
@@ -394,7 +386,9 @@ func CleanupOrderTrackingCookie(ctx context.Context, db *gorm.DB) {
 		Value:    string(newValue),
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   false,
+		Domain:   "winnemart.com", // Ensure this matches your main domain
+
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().Add(24 * time.Hour),
 	}
@@ -435,7 +429,9 @@ func CleanupRequestrackingCookie(ctx context.Context, db *gorm.DB) {
 			Value:    "",
 			Path:     "/",
 			HttpOnly: true,
-			Secure:   false,
+			Domain:   "winnemart.com", // Ensure this matches your main domain
+
+			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 			MaxAge:   -1, // Immediately expires the cookie
 		}

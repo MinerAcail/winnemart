@@ -61,8 +61,8 @@ const TimerDisplay = ({
 }) => {
   const { id, initialTime, orderItems } = config;
   const isComplete = timeLeft <= 0;
-  // const progress = (timeLeft / initialTime) * 100;
-  const progress = Math.min(100, Math.max(0, (timeLeft / initialTime) * 100));
+  const progress = (timeLeft / initialTime) * 100;
+
   return (
     <Card
       className={`w-full rounded-lg shadow-md border-l-4 ${
@@ -156,16 +156,9 @@ const isMobile = useIsMobile();
     setTimers(
       data.useGetordertracking.map((order) => {
         const createdAt = new Date(order.createdAt).getTime();
-        // Validate createdAt - if it's too old or invalid, use current time minus 1 second
-        const validCreatedAt = isNaN(createdAt) || (now - createdAt) > 300000 
-          ? now - 1000 
-          : createdAt;
-        const timePassed = Math.floor((now - validCreatedAt) / 1000);
+        const timePassed = Math.floor((now - createdAt) / 1000);
         const timeRemaining = Math.max(300 - timePassed, 0);
-        console.log("Order ID:", order.orderId);
-console.log("Created At:", new Date(order.createdAt).toString());
-console.log("Time Passed (seconds):", timePassed);
-console.log("Time Remaining:", timeRemaining);
+        
         return {
           id: order.orderId,
           initialTime: 300, // Always 5 minutes (300 seconds)

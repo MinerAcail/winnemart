@@ -190,7 +190,7 @@ type ComplexityRoot struct {
 		UpdateProductByVendor        func(childComplexity int, productID string, input model.ProductInputUpdate) int
 		UpdateRequestItemStatus      func(childComplexity int, requestID string, status model.ProductState) int
 		UpdateRiderStatus            func(childComplexity int, riderID string, status string) int
-		UpdateVendor                 func(childComplexity int, id string, input model.UpdateVendorInput) int
+		UpdateVendor                 func(childComplexity int, dpfile *graphql.Upload, input model.UpdateVendorInput) int
 		UploadFile                   func(childComplexity int, input model.UploadFile) int
 		UseGetJobRequestTracking     func(childComplexity int) int
 		UserLogin                    func(childComplexity int, input model.LoginInput) int
@@ -280,7 +280,7 @@ type ComplexityRoot struct {
 		GetRider                            func(childComplexity int, id string) int
 		GetUnavailablePeriods               func(childComplexity int) int
 		GetUserByID                         func(childComplexity int, id string) int
-		GetVendor                           func(childComplexity int, id string) int
+		GetVendor                           func(childComplexity int) int
 		GetVendorChat                       func(childComplexity int, id string) int
 		GetVendorChatMessages               func(childComplexity int, id string) int
 		GetVendorOrder                      func(childComplexity int, id string) int
@@ -341,6 +341,7 @@ type ComplexityRoot struct {
 
 	Vendor struct {
 		CreatedAt func(childComplexity int) int
+		Dpfile    func(childComplexity int) int
 		ID        func(childComplexity int) int
 		Name      func(childComplexity int) int
 		Number    func(childComplexity int) int
@@ -466,7 +467,7 @@ type MutationResolver interface {
 	CreateUser(ctx context.Context, input model.InputUser) (*model.User, error)
 	DeleteUserByID(ctx context.Context, id string) (*bool, error)
 	CreateVendor(ctx context.Context, input model.CreateVendorInput) (*model.Vendor, error)
-	UpdateVendor(ctx context.Context, id string, input model.UpdateVendorInput) (*model.Vendor, error)
+	UpdateVendor(ctx context.Context, dpfile *graphql.Upload, input model.UpdateVendorInput) (*model.Vendor, error)
 	DeleteVendor(ctx context.Context, id string) (*bool, error)
 	CreateUnavailablePeriod(ctx context.Context, input model.CreateUnavailablePeriodInput, vendorID string) (*model.UnavailablePeriod, error)
 	DeleteUnavailablePeriod(ctx context.Context, id string, vendorID string) (*bool, error)
@@ -525,7 +526,7 @@ type QueryResolver interface {
 	ImageUrls(ctx context.Context) ([]string, error)
 	GetUserByID(ctx context.Context, id string) (*model.User, error)
 	GetAllUsers(ctx context.Context) ([]*model.User, error)
-	GetVendor(ctx context.Context, id string) (*model.Vendor, error)
+	GetVendor(ctx context.Context) (*model.Vendor, error)
 	GetVendorProducts(ctx context.Context) ([]*model.Product, error)
 	ListVendors(ctx context.Context) ([]*model.Vendor, error)
 	GetUnavailablePeriods(ctx context.Context) ([]*model.UnavailablePeriod, error)
@@ -1438,7 +1439,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateVendor(childComplexity, args["id"].(string), args["input"].(model.UpdateVendorInput)), true
+		return e.complexity.Mutation.UpdateVendor(childComplexity, args["dpfile"].(*graphql.Upload), args["input"].(model.UpdateVendorInput)), true
 
 	case "Mutation.uploadFile":
 		if e.complexity.Mutation.UploadFile == nil {
@@ -2016,12 +2017,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		args, err := ec.field_Query_getVendor_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.GetVendor(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.GetVendor(childComplexity), true
 
 	case "Query.getVendorChat":
 		if e.complexity.Query.GetVendorChat == nil {
@@ -2351,6 +2347,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Vendor.CreatedAt(childComplexity), true
+
+	case "Vendor.dpfile":
+		if e.complexity.Vendor.Dpfile == nil {
+			break
+		}
+
+		return e.complexity.Vendor.Dpfile(childComplexity), true
 
 	case "Vendor.id":
 		if e.complexity.Vendor.ID == nil {
@@ -3959,11 +3962,11 @@ func (ec *executionContext) field_Mutation_updateRiderStatus_argsStatus(
 func (ec *executionContext) field_Mutation_updateVendor_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := ec.field_Mutation_updateVendor_argsID(ctx, rawArgs)
+	arg0, err := ec.field_Mutation_updateVendor_argsDpfile(ctx, rawArgs)
 	if err != nil {
 		return nil, err
 	}
-	args["id"] = arg0
+	args["dpfile"] = arg0
 	arg1, err := ec.field_Mutation_updateVendor_argsInput(ctx, rawArgs)
 	if err != nil {
 		return nil, err
@@ -3971,16 +3974,16 @@ func (ec *executionContext) field_Mutation_updateVendor_args(ctx context.Context
 	args["input"] = arg1
 	return args, nil
 }
-func (ec *executionContext) field_Mutation_updateVendor_argsID(
+func (ec *executionContext) field_Mutation_updateVendor_argsDpfile(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (string, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-	if tmp, ok := rawArgs["id"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
+) (*graphql.Upload, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("dpfile"))
+	if tmp, ok := rawArgs["dpfile"]; ok {
+		return ec.unmarshalOUpload2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, tmp)
 	}
 
-	var zeroVal string
+	var zeroVal *graphql.Upload
 	return zeroVal, nil
 }
 
@@ -4573,29 +4576,6 @@ func (ec *executionContext) field_Query_getVendorOrder_args(ctx context.Context,
 	return args, nil
 }
 func (ec *executionContext) field_Query_getVendorOrder_argsID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-	if tmp, ok := rawArgs["id"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Query_getVendor_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := ec.field_Query_getVendor_argsID(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["id"] = arg0
-	return args, nil
-}
-func (ec *executionContext) field_Query_getVendor_argsID(
 	ctx context.Context,
 	rawArgs map[string]any,
 ) (string, error) {
@@ -9694,6 +9674,8 @@ func (ec *executionContext) fieldContext_Mutation_createVendor(ctx context.Conte
 				return ec.fieldContext_Vendor_number(ctx, field)
 			case "password":
 				return ec.fieldContext_Vendor_password(ctx, field)
+			case "dpfile":
+				return ec.fieldContext_Vendor_dpfile(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Vendor_createdAt(ctx, field)
 			case "updatedAt":
@@ -9730,7 +9712,7 @@ func (ec *executionContext) _Mutation_updateVendor(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateVendor(rctx, fc.Args["id"].(string), fc.Args["input"].(model.UpdateVendorInput))
+		return ec.resolvers.Mutation().UpdateVendor(rctx, fc.Args["dpfile"].(*graphql.Upload), fc.Args["input"].(model.UpdateVendorInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9762,6 +9744,8 @@ func (ec *executionContext) fieldContext_Mutation_updateVendor(ctx context.Conte
 				return ec.fieldContext_Vendor_number(ctx, field)
 			case "password":
 				return ec.fieldContext_Vendor_password(ctx, field)
+			case "dpfile":
+				return ec.fieldContext_Vendor_dpfile(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Vendor_createdAt(ctx, field)
 			case "updatedAt":
@@ -13757,7 +13741,7 @@ func (ec *executionContext) _Query_getVendor(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetVendor(rctx, fc.Args["id"].(string))
+		return ec.resolvers.Query().GetVendor(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -13771,7 +13755,7 @@ func (ec *executionContext) _Query_getVendor(ctx context.Context, field graphql.
 	return ec.marshalOVendor2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐVendor(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Query_getVendor(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_getVendor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -13789,6 +13773,8 @@ func (ec *executionContext) fieldContext_Query_getVendor(ctx context.Context, fi
 				return ec.fieldContext_Vendor_number(ctx, field)
 			case "password":
 				return ec.fieldContext_Vendor_password(ctx, field)
+			case "dpfile":
+				return ec.fieldContext_Vendor_dpfile(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Vendor_createdAt(ctx, field)
 			case "updatedAt":
@@ -13796,17 +13782,6 @@ func (ec *executionContext) fieldContext_Query_getVendor(ctx context.Context, fi
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Vendor", field.Name)
 		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_getVendor_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
 	}
 	return fc, nil
 }
@@ -13921,6 +13896,8 @@ func (ec *executionContext) fieldContext_Query_listVendors(_ context.Context, fi
 				return ec.fieldContext_Vendor_number(ctx, field)
 			case "password":
 				return ec.fieldContext_Vendor_password(ctx, field)
+			case "dpfile":
+				return ec.fieldContext_Vendor_dpfile(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Vendor_createdAt(ctx, field)
 			case "updatedAt":
@@ -15873,6 +15850,47 @@ func (ec *executionContext) _Vendor_password(ctx context.Context, field graphql.
 }
 
 func (ec *executionContext) fieldContext_Vendor_password(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Vendor",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Vendor_dpfile(ctx context.Context, field graphql.CollectedField, obj *model.Vendor) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Vendor_dpfile(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Dpfile, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Vendor_dpfile(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Vendor",
 		Field:      field,
@@ -23204,6 +23222,8 @@ func (ec *executionContext) _Vendor(ctx context.Context, sel ast.SelectionSet, o
 			}
 		case "password":
 			out.Values[i] = ec._Vendor_password(ctx, field, obj)
+		case "dpfile":
+			out.Values[i] = ec._Vendor_dpfile(ctx, field, obj)
 		case "createdAt":
 			out.Values[i] = ec._Vendor_createdAt(ctx, field, obj)
 		case "updatedAt":

@@ -4,6 +4,7 @@ type Vendor {
   type: String!
   number: String!
   password: String
+  dpfile: String
   createdAt: Time
   updatedAt: Time
 }
@@ -26,7 +27,7 @@ type VendorOrder {
 }
 
 extend type Query {
-  getVendor(id: String!): Vendor
+  getVendor: Vendor
   getVendorProducts: [Product]
   listVendors: [Vendor!]!
   getUnavailablePeriods: [UnavailablePeriod!]!
@@ -45,7 +46,7 @@ extend type Query {
 
 extend type Mutation {
   createVendor(input: CreateVendorInput!): Vendor
-  updateVendor(id: String!, input: UpdateVendorInput!): Vendor
+  updateVendor(dpfile: Upload, input: UpdateVendorInput!): Vendor
   deleteVendor(id: String!): Boolean
   createUnavailablePeriod(
     input: CreateUnavailablePeriodInput!

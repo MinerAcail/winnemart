@@ -18,6 +18,8 @@ import { VendorDashboard, VendorItems } from "@/app/vendors";
 import ProtectedIsAuthRoute from "./protectedIsAuth";
 import { DriverOrderItems } from "@/app/driver";
 import { OrderTrackingProvider } from "@/hooks/orderTrackingContext";
+import ProfilePage from "@/components/custom/nav/workersProfile";
+import { ProtectType } from "./useProtect";
 
 const router = createBrowserRouter([
   { path: "/", element: <HostelStoreApp /> },
@@ -42,6 +44,16 @@ const router = createBrowserRouter([
       <ProtectedIsAuthRoute
         expectedTypes={["Vendor"]}
         element={<VendorItems />}
+      />
+    ),
+  },
+
+  {
+    path: "/profile",
+    element: (
+      <ProtectedIsAuthRoute
+        expectedTypes={[ProtectType.vendor, ProtectType.Driver]}
+        element={<ProfilePage />}
       />
     ),
   },

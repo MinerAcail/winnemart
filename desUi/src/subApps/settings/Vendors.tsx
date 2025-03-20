@@ -86,6 +86,7 @@ export function Vendor() {
   const { loading, error, data, refetch } = useQuery(GET_VENDORS);
   const [worksUpdate] = useMutation(UPDATE_APPLICATION_STATE, {
     refetchQueries: ["listVendors"],
+    
   });
   const { toast } = useToast();
 

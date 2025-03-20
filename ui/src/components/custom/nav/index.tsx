@@ -5,8 +5,8 @@ import { useDeviceType } from "@/hooks/useDeviceType";
 import { useAuth } from "@/middleware/context/authContext";
 import useProtect, { ProtectType } from "@/middleware/useProtect";
 import { gql, useMutation } from "@apollo/client";
-import { Link2, LogIn, Package } from "lucide-react";
-import {  useState } from "react";
+import { CircleUser, Link2, LogIn, Package } from "lucide-react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import logo from "../../../assets/ww.png";
 
@@ -91,7 +91,17 @@ function WorksNav({ to = "/", navName }: WorksNavProps) {
                 </Button>
               </Link>
             )}
-            
+            <Link to="/profile">
+              <Button
+                variant="outline"
+                size="sm"
+                // onClick={handleLogout}
+                className="flex items-center gap-2"
+              >
+                <CircleUser className="h-4 w-4" />
+                Profile
+              </Button>
+            </Link>
             <Button
               variant="outline"
               size="sm"

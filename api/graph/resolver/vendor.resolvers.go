@@ -8,11 +8,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/mineracail/sergi/graph"
@@ -58,22 +60,42 @@ func (r *mutationResolver) CreateVendor(ctx context.Context, input model.CreateV
 }
 
 // UpdateVendor is the resolver for the updateVendor field.
-func (r *mutationResolver) UpdateVendor(ctx context.Context, id string, input model.UpdateVendorInput) (*model.Vendor, error) {
+func (r *mutationResolver) UpdateVendor(ctx context.Context, dpfile *graphql.Upload, input model.UpdateVendorInput) (*model.Vendor, error) {
+	// Retrieve the vendor (user) ID from the context
+	VendorIDStr, err := r.Query().GetID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get vendor ID: %v", err)
+	}
+
 	// Parse the UUID from string
-	vendorID, err := uuid.Parse(id)
+	vendorID, err := uuid.Parse(*VendorIDStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid vendor ID: %w", err)
+	}
+	simpleName := strings.ToLower(strings.ReplaceAll(*input.Name, " ", "-"))
+	simpleName = regexp.MustCompile(`[^a-z0-9-]`).ReplaceAllString(simpleName, "")
+	bucketName := fmt.Sprintf("v-%s", simpleName[:helper.MinInt(len(simpleName), 10)])
+
+	log.Printf("Initial bucket name: %s", bucketName)
+
+	// Ensure the bucket exists in MinIO
+	if err := helper.CreateBucketInMinio(ctx, r.MinIOClient, bucketName); err != nil {
+		return nil, err
 	}
 
 	// Find the existing vendor
 	var vendor model.Vendor
 	if err := r.DB.Where("id = ?", vendorID).First(&vendor).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("vendor not found with ID: %s", id)
+			return nil, fmt.Errorf("vendor not found with ID: %s", vendorID)
 		}
 		return nil, fmt.Errorf("failed to fetch vendor: %w", err)
 	}
-
+	// Upload each file and store the URL
+	fileURL, err := helper.UploadFileToMinio(ctx, r.MinIOClient, bucketName, "dpfile", dpfile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to upload dpfile %s: %v", dpfile.Filename, err)
+	}
 	// Update fields if provided
 	if input.Name != nil {
 		vendor.Name = *input.Name
@@ -93,7 +115,9 @@ func (r *mutationResolver) UpdateVendor(ctx context.Context, id string, input mo
 		hashedPasswordStr := string(hashedPassword)
 		vendor.Password = &hashedPasswordStr
 	}
-
+	if dpfile != nil {
+		vendor.Dpfile = &fileURL
+	}
 	// Save the updated vendor to the database
 	if err := r.DB.Save(&vendor).Error; err != nil {
 		return nil, fmt.Errorf("failed to update vendor: %w", err)
@@ -258,8 +282,26 @@ func (r *mutationResolver) UpdateProductByVendor(ctx context.Context, productID 
 }
 
 // GetVendor is the resolver for the getVendor field.
-func (r *queryResolver) GetVendor(ctx context.Context, id string) (*model.Vendor, error) {
-	panic(fmt.Errorf("not implemented: GetVendor - getVendor"))
+func (r *queryResolver) GetVendor(ctx context.Context) (*model.Vendor, error) {
+	VendorIDStr, err := r.Query().GetID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get vendor ID: %v", err)
+	}
+
+	// Parse the UUID from string
+	vendorID, err := uuid.Parse(*VendorIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid vendor ID: %w", err)
+	}
+	var vendor model.Vendor
+	if err := r.DB.Where("id = ?", vendorID).First(&vendor).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("vendor not found")
+		}
+		return nil, fmt.Errorf("failed to fetch vendor: %v", err)
+	}
+
+	return &vendor, nil
 }
 
 // GetVendorProducts is the resolver for the getVendorProducts field.

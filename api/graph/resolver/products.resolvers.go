@@ -283,7 +283,6 @@ func (r *mutationResolver) UpdateOrderbyUser(ctx context.Context, orderID *strin
 
 	result := true
 	return &result, nil
-
 }
 
 // UpdateOrderStatus is the resolver for the updateOrderStatus field.

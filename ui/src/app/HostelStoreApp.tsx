@@ -13,6 +13,7 @@ import { NoItemsFound } from "@/components/custom/Empty.tsx";
 import MultipleCountdown from "@/components/custom/timer.tsx";
 // import MultipleCountdown from "@/components/custom/timer.tsx";
 import {WelcomePopupCard} from "@/components/ui/welcome-popup-card.tsx";
+import Category from "@/components/ui/youtube-category-bar.tsx";
 
 const GET_PRODUCTS = gql`
   query getAllProducts($query: String) {
@@ -94,10 +95,12 @@ const HostelStoreContent: React.FC = () => {
         {/* Main content */}
         <div className="w-full">
           <NavBar onSearch={handleSearch} />
+
+
           {/* removetodo */}
           <h1 className="text-2xl font-bold mb-4">Order Receipt</h1>
   {/* <MultipleCountdown/> */}
-
+          <Category />
           {filteredItems.length === 0 ? (
             <NoItemsFound />
           ) : (
@@ -105,7 +108,7 @@ const HostelStoreContent: React.FC = () => {
               filteredItems={filteredItems}
               addToCart={addToCart}
               onItemSelect={setSelectedProduct}
-              className="grid grid-cols-2 pt-14 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-4"
+              className="grid grid-cols-2 pt-20 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-4"
               
             />
           )}

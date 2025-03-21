@@ -1,11 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
+
 import { Button } from "./button.tsx"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./card.tsx"
 
 export function WelcomePopupCard() {
   const [isVisible, setIsVisible] = useState(true)
+
 
 
   function handling(){

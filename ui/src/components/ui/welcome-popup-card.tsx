@@ -1,13 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { X } from "lucide-react"
+
 import { Button } from "./button.tsx"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./card.tsx"
+import { Card, CardContent, CardDescription,  CardHeader, CardTitle } from "./card.tsx"
 
 export function WelcomePopupCard() {
   const [isVisible, setIsVisible] = useState(true)
-  const [timeLeft, setTimeLeft] = useState(10)
+
 
 
   function handling(){

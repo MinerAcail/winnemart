@@ -304,6 +304,26 @@ func (r *queryResolver) GetVendor(ctx context.Context) (*model.Vendor, error) {
 	return &vendor, nil
 }
 
+// GetSharedVendor is the resolver for the getSharedVendor field.
+func (r *queryResolver) GetSharedVendor(ctx context.Context, vendorID string) (*model.Vendor, error) {
+
+	// Parse the UUID from string
+	vendID, err := uuid.Parse(vendorID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid vendor ID: %w", err)
+	}
+	var vendor model.Vendor
+	if err := r.DB.Where("id = ?", vendID).First(&vendor).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("vendor not found")
+		}
+		return nil, fmt.Errorf("failed to fetch vendor: %v", err)
+	}
+
+	return &vendor, nil
+
+}
+
 // GetVendorProducts is the resolver for the getVendorProducts field.
 func (r *queryResolver) GetVendorProducts(ctx context.Context) ([]*model.Product, error) {
 	// Retrieve the vendor (user) ID from the context

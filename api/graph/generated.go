@@ -286,6 +286,7 @@ type ComplexityRoot struct {
 		GetProduct                          func(childComplexity int, id string) int
 		GetProductsByCategory               func(childComplexity int, categoryID string) int
 		GetRider                            func(childComplexity int, id string) int
+		GetSharedVendor                     func(childComplexity int, vendorID string) int
 		GetUnavailablePeriods               func(childComplexity int) int
 		GetUserActivity                     func(childComplexity int) int
 		GetUserByID                         func(childComplexity int, id string) int
@@ -542,6 +543,7 @@ type QueryResolver interface {
 	GetUserByID(ctx context.Context, id string) (*model.User, error)
 	GetAllUsers(ctx context.Context) ([]*model.User, error)
 	GetVendor(ctx context.Context) (*model.Vendor, error)
+	GetSharedVendor(ctx context.Context, vendorID string) (*model.Vendor, error)
 	GetVendorProducts(ctx context.Context) ([]*model.Product, error)
 	ListVendors(ctx context.Context) ([]*model.Vendor, error)
 	GetUnavailablePeriods(ctx context.Context) ([]*model.UnavailablePeriod, error)
@@ -2047,6 +2049,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetRider(childComplexity, args["id"].(string)), true
+
+	case "Query.getSharedVendor":
+		if e.complexity.Query.GetSharedVendor == nil {
+			break
+		}
+
+		args, err := ec.field_Query_getSharedVendor_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.GetSharedVendor(childComplexity, args["VendorId"].(string)), true
 
 	case "Query.getUnavailablePeriods":
 		if e.complexity.Query.GetUnavailablePeriods == nil {
@@ -4543,6 +4557,29 @@ func (ec *executionContext) field_Query_getRider_argsID(
 ) (string, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 	if tmp, ok := rawArgs["id"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getSharedVendor_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_getSharedVendor_argsVendorID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["VendorId"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_getSharedVendor_argsVendorID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("VendorId"))
+	if tmp, ok := rawArgs["VendorId"]; ok {
 		return ec.unmarshalNString2string(ctx, tmp)
 	}
 
@@ -14304,6 +14341,76 @@ func (ec *executionContext) fieldContext_Query_getVendor(_ context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_getSharedVendor(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getSharedVendor(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetSharedVendor(rctx, fc.Args["VendorId"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Vendor)
+	fc.Result = res
+	return ec.marshalOVendor2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐVendor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getSharedVendor(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Vendor_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Vendor_name(ctx, field)
+			case "type":
+				return ec.fieldContext_Vendor_type(ctx, field)
+			case "number":
+				return ec.fieldContext_Vendor_number(ctx, field)
+			case "password":
+				return ec.fieldContext_Vendor_password(ctx, field)
+			case "dpfile":
+				return ec.fieldContext_Vendor_dpfile(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Vendor_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Vendor_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Vendor", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_getSharedVendor_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_getVendorProducts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_getVendorProducts(ctx, field)
 	if err != nil {
@@ -23235,6 +23342,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getVendor(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getSharedVendor":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getSharedVendor(ctx, field)
 				return res
 			}
 

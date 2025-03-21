@@ -3,7 +3,7 @@ import createUploadLink from "apollo-upload-client/createUploadLink.mjs";
 const API_URL =
   window.location.hostname === "localhost"
     ? "https://api.winnemart.com/query"
-    : `https://${window.location.hostname}/query`; // Changed HTTPS to HTTP
+    : "https://api.winnemart.com/query"; // Changed HTTPS to HTTP
 
 const link = createUploadLink({
   uri: API_URL,

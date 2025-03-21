@@ -148,8 +148,9 @@ export default function CardReceipt({
               (sum, item) => sum + item.price * item.quantity,
               0
             );
-            const tax = 5; // Example tax amount
-            const total = subtotal + tax;
+            const currentHour = new Date().getHours();
+            const delivery = currentHour >= 6 && currentHour < 17 ? 7 : 10; // Delivery amount based on time
+            const total = subtotal + delivery;
             const bgColor = bgColors[index % bgColors.length]; // Cycle through the colors
 
             return (
@@ -248,7 +249,7 @@ export default function CardReceipt({
                     </span>
                     <span className="text-zinc-900 dark:text-zinc-100">
                       {ghSim}
-                      {tax.toFixed(2)}
+                      {delivery.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between text-base font-medium pt-2 border-t border-zinc-200 dark:border-zinc-800">

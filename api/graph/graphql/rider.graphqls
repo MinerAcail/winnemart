@@ -21,11 +21,15 @@ extend type Query {
   getAssignedOrders: [Order]
   getOrderAssignment(orderID: String!): AssignRider
   getWorker: jobRequest
-
-
+  GetUserActivity: ActivityStatus
 
 }
 
+type ActivityStatus {
+  userID: String!
+  isActive: Boolean!
+  lastActive: String
+}
 extend type Mutation {
   AssignOrderToRider(orderID: String, riderID: String): AssignRider
 
@@ -33,6 +37,7 @@ extend type Mutation {
   unassignOrder(orderID: String!): Boolean
   updateEstimatedDelivery(assignmentID: String!, newDate: String!): AssignRider
   updateWorker(dpfile: Upload, input: UpdateInput!): jobRequest
+  SendHeartbeat: ActivityStatus
 
 }
 input UpdateInput {

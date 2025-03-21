@@ -20,6 +20,7 @@ import { DriverOrderItems, WorkersProfile } from "@/app/driver";
 import { OrderTrackingProvider } from "@/hooks/orderTrackingContext";
 // import ProfilePage from "@/components/custom/nav/vendorProfile";
 import { ProtectType } from "./useProtect";
+import HeartbeatUpdater from "@/components/custom/nav/cheackActive";
 // import WorkerProfile from "@/components/custom/nav/workersProfile";
 
 const router = createBrowserRouter([
@@ -79,6 +80,7 @@ export function Navigation() {
       <SidebarProvider>
         <OrderTrackingProvider>
           <AppSidebar />
+          <HeartbeatUpdater />
           <CartProvider>
             <AuthProvider>
               <RouterProvider router={router} />

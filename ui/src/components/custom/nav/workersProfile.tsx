@@ -37,6 +37,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { gql, useQuery, useMutation } from "@apollo/client";
+import UserActivityBadge from "./active";
 
 // GraphQL Queries and Mutations
 const GET_WORKER = gql`
@@ -287,9 +288,8 @@ export default function WorkerProfile() {
                   <Badge className="bg-primary text-primary-foreground font-medium">
                     {workerData?.getWorker?.type || "Loading..."}
                   </Badge>
-                  <Badge variant="outline" className="bg-primary/5">
-                    Active
-                  </Badge>
+
+                  <UserActivityBadge />
                 </div>
               </CardContent>
 

@@ -15,6 +15,12 @@ type Returns interface {
 	IsReturns()
 }
 
+type ActivityStatus struct {
+	UserID     string  `json:"userID"`
+	IsActive   bool    `json:"isActive"`
+	LastActive *string `json:"lastActive,omitempty"`
+}
+
 type CartItemOrder struct {
 	OrderID               string               `json:"orderId"`
 	ProductInfor          []*OrderproductInfor `json:"productInfor"`

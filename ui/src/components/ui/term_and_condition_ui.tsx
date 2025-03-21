@@ -67,8 +67,8 @@ export function TermsConditions({
               
               <div className="space-y-2">
                 <h3 className="font-semibold">Delivery Fee Structure</h3>
-                <p>- 5 cedis from 6am to 5pm</p>
-                <p>- 7 cedis from 5pm to 9pm</p>
+                <p>- 7 cedis from 6am to 5pm</p>
+                <p>- 10 cedis from 5pm to 9pm</p>
                 <p>- Each new order incurs a separate delivery fee</p>
               </div>
               

@@ -66,6 +66,12 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	ActivityStatus struct {
+		IsActive   func(childComplexity int) int
+		LastActive func(childComplexity int) int
+		UserID     func(childComplexity int) int
+	}
+
 	Admin struct {
 		CreatedAt func(childComplexity int) int
 		ID        func(childComplexity int) int
@@ -180,6 +186,7 @@ type ComplexityRoot struct {
 		RequestItem                  func(childComplexity int, input model.RequestInput) int
 		SendChatMessage              func(childComplexity int, input model.ChatMessageInput, orderID *string) int
 		SendChatMessageByNumber      func(childComplexity int, input model.ChatMessageAdminInput) int
+		SendHeartbeat                func(childComplexity int) int
 		UnassignOrder                func(childComplexity int, orderID string) int
 		UpdateAdmin                  func(childComplexity int, id string, input model.UpdateAdminInput) int
 		UpdateAdminStatus            func(childComplexity int, id string, status string) int
@@ -280,6 +287,7 @@ type ComplexityRoot struct {
 		GetProductsByCategory               func(childComplexity int, categoryID string) int
 		GetRider                            func(childComplexity int, id string) int
 		GetUnavailablePeriods               func(childComplexity int) int
+		GetUserActivity                     func(childComplexity int) int
 		GetUserByID                         func(childComplexity int, id string) int
 		GetVendor                           func(childComplexity int) int
 		GetVendorChat                       func(childComplexity int, id string) int
@@ -460,6 +468,7 @@ type MutationResolver interface {
 	UnassignOrder(ctx context.Context, orderID string) (*bool, error)
 	UpdateEstimatedDelivery(ctx context.Context, assignmentID string, newDate string) (*model.AssignRider, error)
 	UpdateWorker(ctx context.Context, dpfile *graphql.Upload, input model.UpdateInput) (*model.JobRequest, error)
+	SendHeartbeat(ctx context.Context) (*model.ActivityStatus, error)
 	DeleteTable(ctx context.Context) (bool, error)
 	UserLogin(ctx context.Context, input model.LoginInput) (*model.User, error)
 	AdminLogin(ctx context.Context, input model.LoginInput) (*model.Admin, error)
@@ -526,6 +535,7 @@ type QueryResolver interface {
 	GetAssignedOrders(ctx context.Context) ([]*model.Order, error)
 	GetOrderAssignment(ctx context.Context, orderID string) (*model.AssignRider, error)
 	GetWorker(ctx context.Context) (*model.JobRequest, error)
+	GetUserActivity(ctx context.Context) (*model.ActivityStatus, error)
 	GetID(ctx context.Context) (*string, error)
 	GetAllSystemInfo(ctx context.Context) (*model.SystemInfo, error)
 	ImageUrls(ctx context.Context) ([]string, error)
@@ -587,6 +597,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e, 0, 0, nil}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "ActivityStatus.isActive":
+		if e.complexity.ActivityStatus.IsActive == nil {
+			break
+		}
+
+		return e.complexity.ActivityStatus.IsActive(childComplexity), true
+
+	case "ActivityStatus.lastActive":
+		if e.complexity.ActivityStatus.LastActive == nil {
+			break
+		}
+
+		return e.complexity.ActivityStatus.LastActive(childComplexity), true
+
+	case "ActivityStatus.userID":
+		if e.complexity.ActivityStatus.UserID == nil {
+			break
+		}
+
+		return e.complexity.ActivityStatus.UserID(childComplexity), true
 
 	case "Admin.createdAt":
 		if e.complexity.Admin.CreatedAt == nil {
@@ -1314,6 +1345,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.SendChatMessageByNumber(childComplexity, args["input"].(model.ChatMessageAdminInput)), true
 
+	case "Mutation.SendHeartbeat":
+		if e.complexity.Mutation.SendHeartbeat == nil {
+			break
+		}
+
+		return e.complexity.Mutation.SendHeartbeat(childComplexity), true
+
 	case "Mutation.unassignOrder":
 		if e.complexity.Mutation.UnassignOrder == nil {
 			break
@@ -2016,6 +2054,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetUnavailablePeriods(childComplexity), true
+
+	case "Query.GetUserActivity":
+		if e.complexity.Query.GetUserActivity == nil {
+			break
+		}
+
+		return e.complexity.Query.GetUserActivity(childComplexity), true
 
 	case "Query.getUserById":
 		if e.complexity.Query.GetUserByID == nil {
@@ -4806,6 +4851,135 @@ func (ec *executionContext) field___Type_fields_argsIncludeDeprecated(
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _ActivityStatus_userID(ctx context.Context, field graphql.CollectedField, obj *model.ActivityStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ActivityStatus_userID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UserID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ActivityStatus_userID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ActivityStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ActivityStatus_isActive(ctx context.Context, field graphql.CollectedField, obj *model.ActivityStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ActivityStatus_isActive(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsActive, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ActivityStatus_isActive(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ActivityStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ActivityStatus_lastActive(ctx context.Context, field graphql.CollectedField, obj *model.ActivityStatus) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ActivityStatus_lastActive(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LastActive, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ActivityStatus_lastActive(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ActivityStatus",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _Admin_id(ctx context.Context, field graphql.CollectedField, obj *model.Admin) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Admin_id(ctx, field)
@@ -9196,6 +9370,55 @@ func (ec *executionContext) fieldContext_Mutation_updateWorker(ctx context.Conte
 	if fc.Args, err = ec.field_Mutation_updateWorker_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_SendHeartbeat(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_SendHeartbeat(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().SendHeartbeat(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.ActivityStatus)
+	fc.Result = res
+	return ec.marshalOActivityStatus2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐActivityStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_SendHeartbeat(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "userID":
+				return ec.fieldContext_ActivityStatus_userID(ctx, field)
+			case "isActive":
+				return ec.fieldContext_ActivityStatus_isActive(ctx, field)
+			case "lastActive":
+				return ec.fieldContext_ActivityStatus_lastActive(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ActivityStatus", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -13706,6 +13929,55 @@ func (ec *executionContext) fieldContext_Query_getWorker(_ context.Context, fiel
 				return ec.fieldContext_jobRequest_updatedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type jobRequest", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_GetUserActivity(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_GetUserActivity(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetUserActivity(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.ActivityStatus)
+	fc.Result = res
+	return ec.marshalOActivityStatus2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐActivityStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_GetUserActivity(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "userID":
+				return ec.fieldContext_ActivityStatus_userID(ctx, field)
+			case "isActive":
+				return ec.fieldContext_ActivityStatus_isActive(ctx, field)
+			case "lastActive":
+				return ec.fieldContext_ActivityStatus_lastActive(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ActivityStatus", field.Name)
 		},
 	}
 	return fc, nil
@@ -20552,6 +20824,52 @@ func (ec *executionContext) _Returns(ctx context.Context, sel ast.SelectionSet, 
 
 // region    **************************** object.gotpl ****************************
 
+var activityStatusImplementors = []string{"ActivityStatus"}
+
+func (ec *executionContext) _ActivityStatus(ctx context.Context, sel ast.SelectionSet, obj *model.ActivityStatus) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, activityStatusImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ActivityStatus")
+		case "userID":
+			out.Values[i] = ec._ActivityStatus_userID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isActive":
+			out.Values[i] = ec._ActivityStatus_isActive(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "lastActive":
+			out.Values[i] = ec._ActivityStatus_lastActive(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var adminImplementors = []string{"Admin"}
 
 func (ec *executionContext) _Admin(ctx context.Context, sel ast.SelectionSet, obj *model.Admin) graphql.Marshaler {
@@ -21495,6 +21813,10 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "updateWorker":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateWorker(ctx, field)
+			})
+		case "SendHeartbeat":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_SendHeartbeat(ctx, field)
 			})
 		case "deleteTable":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -22768,6 +23090,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_getWorker(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "GetUserActivity":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_GetUserActivity(ctx, field)
 				return res
 			}
 
@@ -25844,6 +26185,13 @@ func (ec *executionContext) marshalNorderproductInfor2ᚕᚖgithubᚗcomᚋminer
 	wg.Wait()
 
 	return ret
+}
+
+func (ec *executionContext) marshalOActivityStatus2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐActivityStatus(ctx context.Context, sel ast.SelectionSet, v *model.ActivityStatus) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ActivityStatus(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOAdmin2ᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐAdmin(ctx context.Context, sel ast.SelectionSet, v *model.Admin) graphql.Marshaler {

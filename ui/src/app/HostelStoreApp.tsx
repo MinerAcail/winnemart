@@ -12,6 +12,7 @@ import { ClearLocalStore } from "@/middleware/bar.tsx";
 import { NoItemsFound } from "@/components/custom/Empty.tsx";
 import MultipleCountdown from "@/components/custom/timer.tsx";
 // import MultipleCountdown from "@/components/custom/timer.tsx";
+import {WelcomePopupCard} from "@/components/ui/welcome-popup-card.tsx";
 
 const GET_PRODUCTS = gql`
   query getAllProducts($query: String) {
@@ -88,6 +89,7 @@ const HostelStoreContent: React.FC = () => {
 
   return (
     <div className="maincontainer mx-auto px-4">
+      <WelcomePopupCard/>
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Main content */}
         <div className="w-full">

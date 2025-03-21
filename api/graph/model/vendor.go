@@ -12,6 +12,7 @@ type Vendor struct {
 	Type      string     `json:"type"`
 	Number    string     `json:"number"`
 	Password  *string    `json:"password,omitempty"`
+	Dpfile  *string    `json:"dpfile,omitempty"`
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }

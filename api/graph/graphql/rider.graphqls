@@ -20,12 +20,29 @@ extend type Query {
   getAllAssignRider: [AssignRider]
   getAssignedOrders: [Order]
   getOrderAssignment(orderID: String!): AssignRider
+  getWorker: jobRequest
+  GetUserActivity: ActivityStatus
+
 }
 
+type ActivityStatus {
+  userID: String!
+  isActive: Boolean!
+  lastActive: String
+}
 extend type Mutation {
   AssignOrderToRider(orderID: String, riderID: String): AssignRider
 
   updateRiderStatus(riderID: String!, status: String!): jobRequest
   unassignOrder(orderID: String!): Boolean
   updateEstimatedDelivery(assignmentID: String!, newDate: String!): AssignRider
+  updateWorker(dpfile: Upload, input: UpdateInput!): jobRequest
+  SendHeartbeat: ActivityStatus
+
+}
+input UpdateInput {
+  name: String
+  type: String
+  number: String
+  password: String
 }

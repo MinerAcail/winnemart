@@ -6,12 +6,21 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
+	"regexp"
+	"strings"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/google/uuid"
+	"github.com/mineracail/sergi/database/redis"
 	"github.com/mineracail/sergi/graph"
 	"github.com/mineracail/sergi/graph/model"
+	"github.com/mineracail/sergi/helper"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // ID is the resolver for the id field.
@@ -38,6 +47,111 @@ func (r *mutationResolver) UnassignOrder(ctx context.Context, orderID string) (*
 // UpdateEstimatedDelivery is the resolver for the updateEstimatedDelivery field.
 func (r *mutationResolver) UpdateEstimatedDelivery(ctx context.Context, assignmentID string, newDate string) (*model.AssignRider, error) {
 	panic(fmt.Errorf("not implemented: UpdateEstimatedDelivery - updateEstimatedDelivery"))
+}
+
+// UpdateWorker is the resolver for the updateWorker field.
+func (r *mutationResolver) UpdateWorker(ctx context.Context, dpfile *graphql.Upload, input model.UpdateInput) (*model.JobRequest, error) {
+	// Retrieve the worker (user) ID from the context
+	workIDStr, err := r.Query().GetID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get worker ID: %v", err)
+	}
+
+	// Parse the UUID from string
+	workID, err := uuid.Parse(*workIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid worker ID: %w", err)
+	}
+	simpleName := strings.ToLower(strings.ReplaceAll(*input.Name, " ", "-"))
+	simpleName = regexp.MustCompile(`[^a-z0-9-]`).ReplaceAllString(simpleName, "")
+	bucketName := fmt.Sprintf("v-%s", simpleName[:helper.MinInt(len(simpleName), 10)])
+
+	log.Printf("Initial bucket name: %s", bucketName)
+
+	// Ensure the bucket exists in MinIO
+	if err := helper.CreateBucketInMinio(ctx, r.MinIOClient, bucketName); err != nil {
+		return nil, err
+	}
+
+	// Find the existing work
+	var work model.JobRequest
+	if err := r.DB.Where("id = ?", workID).First(&work).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("work not found with ID: %s", workID)
+		}
+		return nil, fmt.Errorf("failed to fetch work: %w", err)
+	}
+	// Upload each file and store the URL
+	fileURL, err := helper.UploadFileToMinio(ctx, r.MinIOClient, bucketName, "dpfile", dpfile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to upload dpfile %s: %v", dpfile.Filename, err)
+	}
+	// Update fields if provided
+	if input.Name != nil {
+		work.Name = *input.Name
+	}
+	if input.Type != nil {
+		work.Type = *input.Type
+	}
+	if input.Number != nil {
+		work.Number = *input.Number
+	}
+	if input.Password != nil {
+		// Hash the new password
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*input.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, fmt.Errorf("failed to hash password: %w", err)
+		}
+		hashedPasswordStr := string(hashedPassword)
+		work.Password = &hashedPasswordStr
+	}
+	if dpfile != nil {
+		work.Dpfile = &fileURL
+	}
+	// Save the updated work to the database
+	if err := r.DB.Save(&work).Error; err != nil {
+		return nil, fmt.Errorf("failed to update work: %w", err)
+	}
+
+	return &work, nil
+}
+
+// SendHeartbeat is the resolver for the SendHeartbeat field.
+func (r *mutationResolver) SendHeartbeat(ctx context.Context) (*model.ActivityStatus, error) {
+	rdb := redis.ConfigureRedis() // Initialize Redis at startup
+
+	workerIDStr, err := r.Query().GetID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get worker ID: %v", err)
+	}
+
+	// Parse the UUID from string
+	workerID, err := uuid.Parse(*workerIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid worker ID: %w", err)
+	}
+
+	// Store activity status in Redis
+	key := fmt.Sprintf("worker:%s", workerID.String())
+	lastActive := time.Now().Format(time.RFC3339)
+
+	err = rdb.HSet(ctx, key, "isActive", "true", "lastActive", lastActive).Err()
+	if err != nil {
+		return nil, fmt.Errorf("failed to update activity status: %w", err)
+	}
+
+	// Set TTL for auto-expiry (e.g., 5 minutes)
+	err = rdb.Expire(ctx, key, 5*time.Minute).Err()
+	if err != nil {
+		return nil, fmt.Errorf("failed to set TTL: %w", err)
+	}
+
+	// Return the updated status
+	return &model.ActivityStatus{
+		UserID:     workerID.String(),
+		IsActive:   true,
+		LastActive: &lastActive,
+	}, nil
 }
 
 // GetAllRiders is the resolver for the getAllRiders field.
@@ -138,6 +252,82 @@ func (r *queryResolver) GetAssignedOrders(ctx context.Context) ([]*model.Order, 
 // GetOrderAssignment is the resolver for the getOrderAssignment field.
 func (r *queryResolver) GetOrderAssignment(ctx context.Context, orderID string) (*model.AssignRider, error) {
 	panic(fmt.Errorf("not implemented: GetOrderAssignment - getOrderAssignment"))
+}
+
+// GetWorker is the resolver for the getWorker field.
+func (r *queryResolver) GetWorker(ctx context.Context) (*model.JobRequest, error) {
+	workerIDStr, err := r.Query().GetID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get worker ID: %v", err)
+	}
+
+	// Parse the UUID from string
+	workerID, err := uuid.Parse(*workerIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid worker ID: %w", err)
+	}
+	var worker model.JobRequest
+	if err := r.DB.Where("id = ?", workerID).First(&worker).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("worker not found")
+		}
+		return nil, fmt.Errorf("failed to fetch worker: %v", err)
+	}
+
+	return &worker, nil
+}
+
+// GetUserActivity is the resolver for the GetUserActivity field.
+func (r *queryResolver) GetUserActivity(ctx context.Context) (*model.ActivityStatus, error) {
+	rdb := redis.ConfigureRedis() // Initialize Redis at startup
+
+	workerIDStr, err := r.Query().GetID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get worker ID: %v", err)
+	}
+
+	// Parse the UUID from string
+	workerID, err := uuid.Parse(*workerIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid worker ID: %w", err)
+	}
+
+	// Store activity status in Redis
+	key := fmt.Sprintf("worker:%s", workerID.String())
+
+	// Check if the key exists in Redis
+	exists, err := rdb.Exists(ctx, key).Result()
+	if err != nil {
+		return nil, fmt.Errorf("error checking user status in Redis: %v", err)
+	}
+
+	if exists == 0 {
+		// If key doesn't exist, the user is offline
+		return &model.ActivityStatus{
+			UserID:   workerID.String(),
+			IsActive: false,
+		}, nil
+	}
+
+	// Fetch the status and last active time
+	isActiveStr, err := rdb.HGet(ctx, key, "isActive").Result()
+	if err != nil {
+		return nil, fmt.Errorf("error fetching isActive for user %s: %v", workerID, err)
+	}
+
+	lastActiveStr, err := rdb.HGet(ctx, key, "lastActive").Result()
+	if err != nil {
+		lastActiveStr = "" // If there's no timestamp, return empty
+	}
+
+	isActive := isActiveStr == "true"
+
+	// Return the activity status
+	return &model.ActivityStatus{
+		UserID:     workerID.String(),
+		IsActive:   isActive,
+		LastActive: &lastActiveStr,
+	}, nil
 }
 
 // AssignRider returns graph.AssignRiderResolver implementation.

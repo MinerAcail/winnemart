@@ -48,13 +48,15 @@ type ChatData = {
   };
 };
 
-export default function MinChat() {
+export default function MinChat({id}:{id:string|null}) {
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const rawOrderId = localStorage.getItem("foodie_last_order_id");
-  const orderId = rawOrderId ? rawOrderId.replace(/^"|"$/g, "").trim() : null;
-  const sanitizedOrderId = orderId && orderId.length > 0 ? orderId : null;
+  // console.log("id",id);
+  
+  // const rawOrderId = localStorage.getItem("foodie_last_order_id");
+  const orderId = id ? id?.replace(/^"|"$/g, "").trim() : null;
+  const sanitizedOrderId = orderId && orderId?.length > 0 ? orderId : null;
 
   // Scroll to the latest message
   const scrollToBottom = () => {

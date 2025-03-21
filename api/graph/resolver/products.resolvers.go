@@ -197,9 +197,20 @@ func (r *mutationResolver) CreateOrderItems(ctx context.Context, input *model.Or
 		return nil, fmt.Errorf("failed to update order with items: %v", err)
 	}
 	log.Println("2 Order Updated with Items:", order.ID)
+	req := middleware.GetRequest(ctx)
+	if req == nil {
+		return nil, fmt.Errorf("request is nil")
+	}
+	existsOrderIDs, err := middleware.GetOrderTrackingCookie(req)
+	if err != nil {
+		log.Println("No existing tracking cookie found, initializing new one.")
+		existsOrderIDs = []string{} // Ensure we start with an empty slice
+	}
+
+	log.Println("Cookies passed Successfully:", existsOrderIDs)
 
 	// Set HTTP-only cookie with the order tracking ID
-	if err := middleware.SetOrderTrackingCookie(w, order.ID.String()); err != nil {
+	if err := middleware.SetOrderTrackingCookie(w, ctx, order.ID.String(), existsOrderIDs); err != nil {
 		return nil, fmt.Errorf("failed to set tracking cookie: %v", err)
 	}
 
@@ -216,6 +227,62 @@ func (r *mutationResolver) CreateOrderItems(ctx context.Context, input *model.Or
 
 	log.Println("3 Order Transaction Committed Successfully:", order.ID)
 	return order, nil
+}
+
+// UpdateOrderbyUser is the resolver for the updateOrderbyUser field.
+func (r *mutationResolver) UpdateOrderbyUser(ctx context.Context, orderID *string) (*bool, error) {
+	if orderID == nil {
+		return nil, fmt.Errorf("order ID cannot be nil")
+	}
+
+	// Start a new transaction
+	tx := r.DB.Begin()
+	if tx.Error != nil {
+		return nil, fmt.Errorf("failed to start transaction: %v", tx.Error)
+	}
+
+	// Update the order status to "DELETED"
+	if err := tx.Model(&model.Order{}).Where("id = ?", *orderID).Update("status", "DELETED").Error; err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("failed to update order status: %v", err)
+	}
+
+	// Extract HTTP request
+	req := middleware.GetRequest(ctx)
+	if req == nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("request is nil")
+	}
+
+	// Extract response writer from context
+	w, ok := middleware.GetResponseWriter(ctx)
+	if !ok {
+		tx.Rollback()
+		return nil, fmt.Errorf("unable to access response writer")
+	}
+
+	// Extract existing order tracking cookie
+	existsOrderIDs, err := middleware.GetOrderTrackingCookie(req)
+	if err != nil {
+		log.Println("No existing tracking cookie found, initializing new one.")
+		existsOrderIDs = []string{} // Ensure we start with an empty slice
+	}
+
+	log.Println("Cookies passed successfully:", existsOrderIDs)
+
+	// Remove the order from the tracking cookie
+	if err := middleware.RemoveOrderFromTrackingCookie(w, ctx, *orderID, existsOrderIDs); err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("failed to remove order from tracking cookie: %v", err)
+	}
+
+	// Commit transaction
+	if err := tx.Commit().Error; err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %v", err)
+	}
+
+	result := true
+	return &result, nil
 }
 
 // UpdateOrderStatus is the resolver for the updateOrderStatus field.
@@ -246,29 +313,8 @@ func (r *mutationResolver) UpdateOrderStatus(ctx context.Context, orderID *strin
 func (r *mutationResolver) SendChatMessage(ctx context.Context, input model.ChatMessageInput, orderID *string) (*model.ChatMessage, error) {
 	middleware.CleanupOrderTrackingCookie(ctx, r.DB)
 
-	rq := middleware.GetRequest(ctx) // Retrieve request from context
-	if rq == nil {
-		return nil, fmt.Errorf("unable to access request")
-	}
-
-	var finalOrderID string
-
-	// Try to get order ID from cookie
-	cookieOrderID, err := middleware.GetOrderTrackingCookie(rq)
-	if err != nil || cookieOrderID == "" {
-		// Cookie order ID not available, use the provided orderID parameter as fallback
-		if orderID == nil || *orderID == "" {
-			return nil, fmt.Errorf("no tracking cookie found and no orderID provided")
-		}
-		finalOrderID = *orderID
-		log.Println("Using fallback Order ID from parameter:", finalOrderID)
-	} else {
-		finalOrderID = cookieOrderID
-		log.Println("Order ID from cookie:", finalOrderID)
-	}
-
 	// Parse the order ID
-	parsedOrderID, err := uuid.Parse(finalOrderID)
+	parsedOrderID, err := uuid.Parse(*orderID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid order ID: %v", err)
 	}
@@ -277,7 +323,7 @@ func (r *mutationResolver) SendChatMessage(ctx context.Context, input model.Chat
 	var order model.Order
 	if err := r.DB.Where("id = ?", parsedOrderID).First(&order).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("order not found with ID: %s", finalOrderID)
+			return nil, fmt.Errorf("order not found with ID: %s", *orderID)
 		}
 		return nil, fmt.Errorf("failed to fetch order: %v", err)
 	}
@@ -369,15 +415,18 @@ func (r *mutationResolver) MarkMessagesAsRead(ctx context.Context, sender model.
 	if err != nil {
 		return false, fmt.Errorf("no tracking cookie found: %v", err)
 	}
+	//todocookies
+
 	// Parse the order ID
-	parsedOrderID, err := uuid.Parse(orderID)
+	// parsedOrderID, err := uuid.Parse(orderID)
+
 	if err != nil {
 		return false, fmt.Errorf("invalid order ID: %v", err)
 	}
 
 	// Verify that the order exists
 	var order model.Order
-	if err := r.DB.Where("id = ?", parsedOrderID).First(&order).Error; err != nil {
+	if err := r.DB.Where("id = ?", "parsedOrderID").First(&order).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, fmt.Errorf("order not found with ID: %s", orderID)
 		}
@@ -1261,7 +1310,8 @@ func (r *queryResolver) GetAllOrderItemsByProductIDDelivery(ctx context.Context)
 }
 
 // UseGetordertracking is the resolver for the useGetordertracking field.
-func (r *queryResolver) UseGetordertracking(ctx context.Context, orderID *string) (*model.CartItemOrder, error) {
+func (r *queryResolver) UseGetordertracking(ctx context.Context, orderID []*string) ([]*model.CartItemOrder, error) {
+	log.Println("orderIDorderIDorderID Order ID:", orderID)
 	middleware.CleanupOrderTrackingCookie(ctx, r.DB)
 
 	rq := middleware.GetRequest(ctx) // Retrieve request from context
@@ -1269,63 +1319,80 @@ func (r *queryResolver) UseGetordertracking(ctx context.Context, orderID *string
 		return nil, fmt.Errorf("unable to access request")
 	}
 
-	var finalOrderID string
+	// Collect all order IDs to process
+	var orderIDs []string
 
+	// First try to get order IDs from cookie (main source)
 	cookieOrderID, err := middleware.GetOrderTrackingCookie(rq)
-	if err != nil || cookieOrderID == "" {
-		// Cookie order ID not available, use the provided orderID as fallback
-		if orderID == nil || *orderID == "" {
-			return nil, fmt.Errorf("no tracking cookie found and no orderID provided")
-		}
-		finalOrderID = *orderID
-		log.Println("Using fallback Order ID:", finalOrderID)
+	if err == nil && len(cookieOrderID) > 0 {
+		orderIDs = append(orderIDs, cookieOrderID...)
+		log.Println("Using Order IDs from cookie:", cookieOrderID)
 	} else {
-		finalOrderID = cookieOrderID
-		log.Println("Order ID from cookie:", finalOrderID)
-	}
-
-	// Fetch order details
-	var order model.Order
-	if err := r.DB.Where("id = ?", finalOrderID).Preload("Items").First(&order).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("order not found")
-		}
-		return nil, fmt.Errorf("failed to fetch order: %v", err)
-	}
-
-	// Fetch related cart items
-	var cartItems []model.CartItem
-	if err := r.DB.Where("order_id = ?", order.ID).Find(&cartItems).Error; err != nil {
-		return nil, fmt.Errorf("failed to fetch cart items: %v", err)
-	}
-
-	// Process cart items and fetch product info
-	productInfos := make([]*model.OrderproductInfor, 0)
-	for _, item := range cartItems {
-		var product model.Product
-		if err := r.DB.Where("id = ?", item.ProductID).First(&product).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				continue // Skip missing products
+		// Only use orderID parameter as fallback if cookie is not available
+		if orderID != nil && len(orderID) > 0 {
+			for _, id := range orderID {
+				if id != nil && *id != "" {
+					orderIDs = append(orderIDs, *id)
+				}
 			}
-			return nil, fmt.Errorf("failed to fetch product: %v", err)
+			log.Println("Using fallback Order IDs from parameter:", orderIDs)
 		}
-
-		productInfo := &model.OrderproductInfor{
-			Product:  []*model.Product{&product},
-			Quantity: int32(item.Quantity),
-		}
-		productInfos = append(productInfos, productInfo)
 	}
 
-	// Construct response
-	result := &model.CartItemOrder{
-		OrderID:               finalOrderID,
-		ProductInfor:          productInfos,
-		CustomerNumber:        order.CustomerNumber,
-		DeliveryAddress:       order.DeliveryAddress,
-		Status:                order.Status,
-		EstimatedDeliveryDate: order.EstimatedDeliveryDate,
-		CreatedAt:             order.CreatedAt,
+	// Check if we have any order IDs to process
+	if len(orderIDs) == 0 {
+		return nil, fmt.Errorf("no tracking cookie found and no orderID provided")
+	}
+
+	// Fetch all orders
+	var orders []*model.Order
+	if err := r.DB.Where("id IN ?", orderIDs).Preload("Items").Find(&orders).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch orders: %v", err)
+	}
+
+	if len(orders) == 0 {
+		return nil, fmt.Errorf("no orders found")
+	}
+
+	// Process each order and create response
+	result := make([]*model.CartItemOrder, 0, len(orders))
+	for _, order := range orders {
+		// Fetch related cart items
+		var cartItems []model.CartItem
+		if err := r.DB.Where("order_id = ?", order.ID).Find(&cartItems).Error; err != nil {
+			return nil, fmt.Errorf("failed to fetch cart items for order %s: %v", order.ID, err)
+		}
+
+		// Process cart items and fetch product info
+		productInfos := make([]*model.OrderproductInfor, 0)
+		for _, item := range cartItems {
+			var product model.Product
+			if err := r.DB.Where("id = ?", item.ProductID).First(&product).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					continue // Skip missing products
+				}
+				return nil, fmt.Errorf("failed to fetch product: %v", err)
+			}
+
+			productInfo := &model.OrderproductInfor{
+				Product:  []*model.Product{&product},
+				Quantity: int32(item.Quantity),
+			}
+			productInfos = append(productInfos, productInfo)
+		}
+
+		// Create the cart item order
+		cartItemOrder := &model.CartItemOrder{
+			OrderID:               order.ID.String(),
+			ProductInfor:          productInfos,
+			CustomerNumber:        order.CustomerNumber,
+			DeliveryAddress:       order.DeliveryAddress,
+			Status:                order.Status,
+			EstimatedDeliveryDate: order.EstimatedDeliveryDate,
+			CreatedAt:             order.CreatedAt,
+		}
+
+		result = append(result, cartItemOrder)
 	}
 
 	return result, nil
@@ -1410,29 +1477,8 @@ func (r *queryResolver) GetAllUserStats(ctx context.Context) ([]*model.UserInfor
 func (r *queryResolver) GetOrderChat(ctx context.Context, orderID *string) (*model.OrderChat, error) {
 	middleware.CleanupOrderTrackingCookie(ctx, r.DB)
 
-	rq := middleware.GetRequest(ctx) // Retrieve request from context
-	if rq == nil {
-		return nil, fmt.Errorf("unable to access request")
-	}
-
-	var finalOrderID string
-
-	// Try to get order ID from cookie
-	cookieOrderID, err := middleware.GetOrderTrackingCookie(rq)
-	if err != nil || cookieOrderID == "" {
-		// Cookie order ID not available, use the provided orderID parameter as fallback
-		if orderID == nil || *orderID == "" {
-			return nil, fmt.Errorf("no tracking cookie found and no orderID provided")
-		}
-		finalOrderID = *orderID
-		log.Println("Using fallback Order ID from parameter:", finalOrderID)
-	} else {
-		finalOrderID = cookieOrderID
-		log.Println("Order ID from cookie:", finalOrderID)
-	}
-
 	// Parse the order ID
-	parsedOrderID, err := uuid.Parse(finalOrderID)
+	parsedOrderID, err := uuid.Parse(*orderID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid order ID: %v", err)
 	}
@@ -1441,14 +1487,14 @@ func (r *queryResolver) GetOrderChat(ctx context.Context, orderID *string) (*mod
 	var order model.Order
 	if err := r.DB.Where("id = ?", parsedOrderID).First(&order).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("order not found with ID: %s", finalOrderID)
+			return nil, fmt.Errorf("order not found with ID: %s", parsedOrderID)
 		}
 		return nil, fmt.Errorf("failed to fetch order: %v", err)
 	}
 
 	// Fetch all chat messages for this order, ordered by timestamp
 	var messages []*model.ChatMessage
-	if err := r.DB.Where("order_id = ?", finalOrderID).
+	if err := r.DB.Where("order_id = ?", orderID).
 		Order("created_at ASC").
 		Find(&messages).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch chat messages: %v", err)
@@ -1456,7 +1502,7 @@ func (r *queryResolver) GetOrderChat(ctx context.Context, orderID *string) (*mod
 
 	// Create the order chat response
 	orderChat := &model.OrderChat{
-		OrderID:  finalOrderID,
+		OrderID:  *orderID,
 		Messages: messages,
 	}
 

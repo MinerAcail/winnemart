@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
 	"github.com/mineracail/sergi/database"
+	"github.com/mineracail/sergi/database/redis"
 	generated "github.com/mineracail/sergi/graph"
 	"github.com/mineracail/sergi/graph/model"
 	graph "github.com/mineracail/sergi/graph/resolver"
@@ -110,6 +111,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to initialize MinIO client: %v", err)
 	}
+	redisClient := redis.ConfigureRedis()
+	// Start the background job as a Goroutine
+	go middleware.StartBackgroundJob(redisClient)
 
 	resolver := &graph.Resolver{
 		DB:          db,

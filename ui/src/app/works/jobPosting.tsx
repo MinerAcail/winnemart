@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Package, Bike, LucideIcon } from "lucide-react";
 import ApplyNowSection from "./applyNow";
 import WorksNav from "@/components/custom/nav";
-const ghSim = "GH¢";
+// const ghSim = "GH¢";
 
 interface BubbleProps {
   x: number;
@@ -23,7 +23,7 @@ interface JobPostingCardProps {
   description: string;
   requirements: string[];
   icon: LucideIcon;
-  salary: string;
+  salary?: string;
   location: string;
 }
 
@@ -157,7 +157,7 @@ const JobPosting: React.FC = () => {
               Join Our Elite Delivery Team
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300">
-              Be part of a dynamic team that keeps the city moving. We're
+              Be part of a dynamic team that keeps the winneba town moving. We're
               looking for passionate individuals who love being on the go!
             </p>
           </motion.div>
@@ -178,7 +178,7 @@ const JobPosting: React.FC = () => {
                 "Flexible schedule availability",
               ]}
               icon={Package}
-              salary={`${ghSim}20-25/hr + Benefits`}
+              // salary={`${ghSim}20-25/hr + Benefits`}
               location="Full-time • Remote Possible"
             />
 
@@ -192,7 +192,7 @@ const JobPosting: React.FC = () => {
                 "Available for various shifts",
               ]}
               icon={Bike}
-              salary={`Up to ${ghSim}30/hr + Tips`}
+              // salary={`Up to ${ghSim}30/hr + Tips`}
               location="Flexible Hours • Choose Your Area"
             />
           </motion.div>

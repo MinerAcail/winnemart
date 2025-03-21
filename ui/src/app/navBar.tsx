@@ -1,4 +1,5 @@
 import MenuBar from '@/components/custom/menuBar'
+// import MultipleCountdown from '@/components/custom/timer';
 import { useCart } from '@/hooks/CartContext';
 import  React, { useState } from 'react'
 type NavBarProps = {
@@ -14,6 +15,7 @@ const NavBar: React.FC<NavBarProps> = ({ onSearch }) => {
         // ...new Set(products.flatMap((item) => item.categories)),
       ];
   return (
+ <>
     <MenuBar
     CartSidebarProps={{
       cart,
@@ -28,6 +30,8 @@ const NavBar: React.FC<NavBarProps> = ({ onSearch }) => {
     onSearch={onSearch}
 
   />
+ </>
+  
   )
 }
 

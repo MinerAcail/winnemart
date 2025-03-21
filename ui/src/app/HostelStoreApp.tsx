@@ -1,4 +1,3 @@
-// HostelStoreApp.tsx
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@apollo/client";
 import { useDeviceType } from "@/hooks/useDeviceType";
@@ -11,6 +10,8 @@ import { useCart, Item } from "@/hooks/CartContext.tsx";
 import NavBar from "./navBar.tsx";
 import { ClearLocalStore } from "@/middleware/bar.tsx";
 import { NoItemsFound } from "@/components/custom/Empty.tsx";
+import MultipleCountdown from "@/components/custom/timer.tsx";
+// import MultipleCountdown from "@/components/custom/timer.tsx";
 
 const GET_PRODUCTS = gql`
   query getAllProducts($query: String) {
@@ -91,7 +92,10 @@ const HostelStoreContent: React.FC = () => {
         {/* Main content */}
         <div className="w-full">
           <NavBar onSearch={handleSearch} />
+          {/* removetodo */}
           <h1 className="text-2xl font-bold mb-4">Order Receipt</h1>
+  {/* <MultipleCountdown/> */}
+
           {filteredItems.length === 0 ? (
             <NoItemsFound />
           ) : (
@@ -99,7 +103,7 @@ const HostelStoreContent: React.FC = () => {
               filteredItems={filteredItems}
               addToCart={addToCart}
               onItemSelect={setSelectedProduct}
-              className="grid grid-cols-1 pt-14 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-4"
+              className="grid grid-cols-2 pt-14 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-4"
               
             />
           )}
@@ -113,6 +117,7 @@ const HostelStoreContent: React.FC = () => {
         {/* Cart sidebar */}
         {filteredItems.length !== 0 && isDesktop && (
           <div className="w-full lg:w-1/4">
+              <MultipleCountdown />
             <div className="sticky top-4">
               <CartSidebar
                 cart={cart}

@@ -15,6 +15,12 @@ type Returns interface {
 	IsReturns()
 }
 
+type ActivityStatus struct {
+	UserID     string  `json:"userID"`
+	IsActive   bool    `json:"isActive"`
+	LastActive *string `json:"lastActive,omitempty"`
+}
+
 type CartItemOrder struct {
 	OrderID               string               `json:"orderId"`
 	ProductInfor          []*OrderproductInfor `json:"productInfor"`
@@ -136,6 +142,13 @@ type SystemInfo struct {
 }
 
 type UpdateAdminInput struct {
+	Name     *string `json:"name,omitempty"`
+	Type     *string `json:"type,omitempty"`
+	Number   *string `json:"number,omitempty"`
+	Password *string `json:"password,omitempty"`
+}
+
+type UpdateInput struct {
 	Name     *string `json:"name,omitempty"`
 	Type     *string `json:"type,omitempty"`
 	Number   *string `json:"number,omitempty"`

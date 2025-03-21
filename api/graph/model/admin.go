@@ -23,6 +23,8 @@ type JobRequest struct {
 	Number       string     `json:"number"`
 	State        string     `json:"state"`
 	Password     *string    `json:"password,omitempty"`
+	Dpfile  *string    `json:"dpfile,omitempty"`
+
 	Availability *bool      `json:"availability,omitempty"`
 	Location     *string    `json:"location,omitempty"`
 	Experience   string     `json:"experience"`

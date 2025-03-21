@@ -16,6 +16,7 @@ type jobRequest {
   state: String!
   password: String
   availability: Boolean
+  dpfile: String
   location: String
   experience: String!
   createdAt: Time

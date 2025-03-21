@@ -47,6 +47,8 @@ export default function Settings() {
   const { toast } = useToast();
   
   const [createVendor, { loading }] = useMutation(CREATE_VENDOR, {
+    refetchQueries: ["listVendors"],
+
     onCompleted: (data) => {
       toast({
         title: "Success!",
@@ -97,7 +99,7 @@ export default function Settings() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <h1 className="text-2xl font-bold">CREATE VENDOR</h1>
       <Card>
         <CardHeader>
           <CardTitle>Store Setup</CardTitle>

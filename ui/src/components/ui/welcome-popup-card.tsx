@@ -12,10 +12,10 @@ export function WelcomePopupCard() {
     setIsVisible(!isVisible)
   }
   useEffect(() => {
-    // Set a timeout to hide the card after 10 seconds
+    // Set a timeout to hide the card after 7 seconds
    setTimeout(() => {
       setIsVisible(false)
-    }, 5200)
+    }, 7000)
 
     // Update the countdown timer every second
   

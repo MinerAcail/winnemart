@@ -21,6 +21,8 @@ import { OrderTrackingProvider } from "@/hooks/orderTrackingContext";
 // import ProfilePage from "@/components/custom/nav/vendorProfile";
 import { ProtectType } from "./useProtect";
 import HeartbeatUpdater from "@/components/custom/nav/cheackActive";
+import SocialMediaHelmet from "@/components/custom/vendors/share";
+import { HelmetProvider } from "react-helmet-async";
 // import WorkerProfile from "@/components/custom/nav/workersProfile";
 
 const router = createBrowserRouter([
@@ -35,16 +37,22 @@ const router = createBrowserRouter([
     path: "/vendor",
     element: (
       <ProtectedIsAuthRoute
-        expectedTypes={["Vendor"]}
+        expectedTypes={[ProtectType.vendor]}
         element={<VendorDashboard />}
       />
     ),
   },
   {
+    path: "/vendor/:Vendorid",
+    element: (
+      <SocialMediaHelmet/>
+    )
+  },
+  {
     path: "/vendoritems",
     element: (
       <ProtectedIsAuthRoute
-        expectedTypes={["Vendor"]}
+        expectedTypes={[ProtectType.vendor]}
         element={<VendorItems />}
       />
     ),
@@ -54,7 +62,7 @@ const router = createBrowserRouter([
     path: "/profile",
     element: (
       <ProtectedIsAuthRoute
-        expectedTypes={[ ProtectType.Driver]}
+        expectedTypes={[ ProtectType.vendor]}
         element={<VendorProfile />}
       />
     ),
@@ -83,8 +91,11 @@ export function Navigation() {
           <HeartbeatUpdater />
           <CartProvider>
             <AuthProvider>
+              <HelmetProvider>
+
               <RouterProvider router={router} />
               <Toaster />
+              </HelmetProvider>
             </AuthProvider>
           </CartProvider>
         </OrderTrackingProvider>

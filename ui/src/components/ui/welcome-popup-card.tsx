@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 
 import { Button } from "./button.tsx"
-import { Card, CardContent, CardDescription,  CardHeader, CardTitle } from "./card.tsx"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./card.tsx"
 
 export function WelcomePopupCard() {
   const [isVisible, setIsVisible] = useState(true)
@@ -15,7 +15,7 @@ export function WelcomePopupCard() {
   }
   useEffect(() => {
     // Set a timeout to hide the card after 10 seconds
-    const timer = setTimeout(() => {
+   setTimeout(() => {
       setIsVisible(false)
     }, 5200)
 

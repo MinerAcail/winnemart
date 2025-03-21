@@ -17,7 +17,6 @@ type UnavailablePeriod {
   endTime: String! # e.g., "22:00" (10 PM)
 }
 
-
 type VendorOrder {
   id: String!
   CartItemIDs: [String!]!
@@ -28,6 +27,7 @@ type VendorOrder {
 
 extend type Query {
   getVendor: Vendor
+  getSharedVendor(VendorId: String!): Vendor
   getVendorProducts: [Product]
   listVendors: [Vendor!]!
   getUnavailablePeriods: [UnavailablePeriod!]!
@@ -56,10 +56,6 @@ extend type Mutation {
   getGrowthData(id: String!): GrowthData
 
   updateProductByVendor(productId: String!, input: ProductInputUpdate!): Product
-
-
-
-
 }
 
 input CreateVendorInput {

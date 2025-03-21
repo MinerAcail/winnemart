@@ -31,6 +31,7 @@ import {
   Mail,
   Calendar,
   ChevronRight,
+  Share,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -220,6 +221,19 @@ export default function ProfileVendor() {
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
+
+  const handleShare = () => {
+    const vendorId = vendorData?.getVendor?.id;
+
+    // Create a sharable URL with vendor ID
+    const baseUrl = window.location.origin;
+    const shareUrl = vendorId
+      ? `${baseUrl}/vendor/${vendorId}`
+      : window.location.href;
+    navigator.clipboard.writeText(shareUrl);
+    toast("Link copied to clipboard.");
+    // console.log(shareUrl);
+  };
   return (
     <div className="container pt-16 mx-auto px-4 sm:px-6 pb-8">
       <div className="space-y-6">
@@ -289,6 +303,18 @@ export default function ProfileVendor() {
                   </Badge>
                   <Badge variant="outline" className="bg-primary/5">
                     Active
+                  </Badge>
+
+                  <Badge
+                    variant="outline"
+                    className="gap-1 bg-primary/5 cursor-pointer"
+                    onClick={() => {
+                      handleShare();
+                    }}
+                  >
+                    {vendorData?.getVendor?.id}
+                    <Share className="h-3 w-3" />
+                    <span>Share</span>
                   </Badge>
                 </div>
               </CardContent>

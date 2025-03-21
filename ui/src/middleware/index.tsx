@@ -2,7 +2,7 @@ import { ApolloClient, InMemoryCache } from "@apollo/client";
 import createUploadLink from "apollo-upload-client/createUploadLink.mjs";
 const API_URL =
   window.location.hostname === "localhost"
-    ? "http://16.16.208.207:4001/query"
+    ? "https://api.winnemart.com/query"
     : `https://${window.location.hostname}/query`; // Changed HTTPS to HTTP
 
 const link = createUploadLink({
@@ -10,16 +10,13 @@ const link = createUploadLink({
   // uri: "http://localhost:4001/query",
   credentials: "include",
 });
+// "http://16.16.208.207:4001/query"
 
 // console.log("API_URL",  window.location.hostname);
 // .console(API_URL);
 const Client = new ApolloClient({
   cache: new InMemoryCache(),
-  link, 
+  link,
 });
 
-export default Client;  
-
-
-
-
+export default Client;

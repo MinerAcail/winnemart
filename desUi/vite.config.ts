@@ -34,8 +34,8 @@ export default defineConfig(async () => ({
     },
     proxy: {
       "/minio": {
-target: "http://localhost:9000", // Adjust if MinIO is not running on localhost
-        // target: "http://16.16.208.207:9000", // Adjust if MinIO is not running on localhost
+// target: "http://localhost:9000", // Adjust if MinIO is not running on localhost
+        target: "https://files.winnemart.com/", // Adjust if MinIO is not running on localhost
         // target: "http://localhost:9000", // Adjust if MinIO is not running on localhost
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/minio/, ""),

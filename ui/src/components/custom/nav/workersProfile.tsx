@@ -39,9 +39,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { gql, useQuery, useMutation } from "@apollo/client";
 
 // GraphQL Queries and Mutations
-const GET_VENDOR = gql`
-  query GetVendor {
-    getVendor {
+const GET_WORKER = gql`
+  query Getworker {
+    getWorker {
       id
       name
       number
@@ -51,9 +51,9 @@ const GET_VENDOR = gql`
   }
 `;
 
-const UPDATE_VENDOR = gql`
-  mutation UpdateVendor($dpfile: Upload, $input: UpdateVendorInput!) {
-    updateVendor(dpfile: $dpfile, input: $input) {
+const UPDATE_WORKER = gql`
+  mutation updateWorker($dpfile: Upload, $input: UpdateInput!) {
+    updateWorker(dpfile: $dpfile, input: $input) {
       id
       dpfile
       name
@@ -94,7 +94,7 @@ const passwordFormSchema = z
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
-export default function ProfilePage() {
+export default function WorkerProfile() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -102,9 +102,9 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // GraphQL Hooks
-  const { loading: queryLoading, data: vendorData } = useQuery(GET_VENDOR);
-  const [updateVendor, { loading: mutationLoading }] = useMutation(
-    UPDATE_VENDOR,
+  const { loading: queryLoading, data: workerData } = useQuery(GET_WORKER);
+  const [updateWorker, { loading: mutationLoading }] = useMutation(
+    UPDATE_WORKER,
     {
       onCompleted: () => {
         toast("Profile updated successfully.");
@@ -114,7 +114,7 @@ export default function ProfilePage() {
         toast("Error updating profile: " + error.message);
         setIsLoading(false);
       },
-      refetchQueries: [{ query: GET_VENDOR }],
+      refetchQueries: [{ query: GET_WORKER }],
     }
   );
 
@@ -122,17 +122,17 @@ export default function ProfilePage() {
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: vendorData?.getVendor?.name || "",
-      number: vendorData?.getVendor?.number || "",
+      name: workerData?.getWorker?.name || "",
+      number: workerData?.getWorker?.number || "",
     },
   });
 
-  // Update form values when vendor data is loaded
+  // Update form values when worker data is loaded
   useState(() => {
-    if (vendorData?.getVendor) {
+    if (workerData?.getWorker) {
       profileForm.reset({
-        name: vendorData.getVendor.name || "",
-        number: vendorData.getVendor.number || "",
+        name: workerData.getWorker.name || "",
+        number: workerData.getWorker.number || "",
       });
     }
   });
@@ -166,14 +166,14 @@ export default function ProfilePage() {
   function onProfileSubmit(data: ProfileFormValues) {
     setIsLoading(true);
 
-    updateVendor({
+    updateWorker({
       variables: {
         dpfile: selectedFile,
         input: {
           name: data.name,
           number: data.number,
           // Include other required fields from your schema
-          type: vendorData?.getVendor?.type || "default",
+          type: workerData?.getWorker?.type || "default",
         },
       },
     });
@@ -201,7 +201,7 @@ export default function ProfilePage() {
 
   // Get user initials for avatar fallback
   const getUserInitials = () => {
-    const name = vendorData?.getVendor?.name || "John Doe";
+    const name = workerData?.getWorker?.name || "John Doe";
     return name
       .split(" ")
       .map((n: string) => n[0])
@@ -213,7 +213,7 @@ export default function ProfilePage() {
   // Get avatar image source
   const getAvatarSrc = () => {
     if (previewUrl) return previewUrl;
-    if (vendorData?.getVendor?.dpfile) return vendorData.getVendor.dpfile;
+    if (workerData?.getWorker?.dpfile) return workerData.getWorker.dpfile;
     return "/placeholder.svg?height=128&width=128";
   };
 
@@ -221,7 +221,7 @@ export default function ProfilePage() {
     fileInputRef.current?.click();
   };
   return (
-    <div className="container mx-auto px-4 sm:px-6 pb-8">
+    <div className="container pt-16 mx-auto px-4 sm:px-6 pb-8">
       <div className="space-y-6">
         {/* Breadcrumb - visible on tablet and larger */}
         <div className="hidden sm:flex items-center text-sm text-muted-foreground py-4">
@@ -269,12 +269,12 @@ export default function ProfilePage() {
 
                 <div className="space-y-1.5 mb-4">
                   <h2 className="text-lg sm:text-xl font-bold">
-                    {vendorData?.getVendor?.name || "Loading..."}
+                    {workerData?.getWorker?.name || "Loading..."}
                   </h2>
                   <div className="flex items-center justify-center text-xs sm:text-sm text-muted-foreground">
                     <Mail className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
                     <span className="truncate max-w-[200px]">
-                      {vendorData?.getVendor?.number || "Loading..."}
+                      {workerData?.getWorker?.number || "Loading..."}
                     </span>
                   </div>
                   <div className="flex items-center justify-center text-xs sm:text-sm text-muted-foreground">
@@ -285,7 +285,7 @@ export default function ProfilePage() {
 
                 <div className="w-full flex flex-wrap gap-2 justify-center">
                   <Badge className="bg-primary text-primary-foreground font-medium">
-                    {vendorData?.getVendor?.type || "Loading..."}
+                    {workerData?.getWorker?.type || "Loading..."}
                   </Badge>
                   <Badge variant="outline" className="bg-primary/5">
                     Active

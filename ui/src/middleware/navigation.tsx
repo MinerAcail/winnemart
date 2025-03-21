@@ -14,12 +14,13 @@ import { AppSidebar } from "./bar";
 import { SubmitItemForm } from "@/app/userReview/submit-item-form";
 import ShopItemsManager from "@/components/custom/sortCategroy/cat/cat.tsx";
 import { CartProvider } from "@/hooks/CartContext";
-import { VendorDashboard, VendorItems } from "@/app/vendors";
+import { VendorDashboard, VendorItems, VendorProfile } from "@/app/vendors";
 import ProtectedIsAuthRoute from "./protectedIsAuth";
-import { DriverOrderItems } from "@/app/driver";
+import { DriverOrderItems, WorkersProfile } from "@/app/driver";
 import { OrderTrackingProvider } from "@/hooks/orderTrackingContext";
-import ProfilePage from "@/components/custom/nav/workersProfile";
+// import ProfilePage from "@/components/custom/nav/vendorProfile";
 import { ProtectType } from "./useProtect";
+// import WorkerProfile from "@/components/custom/nav/workersProfile";
 
 const router = createBrowserRouter([
   { path: "/", element: <HostelStoreApp /> },
@@ -52,8 +53,17 @@ const router = createBrowserRouter([
     path: "/profile",
     element: (
       <ProtectedIsAuthRoute
-        expectedTypes={[ProtectType.vendor, ProtectType.Driver]}
-        element={<ProfilePage />}
+        expectedTypes={[ ProtectType.Driver]}
+        element={<VendorProfile />}
+      />
+    ),
+  },
+  {
+    path: "/workerprofile",
+    element: (
+      <ProtectedIsAuthRoute
+        expectedTypes={[ ProtectType.Driver]}
+        element={<WorkersProfile />}
       />
     ),
   },

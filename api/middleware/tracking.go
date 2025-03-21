@@ -78,10 +78,10 @@ func SetjobRequestCookie(w http.ResponseWriter, requestId string) error {
 		Name:   "job_request",
 		Value:  requestId,
 		Domain: "winnemart.com", // Ensure this matches your main domain
-
+// 
 		Path:     "/",
 		HttpOnly: true, // Prevent access from JavaScript
-		Secure:   true, // Use Secure (enable in production)
+		// Secure:   true, // Use Secure (enable in production)
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().Add(3 * time.Hour),
 	}
@@ -210,7 +210,7 @@ func RemoveOrderFromTrackingCookie(w http.ResponseWriter, ctx context.Context, o
 		Value:  string(newValue),
 		Path:   "/",
 		Domain: "winnemart.com", // Ensure this matches your main domain
-
+// 
 		HttpOnly: true,
 		Secure:   secureFlag,
 		SameSite: http.SameSiteLaxMode,
@@ -306,7 +306,7 @@ func CleanupOrderTrackingCookie1(ctx context.Context, db *gorm.DB) {
 			Value:  "",
 			Path:   "/",
 			Domain: "winnemart.com", // Ensure this matches your main domain
-
+// 
 			HttpOnly: true,
 			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
@@ -364,7 +364,7 @@ func CleanupOrderTrackingCookie(ctx context.Context, db *gorm.DB) {
 			Path:     "/",
 			HttpOnly: true,
 			Domain:   "winnemart.com", // Ensure this matches your main domain
-
+// 
 			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 			MaxAge:   -1, // Immediately expires the cookie
@@ -387,7 +387,7 @@ func CleanupOrderTrackingCookie(ctx context.Context, db *gorm.DB) {
 		Path:     "/",
 		HttpOnly: true,
 		Domain:   "winnemart.com", // Ensure this matches your main domain
-
+// 
 		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().Add(24 * time.Hour),
@@ -430,7 +430,7 @@ func CleanupRequestrackingCookie(ctx context.Context, db *gorm.DB) {
 			Path:     "/",
 			HttpOnly: true,
 			Domain:   "winnemart.com", // Ensure this matches your main domain
-
+// 
 			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 			MaxAge:   -1, // Immediately expires the cookie

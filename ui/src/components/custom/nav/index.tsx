@@ -91,7 +91,7 @@ function WorksNav({ to = "/", navName }: WorksNavProps) {
                 </Button>
               </Link>
             )}
-            <Link to="/profile">
+            <Link to={vendor ? "/profile" : "/workerprofile"}>
               <Button
                 variant="outline"
                 size="sm"

@@ -142,6 +142,13 @@ type UpdateAdminInput struct {
 	Password *string `json:"password,omitempty"`
 }
 
+type UpdateInput struct {
+	Name     *string `json:"name,omitempty"`
+	Type     *string `json:"type,omitempty"`
+	Number   *string `json:"number,omitempty"`
+	Password *string `json:"password,omitempty"`
+}
+
 type UpdateVendorInput struct {
 	Name     *string `json:"name,omitempty"`
 	Type     *string `json:"type,omitempty"`

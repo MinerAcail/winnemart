@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 
@@ -47,22 +48,34 @@ export async function generateMetadata({ params }) {
   };
 }
 
-// 🔹 Serve OG Metadata before redirecting
+// 🔹 Detect Crawlers and Only Redirect Real Users
 export default async function VendorPage({ params }) {
   const vendor = await getVendor(params.id);
   if (!vendor) notFound();
 
-  return (
-    <html>
-      <head>
-        <meta property="og:title" content={vendor.name} />
-        <meta property="og:description" content={`Shop with ${vendor.name} on Winnemart.`} />
-        <meta property="og:image" content={vendor.dpfile || "/default-image.jpg"} />
-        <meta http-equiv="refresh" content={`0; url=${MAIN_WEBSITE_URL}${params.id}`} />
-      </head>
-      <body>
-        <p>Redirecting to <a href={`${MAIN_WEBSITE_URL}${params.id}`}>{vendor.name}</a>...</p>
-      </body>
-    </html>
-  );
+  // Get request headers
+  const userAgent = headers().get("user-agent") || "";
+
+  // List of known social media crawlers
+  const crawlers = ["facebookexternalhit", "Twitterbot", "WhatsApp", "Discordbot", "LinkedInBot"];
+
+  // If a crawler is detected, show metadata but don't redirect
+  if (crawlers.some((bot) => userAgent.includes(bot))) {
+    return (
+      <html>
+        <head>
+          <meta property="og:title" content={vendor.name} />
+          <meta property="og:description" content={`Shop with ${vendor.name} on Winnemart.`} />
+          <meta property="og:image" content={vendor.dpfile || "/default-image.jpg"} />
+        </head>
+        <body>
+          <p>OpenGraph metadata loaded.</p>
+        </body>
+      </html>
+    );
+  }
+
+  // If not a bot, redirect the user
+  redirect(`${MAIN_WEBSITE_URL}${params.id}`);
+  return null;
 }

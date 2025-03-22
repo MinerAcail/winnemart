@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 const MAIN_WEBSITE_URL = "https://winnemart.com/items/";
 
@@ -27,12 +28,12 @@ async function getVendor(id) {
   return data?.getSharedVendor;
 }
 
-// 🔹 Generate OpenGraph Metadata
+// 🔹 Generate OG Metadata
 export async function generateMetadata({ params }) {
   const vendor = await getVendor(params.id);
 
   if (!vendor) {
-    return { title: "Vendor Not Found" };
+    notFound(); // Show 404 page if vendor doesn't exist
   }
 
   return {
@@ -46,8 +47,22 @@ export async function generateMetadata({ params }) {
   };
 }
 
-// 🔹 Redirect to main site
-export default function VendorPage({ params }) {
-  redirect(`${MAIN_WEBSITE_URL}${params.id}`);
-  return null;
+// 🔹 Serve OG Metadata before redirecting
+export default async function VendorPage({ params }) {
+  const vendor = await getVendor(params.id);
+  if (!vendor) notFound();
+
+  return (
+    <html>
+      <head>
+        <meta property="og:title" content={vendor.name} />
+        <meta property="og:description" content={`Shop with ${vendor.name} on Winnemart.`} />
+        <meta property="og:image" content={vendor.dpfile || "/default-image.jpg"} />
+        <meta http-equiv="refresh" content={`0; url=${MAIN_WEBSITE_URL}${params.id}`} />
+      </head>
+      <body>
+        <p>Redirecting to <a href={`${MAIN_WEBSITE_URL}${params.id}`}>{vendor.name}</a>...</p>
+      </body>
+    </html>
+  );
 }

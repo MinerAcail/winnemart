@@ -3,11 +3,9 @@ import { createBrowserRouter, RouterProvider } from "react-router";
 import Client from ".";
 import HostelStoreApp from "@/app/HostelStoreApp";
 import { Toaster } from "@/components/ui/sonner";
-// import DeliveryList from "@/app/works/delivery";
 import JobPosting from "@/app/works/jobPosting";
 import ErrorPage from "./routError";
 import { AuthProvider } from "./context/authContext";
-// import ProtectedIsAuthRoute from "./protectedIsAuth";
 import ErrorLogin from "./routErrorLogin";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./bar";
@@ -18,20 +16,17 @@ import { VendorDashboard, VendorItems, VendorProfile } from "@/app/vendors";
 import ProtectedIsAuthRoute from "./protectedIsAuth";
 import { DriverOrderItems, WorkersProfile } from "@/app/driver";
 import { OrderTrackingProvider } from "@/hooks/orderTrackingContext";
-// import ProfilePage from "@/components/custom/nav/vendorProfile";
 import { ProtectType } from "./useProtect";
 import HeartbeatUpdater from "@/components/custom/nav/cheackActive";
 import SocialMediaHelmet from "@/components/custom/vendors/share";
 import { HelmetProvider } from "react-helmet-async";
-// import WorkerProfile from "@/components/custom/nav/workersProfile";
 
 const router = createBrowserRouter([
   { path: "/", element: <HostelStoreApp /> },
   { path: "/delivery", element: <DriverOrderItems /> },
-  // { path: "/delivery", element: <ProtectedIsAuthRoute element={<DeliveryList />} /> },
   { path: "/request", element: <SubmitItemForm /> },
   { path: "/shop", element: <ShopItemsManager /> },
-
+  { path: "/vendor/:Vendorid", element: <SocialMediaHelmet /> },
   { path: "/job", element: <JobPosting /> },
   {
     path: "/vendor",
@@ -42,12 +37,7 @@ const router = createBrowserRouter([
       />
     ),
   },
-  {
-    path: "/vendor/:Vendorid",
-    element: (
-      <SocialMediaHelmet/>
-    )
-  },
+
   {
     path: "/vendoritems",
     element: (
@@ -62,7 +52,7 @@ const router = createBrowserRouter([
     path: "/profile",
     element: (
       <ProtectedIsAuthRoute
-        expectedTypes={[ ProtectType.vendor]}
+        expectedTypes={[ProtectType.vendor]}
         element={<VendorProfile />}
       />
     ),
@@ -71,7 +61,7 @@ const router = createBrowserRouter([
     path: "/workerprofile",
     element: (
       <ProtectedIsAuthRoute
-        expectedTypes={[ ProtectType.Driver]}
+        expectedTypes={[ProtectType.Driver]}
         element={<WorkersProfile />}
       />
     ),
@@ -92,9 +82,8 @@ export function Navigation() {
           <CartProvider>
             <AuthProvider>
               <HelmetProvider>
-
-              <RouterProvider router={router} />
-              <Toaster />
+                <RouterProvider router={router} />
+                <Toaster />
               </HelmetProvider>
             </AuthProvider>
           </CartProvider>

@@ -1,38 +1,38 @@
-import path from "path"
-import react from "@vitejs/plugin-react"
-import { defineConfig } from "vite"
+import path from "path";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
+// import ssr from "vite-plugin-ssr/plugin";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
 
-  
-  server:{
+
+  server: {
     proxy: {
-      '/minio': {
+      "/minio": {
         // target: 'http://localhost:9000', // Adjust if MinIO is not running on
-        target: 'https://files.winnemart.com/', // Adjust if MinIO is not running on 192.168.62.193
+        target: "https://files.winnemart.com/", // Adjust if MinIO is not running on 192.168.62.193
 
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/minio/, ""),
       },
     },
     headers: {
-      "Cross-Origin-Opener-Policy": "same-origin",    
+      "Cross-Origin-Opener-Policy": "same-origin",
       "Cross-Origin-Embedder-Policy": "require-corp",
     },
-    host: '0.0.0.0', 
+    host: "0.0.0.0",
   },
   preview: {
     allowedHosts: ["winnemart.com"], // Allow winnemart.com
   },
-})
-// 
-
+});
+//
 
 // const API_URL =
 //   window.location.hostname === "localhost"

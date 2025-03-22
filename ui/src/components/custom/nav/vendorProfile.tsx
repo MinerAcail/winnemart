@@ -48,6 +48,7 @@ const GET_VENDOR = gql`
       number
       type
       dpfile
+      createdAt
     }
   }
 `;
@@ -226,9 +227,9 @@ export default function ProfileVendor() {
     const vendorId = vendorData?.getVendor?.id;
 
     // Create a sharable URL with vendor ID
-    const baseUrl = window.location.origin;
+    const baseUrl = "https://ssr.winnemart.com";
     const shareUrl = vendorId
-      ? `${baseUrl}/vendor/${vendorId}`
+      ? `${baseUrl}/${vendorId}`
       : window.location.href;
     navigator.clipboard.writeText(shareUrl);
     toast("Link copied to clipboard.");
@@ -312,7 +313,6 @@ export default function ProfileVendor() {
                       handleShare();
                     }}
                   >
-                    {vendorData?.getVendor?.id}
                     <Share className="h-3 w-3" />
                     <span>Share</span>
                   </Badge>

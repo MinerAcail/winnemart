@@ -17,6 +17,7 @@ const link = createUploadLink({
 const Client = new ApolloClient({
   cache: new InMemoryCache(),
   link,
+  // ssrForceFetchDelay: 100 // Prevents refetching after hydration
 });
 
 export default Client;

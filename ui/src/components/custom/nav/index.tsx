@@ -66,7 +66,7 @@ function WorksNav() {
                         <li>
                           <NavigationMenuLink asChild>
                             <Link
-                              to="/vendoritems"
+                              to="/vendor"
                               className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-md"
                             >
                               <Link2 className="w-4 h-4" />
@@ -77,7 +77,7 @@ function WorksNav() {
                         <li>
                           <NavigationMenuLink asChild>
                             <Link
-                              to="/vendor"
+                              to="/vendoritems"
                               className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-md"
                             >
                               <Link2 className="w-4 h-4" />

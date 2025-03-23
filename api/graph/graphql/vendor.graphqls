@@ -15,6 +15,8 @@ type UnavailablePeriod {
   day: String! # e.g., "Monday", "Tuesday"
   startTime: String! # e.g., "18:00" (6 PM)
   endTime: String! # e.g., "22:00" (10 PM)
+    createdAt: Time
+  updatedAt: Time
 }
 
 type VendorOrder {
@@ -31,6 +33,7 @@ extend type Query {
   getVendorProducts: [Product]
   listVendors: [Vendor!]!
   getUnavailablePeriods: [UnavailablePeriod!]!
+  getAllUnavailablePeriods: [UnavailablePeriod!]!
 
   getVendorOrders: [Order]!
   getVendorOrder(id: String!): VendorOrder
@@ -50,9 +53,8 @@ extend type Mutation {
   deleteVendor(id: String!): Boolean
   createUnavailablePeriod(
     input: CreateUnavailablePeriodInput!
-    VendorId: String!
   ): UnavailablePeriod
-  deleteUnavailablePeriod(id: String!, VendorId: String!): Boolean
+  deleteUnavailablePeriod(id: String!): Boolean
   getGrowthData(id: String!): GrowthData
 
   updateProductByVendor(productId: String!, input: ProductInputUpdate!): Product

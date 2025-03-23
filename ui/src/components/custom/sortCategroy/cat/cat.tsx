@@ -27,6 +27,7 @@ const GET_ALL_CATEGORY_BOX = gql`
         price
         imageUrls
         categories
+        commission
       }
     }
   }
@@ -38,6 +39,7 @@ interface Product {
   price: string;
   imageUrls: string[];
   categories?: string[];
+  commission?: string;
 }
 
 interface CategoryBox {
@@ -81,7 +83,7 @@ const ViewCate = () => {
     const cartItem = {
       id: product.id,
       name: product.name,
-      price: parseFloat(product.price),
+      price: parseFloat(product?.commission ?? "0"),
       categories: product.categories || [],
       imageUrls: product.imageUrls,
     };
@@ -102,7 +104,7 @@ const ViewCate = () => {
       const cartItem = {
         id: product.id,
         name: product.name,
-        price: parseFloat(product.price),
+        price: parseFloat(product.commission ?? "0"),
         categories: product.categories || [],
         imageUrls: product.imageUrls,
       };
@@ -148,14 +150,15 @@ const handleSearch = (value: string) => {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Main content */}
         <div className="w-full">
-          <NavBar onSearch={handleSearch} />
-          <h1 className="text-2xl font-bold mb-4">Order Receipt</h1>
+         <div className="mb-5">
+         <NavBar onSearch={handleSearch} />
+         </div>
 
-          <div className="grid grid-cols-1 pt-14 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 pt-14 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
             {data?.getAllCategoryBox.map(({ categoryBox, products }) => (
               <Card
                 key={categoryBox.id}
-                className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer border-2"
+                className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer mx-1 border-2"
                 onClick={() => setSelectedCategory({ categoryBox, products })}
               >
                 {/* Food image */}
@@ -265,7 +268,7 @@ const handleSearch = (value: string) => {
                         ? ` ${ghSim}${products
                             .reduce(
                               (total, product) =>
-                                total + parseFloat(product.price),
+                                total + parseFloat(product.commission ?? "0"),
                               0
                             )
                             .toLocaleString()}`

@@ -51,6 +51,8 @@ func PerformMigrations(db *gorm.DB) error {
 		&model.CategoryBox{},
 		&model.Vendor{},
 		&model.VendorOrder{},
+		&model.UnavailablePeriod{},
+
 	); err != nil {
 		return fmt.Errorf("failed to run AutoMigrate: %w", err)
 	}

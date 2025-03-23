@@ -161,7 +161,7 @@ type ComplexityRoot struct {
 		CreateAdmin                  func(childComplexity int, input model.CreateAdminInput) int
 		CreateCategoryBox            func(childComplexity int, name *string) int
 		CreateOrderItems             func(childComplexity int, input *model.OrderInput) int
-		CreateUnavailablePeriod      func(childComplexity int, input model.CreateUnavailablePeriodInput, vendorID string) int
+		CreateUnavailablePeriod      func(childComplexity int, input model.CreateUnavailablePeriodInput) int
 		CreateUser                   func(childComplexity int, input model.InputUser) int
 		CreateVendor                 func(childComplexity int, input model.CreateVendorInput) int
 		DeleteAdmin                  func(childComplexity int, id string) int
@@ -173,7 +173,7 @@ type ComplexityRoot struct {
 		DeleteProductByAdmin         func(childComplexity int, productID string) int
 		DeleteRequestItem            func(childComplexity int, requestID string) int
 		DeleteTable                  func(childComplexity int) int
-		DeleteUnavailablePeriod      func(childComplexity int, id string, vendorID string) int
+		DeleteUnavailablePeriod      func(childComplexity int, id string) int
 		DeleteUserByID               func(childComplexity int, id string) int
 		DeleteVendor                 func(childComplexity int, id string) int
 		DeliveryLogin                func(childComplexity int, input *model.LoginInput) int
@@ -225,6 +225,7 @@ type ComplexityRoot struct {
 
 	Product struct {
 		Categories func(childComplexity int) int
+		Commission func(childComplexity int) int
 		CreatedAt  func(childComplexity int) int
 		ID         func(childComplexity int) int
 		ImageUrls  func(childComplexity int) int
@@ -260,17 +261,19 @@ type ComplexityRoot struct {
 		GetAdmin                            func(childComplexity int, id string) int
 		GetAllAssignRider                   func(childComplexity int) int
 		GetAllAssignRiders                  func(childComplexity int) int
+		GetAllCategories                    func(childComplexity int) int
 		GetAllCategoryBox                   func(childComplexity int, query *string) int
 		GetAllChatMessageByNumber           func(childComplexity int, customerNumber string) int
 		GetAllOrderHistory                  func(childComplexity int) int
 		GetAllOrderItemsByProductID         func(childComplexity int, orderID string) int
 		GetAllOrderItemsByProductIDDelivery func(childComplexity int) int
 		GetAllOrderS                        func(childComplexity int) int
-		GetAllProducts                      func(childComplexity int, query *string) int
+		GetAllProducts                      func(childComplexity int, query *string, vendorID *string) int
 		GetAllProductsByAdmin               func(childComplexity int) int
 		GetAllRequestItems                  func(childComplexity int) int
 		GetAllRiders                        func(childComplexity int) int
 		GetAllSystemInfo                    func(childComplexity int) int
+		GetAllUnavailablePeriods            func(childComplexity int) int
 		GetAllUserStats                     func(childComplexity int) int
 		GetAllUsers                         func(childComplexity int) int
 		GetAllWorks                         func(childComplexity int) int
@@ -326,10 +329,12 @@ type ComplexityRoot struct {
 	}
 
 	UnavailablePeriod struct {
+		CreatedAt func(childComplexity int) int
 		Day       func(childComplexity int) int
 		EndTime   func(childComplexity int) int
 		ID        func(childComplexity int) int
 		StartTime func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
 		VendorID  func(childComplexity int) int
 	}
 
@@ -483,8 +488,8 @@ type MutationResolver interface {
 	CreateVendor(ctx context.Context, input model.CreateVendorInput) (*model.Vendor, error)
 	UpdateVendor(ctx context.Context, dpfile *graphql.Upload, input model.UpdateVendorInput) (*model.Vendor, error)
 	DeleteVendor(ctx context.Context, id string) (*bool, error)
-	CreateUnavailablePeriod(ctx context.Context, input model.CreateUnavailablePeriodInput, vendorID string) (*model.UnavailablePeriod, error)
-	DeleteUnavailablePeriod(ctx context.Context, id string, vendorID string) (*bool, error)
+	CreateUnavailablePeriod(ctx context.Context, input model.CreateUnavailablePeriodInput) (*model.UnavailablePeriod, error)
+	DeleteUnavailablePeriod(ctx context.Context, id string) (*bool, error)
 	GetGrowthData(ctx context.Context, id string) (*model.GrowthData, error)
 	UpdateProductByVendor(ctx context.Context, productID string, input model.ProductInputUpdate) (*model.Product, error)
 }
@@ -496,6 +501,8 @@ type ProductResolver interface {
 
 	Categories(ctx context.Context, obj *model.Product) ([]*string, error)
 	ImageUrls(ctx context.Context, obj *model.Product) ([]*string, error)
+
+	Commission(ctx context.Context, obj *model.Product) (float64, error)
 }
 type PurchaseHistoryResolver interface {
 	ID(ctx context.Context, obj *model.PurchaseHistory) (string, error)
@@ -511,7 +518,8 @@ type QueryResolver interface {
 	ReviewAllWorks(ctx context.Context) ([]*model.JobRequest, error)
 	GetAllWorks(ctx context.Context) ([]*model.JobRequest, error)
 	GetProduct(ctx context.Context, id string) (*model.Product, error)
-	GetAllProducts(ctx context.Context, query *string) ([]*model.Product, error)
+	GetAllProducts(ctx context.Context, query *string, vendorID *string) ([]*model.Product, error)
+	GetAllCategories(ctx context.Context) ([]*string, error)
 	SearchProducts(ctx context.Context, query string) ([]*model.Product, error)
 	GetAllProductsByAdmin(ctx context.Context) ([]*model.ProductInfor, error)
 	GetNewAddedProducts(ctx context.Context) ([]*model.Product, error)
@@ -547,6 +555,7 @@ type QueryResolver interface {
 	GetVendorProducts(ctx context.Context) ([]*model.Product, error)
 	ListVendors(ctx context.Context) ([]*model.Vendor, error)
 	GetUnavailablePeriods(ctx context.Context) ([]*model.UnavailablePeriod, error)
+	GetAllUnavailablePeriods(ctx context.Context) ([]*model.UnavailablePeriod, error)
 	GetVendorOrders(ctx context.Context) ([]*model.Order, error)
 	GetVendorOrder(ctx context.Context, id string) (*model.VendorOrder, error)
 	GetVendorChat(ctx context.Context, id string) ([]*model.OrderChat, error)
@@ -1072,7 +1081,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateUnavailablePeriod(childComplexity, args["input"].(model.CreateUnavailablePeriodInput), args["VendorId"].(string)), true
+		return e.complexity.Mutation.CreateUnavailablePeriod(childComplexity, args["input"].(model.CreateUnavailablePeriodInput)), true
 
 	case "Mutation.createUser":
 		if e.complexity.Mutation.CreateUser == nil {
@@ -1206,7 +1215,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteUnavailablePeriod(childComplexity, args["id"].(string), args["VendorId"].(string)), true
+		return e.complexity.Mutation.DeleteUnavailablePeriod(childComplexity, args["id"].(string)), true
 
 	case "Mutation.deleteUserById":
 		if e.complexity.Mutation.DeleteUserByID == nil {
@@ -1642,6 +1651,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Product.Categories(childComplexity), true
 
+	case "Product.commission":
+		if e.complexity.Product.Commission == nil {
+			break
+		}
+
+		return e.complexity.Product.Commission(childComplexity), true
+
 	case "Product.createdAt":
 		if e.complexity.Product.CreatedAt == nil {
 			break
@@ -1808,6 +1824,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.GetAllAssignRiders(childComplexity), true
 
+	case "Query.getAllCategories":
+		if e.complexity.Query.GetAllCategories == nil {
+			break
+		}
+
+		return e.complexity.Query.GetAllCategories(childComplexity), true
+
 	case "Query.getAllCategoryBox":
 		if e.complexity.Query.GetAllCategoryBox == nil {
 			break
@@ -1875,7 +1898,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.GetAllProducts(childComplexity, args["query"].(*string)), true
+		return e.complexity.Query.GetAllProducts(childComplexity, args["query"].(*string), args["vendorId"].(*string)), true
 
 	case "Query.getAllProductsByAdmin":
 		if e.complexity.Query.GetAllProductsByAdmin == nil {
@@ -1904,6 +1927,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.GetAllSystemInfo(childComplexity), true
+
+	case "Query.getAllUnavailablePeriods":
+		if e.complexity.Query.GetAllUnavailablePeriods == nil {
+			break
+		}
+
+		return e.complexity.Query.GetAllUnavailablePeriods(childComplexity), true
 
 	case "Query.getAllUserStats":
 		if e.complexity.Query.GetAllUserStats == nil {
@@ -2312,6 +2342,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SystemInfo.DbName(childComplexity), true
 
+	case "UnavailablePeriod.createdAt":
+		if e.complexity.UnavailablePeriod.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.UnavailablePeriod.CreatedAt(childComplexity), true
+
 	case "UnavailablePeriod.day":
 		if e.complexity.UnavailablePeriod.Day == nil {
 			break
@@ -2339,6 +2376,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.UnavailablePeriod.StartTime(childComplexity), true
+
+	case "UnavailablePeriod.updatedAt":
+		if e.complexity.UnavailablePeriod.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.UnavailablePeriod.UpdatedAt(childComplexity), true
 
 	case "UnavailablePeriod.VendorId":
 		if e.complexity.UnavailablePeriod.VendorID == nil {
@@ -3088,11 +3132,6 @@ func (ec *executionContext) field_Mutation_createUnavailablePeriod_args(ctx cont
 		return nil, err
 	}
 	args["input"] = arg0
-	arg1, err := ec.field_Mutation_createUnavailablePeriod_argsVendorID(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["VendorId"] = arg1
 	return args, nil
 }
 func (ec *executionContext) field_Mutation_createUnavailablePeriod_argsInput(
@@ -3105,19 +3144,6 @@ func (ec *executionContext) field_Mutation_createUnavailablePeriod_argsInput(
 	}
 
 	var zeroVal model.CreateUnavailablePeriodInput
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_createUnavailablePeriod_argsVendorID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("VendorId"))
-	if tmp, ok := rawArgs["VendorId"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
 	return zeroVal, nil
 }
 
@@ -3336,11 +3362,6 @@ func (ec *executionContext) field_Mutation_deleteUnavailablePeriod_args(ctx cont
 		return nil, err
 	}
 	args["id"] = arg0
-	arg1, err := ec.field_Mutation_deleteUnavailablePeriod_argsVendorID(ctx, rawArgs)
-	if err != nil {
-		return nil, err
-	}
-	args["VendorId"] = arg1
 	return args, nil
 }
 func (ec *executionContext) field_Mutation_deleteUnavailablePeriod_argsID(
@@ -3349,19 +3370,6 @@ func (ec *executionContext) field_Mutation_deleteUnavailablePeriod_argsID(
 ) (string, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 	if tmp, ok := rawArgs["id"]; ok {
-		return ec.unmarshalNString2string(ctx, tmp)
-	}
-
-	var zeroVal string
-	return zeroVal, nil
-}
-
-func (ec *executionContext) field_Mutation_deleteUnavailablePeriod_argsVendorID(
-	ctx context.Context,
-	rawArgs map[string]any,
-) (string, error) {
-	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("VendorId"))
-	if tmp, ok := rawArgs["VendorId"]; ok {
 		return ec.unmarshalNString2string(ctx, tmp)
 	}
 
@@ -4365,6 +4373,11 @@ func (ec *executionContext) field_Query_getAllProducts_args(ctx context.Context,
 		return nil, err
 	}
 	args["query"] = arg0
+	arg1, err := ec.field_Query_getAllProducts_argsVendorID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["vendorId"] = arg1
 	return args, nil
 }
 func (ec *executionContext) field_Query_getAllProducts_argsQuery(
@@ -4373,6 +4386,19 @@ func (ec *executionContext) field_Query_getAllProducts_argsQuery(
 ) (*string, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("query"))
 	if tmp, ok := rawArgs["query"]; ok {
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getAllProducts_argsVendorID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("vendorId"))
+	if tmp, ok := rawArgs["vendorId"]; ok {
 		return ec.unmarshalOString2ᚖstring(ctx, tmp)
 	}
 
@@ -5717,6 +5743,8 @@ func (ec *executionContext) fieldContext_CartItem_product(_ context.Context, fie
 				return ec.fieldContext_Product_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Product_updatedAt(ctx, field)
+			case "commission":
+				return ec.fieldContext_Product_commission(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -7902,6 +7930,8 @@ func (ec *executionContext) fieldContext_Mutation_VendorUpload(ctx context.Conte
 				return ec.fieldContext_Product_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Product_updatedAt(ctx, field)
+			case "commission":
+				return ec.fieldContext_Product_commission(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -8741,6 +8771,8 @@ func (ec *executionContext) fieldContext_Mutation_updateProductByAdmin(ctx conte
 				return ec.fieldContext_Product_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Product_updatedAt(ctx, field)
+			case "commission":
+				return ec.fieldContext_Product_commission(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -10261,7 +10293,7 @@ func (ec *executionContext) _Mutation_createUnavailablePeriod(ctx context.Contex
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateUnavailablePeriod(rctx, fc.Args["input"].(model.CreateUnavailablePeriodInput), fc.Args["VendorId"].(string))
+		return ec.resolvers.Mutation().CreateUnavailablePeriod(rctx, fc.Args["input"].(model.CreateUnavailablePeriodInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10293,6 +10325,10 @@ func (ec *executionContext) fieldContext_Mutation_createUnavailablePeriod(ctx co
 				return ec.fieldContext_UnavailablePeriod_startTime(ctx, field)
 			case "endTime":
 				return ec.fieldContext_UnavailablePeriod_endTime(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_UnavailablePeriod_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_UnavailablePeriod_updatedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type UnavailablePeriod", field.Name)
 		},
@@ -10325,7 +10361,7 @@ func (ec *executionContext) _Mutation_deleteUnavailablePeriod(ctx context.Contex
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteUnavailablePeriod(rctx, fc.Args["id"].(string), fc.Args["VendorId"].(string))
+		return ec.resolvers.Mutation().DeleteUnavailablePeriod(rctx, fc.Args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -10477,6 +10513,8 @@ func (ec *executionContext) fieldContext_Mutation_updateProductByVendor(ctx cont
 				return ec.fieldContext_Product_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Product_updatedAt(ctx, field)
+			case "commission":
+				return ec.fieldContext_Product_commission(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -11336,6 +11374,50 @@ func (ec *executionContext) fieldContext_Product_updatedAt(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Product_commission(ctx context.Context, field graphql.CollectedField, obj *model.Product) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Product_commission(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Product().Commission(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Product_commission(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Product",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ProductInfor_product(ctx context.Context, field graphql.CollectedField, obj *model.ProductInfor) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ProductInfor_product(ctx, field)
 	if err != nil {
@@ -11390,6 +11472,8 @@ func (ec *executionContext) fieldContext_ProductInfor_product(_ context.Context,
 				return ec.fieldContext_Product_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Product_updatedAt(ctx, field)
+			case "commission":
+				return ec.fieldContext_Product_commission(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -12339,6 +12423,8 @@ func (ec *executionContext) fieldContext_Query_getProduct(ctx context.Context, f
 				return ec.fieldContext_Product_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Product_updatedAt(ctx, field)
+			case "commission":
+				return ec.fieldContext_Product_commission(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -12371,7 +12457,7 @@ func (ec *executionContext) _Query_getAllProducts(ctx context.Context, field gra
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetAllProducts(rctx, fc.Args["query"].(*string))
+		return ec.resolvers.Query().GetAllProducts(rctx, fc.Args["query"].(*string), fc.Args["vendorId"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -12414,6 +12500,8 @@ func (ec *executionContext) fieldContext_Query_getAllProducts(ctx context.Contex
 				return ec.fieldContext_Product_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Product_updatedAt(ctx, field)
+			case "commission":
+				return ec.fieldContext_Product_commission(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -12428,6 +12516,47 @@ func (ec *executionContext) fieldContext_Query_getAllProducts(ctx context.Contex
 	if fc.Args, err = ec.field_Query_getAllProducts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getAllCategories(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getAllCategories(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetAllCategories(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*string)
+	fc.Result = res
+	return ec.marshalOString2ᚕᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getAllCategories(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -12489,6 +12618,8 @@ func (ec *executionContext) fieldContext_Query_searchProducts(ctx context.Contex
 				return ec.fieldContext_Product_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Product_updatedAt(ctx, field)
+			case "commission":
+				return ec.fieldContext_Product_commission(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -12614,6 +12745,8 @@ func (ec *executionContext) fieldContext_Query_getNewAddedProducts(_ context.Con
 				return ec.fieldContext_Product_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Product_updatedAt(ctx, field)
+			case "commission":
+				return ec.fieldContext_Product_commission(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -13500,6 +13633,8 @@ func (ec *executionContext) fieldContext_Query_getProductsByCategory(ctx context
 				return ec.fieldContext_Product_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Product_updatedAt(ctx, field)
+			case "commission":
+				return ec.fieldContext_Product_commission(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -14465,6 +14600,8 @@ func (ec *executionContext) fieldContext_Query_getVendorProducts(_ context.Conte
 				return ec.fieldContext_Product_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Product_updatedAt(ctx, field)
+			case "commission":
+				return ec.fieldContext_Product_commission(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -14583,6 +14720,70 @@ func (ec *executionContext) fieldContext_Query_getUnavailablePeriods(_ context.C
 				return ec.fieldContext_UnavailablePeriod_startTime(ctx, field)
 			case "endTime":
 				return ec.fieldContext_UnavailablePeriod_endTime(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_UnavailablePeriod_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_UnavailablePeriod_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type UnavailablePeriod", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_getAllUnavailablePeriods(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_getAllUnavailablePeriods(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().GetAllUnavailablePeriods(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.UnavailablePeriod)
+	fc.Result = res
+	return ec.marshalNUnavailablePeriod2ᚕᚖgithubᚗcomᚋmineracailᚋsergiᚋgraphᚋmodelᚐUnavailablePeriodᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_getAllUnavailablePeriods(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_UnavailablePeriod_id(ctx, field)
+			case "VendorId":
+				return ec.fieldContext_UnavailablePeriod_VendorId(ctx, field)
+			case "day":
+				return ec.fieldContext_UnavailablePeriod_day(ctx, field)
+			case "startTime":
+				return ec.fieldContext_UnavailablePeriod_startTime(ctx, field)
+			case "endTime":
+				return ec.fieldContext_UnavailablePeriod_endTime(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_UnavailablePeriod_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_UnavailablePeriod_updatedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type UnavailablePeriod", field.Name)
 		},
@@ -15795,6 +15996,88 @@ func (ec *executionContext) fieldContext_UnavailablePeriod_endTime(_ context.Con
 	return fc, nil
 }
 
+func (ec *executionContext) _UnavailablePeriod_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.UnavailablePeriod) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UnavailablePeriod_createdAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UnavailablePeriod_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UnavailablePeriod",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UnavailablePeriod_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.UnavailablePeriod) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_UnavailablePeriod_updatedAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UpdatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_UnavailablePeriod_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UnavailablePeriod",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_id(ctx, field)
 	if err != nil {
@@ -16941,6 +17224,8 @@ func (ec *executionContext) fieldContext_ViewcategoryBox_products(_ context.Cont
 				return ec.fieldContext_Product_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Product_updatedAt(ctx, field)
+			case "commission":
+				return ec.fieldContext_Product_commission(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -19975,6 +20260,8 @@ func (ec *executionContext) fieldContext_orderproductInfor_product(_ context.Con
 				return ec.fieldContext_Product_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Product_updatedAt(ctx, field)
+			case "commission":
+				return ec.fieldContext_Product_commission(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Product", field.Name)
 		},
@@ -22302,6 +22589,42 @@ func (ec *executionContext) _Product(ctx context.Context, sel ast.SelectionSet, 
 			out.Values[i] = ec._Product_createdAt(ctx, field, obj)
 		case "updatedAt":
 			out.Values[i] = ec._Product_updatedAt(ctx, field, obj)
+		case "commission":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Product_commission(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -22711,6 +23034,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getAllCategories":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getAllCategories(ctx, field)
 				return res
 			}
 
@@ -23433,6 +23775,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "getAllUnavailablePeriods":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_getAllUnavailablePeriods(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "getVendorOrders":
 			field := field
 
@@ -23815,6 +24179,10 @@ func (ec *executionContext) _UnavailablePeriod(ctx context.Context, sel ast.Sele
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "createdAt":
+			out.Values[i] = ec._UnavailablePeriod_createdAt(ctx, field, obj)
+		case "updatedAt":
+			out.Values[i] = ec._UnavailablePeriod_updatedAt(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -25152,6 +25520,21 @@ func (ec *executionContext) marshalNFileUrl2ᚖgithubᚗcomᚋmineracailᚋsergi
 		return graphql.Null
 	}
 	return ec._FileUrl(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v any) (float64, error) {
+	res, err := graphql.UnmarshalFloatContext(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
+	res := graphql.MarshalFloatContext(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return graphql.WrapContextMarshaler(ctx, res)
 }
 
 func (ec *executionContext) unmarshalNInt2int32(ctx context.Context, v any) (int32, error) {

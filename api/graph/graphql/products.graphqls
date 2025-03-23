@@ -8,6 +8,7 @@ type Product {
   imageUrls: [String]
   createdAt: Time
   updatedAt: Time
+  commission: Float! 
 }
 
 type ProductInfor {
@@ -114,8 +115,8 @@ type UserInfor {
 }
 extend type Query {
   getProduct(id: String!): Product!
-  getAllProducts(query: String): [Product!]!
-
+  getAllProducts(query: String,vendorId:String): [Product!]!
+  getAllCategories: [String]
   searchProducts(query: String!): [Product!]!
   getAllProductsByAdmin: [ProductInfor!]!
   getNewAddedProducts: [Product!]!

@@ -11,6 +11,7 @@ import (
 	"log"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -990,6 +991,48 @@ func (r *productResolver) ImageUrls(ctx context.Context, obj *model.Product) ([]
 	return eachArray, nil
 }
 
+// Commission is the resolver for the commission field.
+func (r *productResolver) Commission(ctx context.Context, obj *model.Product) (float64, error) {
+	if obj.Price == nil {
+		return 0, nil
+	}
+
+	price, err := strconv.ParseFloat(*obj.Price, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid price format: %w", err)
+	}
+
+	var commission float64
+
+	switch {
+	case price < 5:
+		commission = 0.5
+	case price >= 5 && price <= 20:
+		commission = 1
+	case price > 20 && price <= 50:
+		commission = 5
+	case price > 50 && price <= 100:
+		commission = 10
+	case price > 100 && price <= 300:
+		commission = 20
+	case price > 300 && price <= 500:
+		commission = 50
+	case price > 500 && price <= 1000:
+		commission = 100
+	case price > 1000 && price <= 1500:
+		commission = 150
+	case price > 1500 && price <= 2000:
+		commission = 200
+	default:
+		commission = 0
+	}
+
+	// Add the commission to the original price
+	finalPrice := price + commission
+
+	return finalPrice, nil
+}
+
 // GetProduct is the resolver for the getProduct field.
 func (r *queryResolver) GetProduct(ctx context.Context, id string) (*model.Product, error) {
 	productID, err := uuid.Parse(id)
@@ -1009,20 +1052,55 @@ func (r *queryResolver) GetProduct(ctx context.Context, id string) (*model.Produ
 }
 
 // GetAllProducts is the resolver for the getAllProducts field.
-func (r *queryResolver) GetAllProducts(ctx context.Context, query *string) ([]*model.Product, error) {
+func (r *queryResolver) GetAllProducts(ctx context.Context, query *string, vendorID *string) ([]*model.Product, error) {
 	middleware.CleanupOrderTrackingCookie(ctx, r.DB)
-
-	// Clean query
-	// cleanQuery := helper.CleanSearchQuery(*query)
-	// var products []*model.Product
 
 	// Handle empty query
 	if query == nil {
-		return helper.FetchAllProducts(r.DB)
+		if vendorID == nil {
+			// No vendorID specified, fetch all products normally
+			return helper.FetchAllProducts(r.DB)
+		} else {
+			// VendorID specified, prioritize those products
+			return helper.FetchProductsWithVendorPriority(r.DB, *vendorID)
+		}
 	}
 
-	// Execute search query
-	return helper.ExecuteSearchQuery(r.DB, *query)
+	// Execute search query with vendor priority if vendorID is provided
+	if vendorID == nil {
+		return helper.ExecuteSearchQuery(r.DB, *query)
+	} else {
+		return helper.ExecuteSearchQueryWithVendorPriority(r.DB, *query, *vendorID)
+	}
+}
+
+// GetAllCategories is the resolver for the getAllCategories field.
+func (r *queryResolver) GetAllCategories(ctx context.Context) ([]*string, error) {
+	// Use a direct SQL query for better performance since we're working with arrays
+	rows, err := r.DB.Raw("SELECT DISTINCT unnest(categories) AS category FROM products WHERE categories IS NOT NULL").Rows()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch categories: %v", err)
+	}
+	defer rows.Close()
+
+	// Collect all unique categories
+	var uniqueCategories []string
+	for rows.Next() {
+		var category string
+		if err := rows.Scan(&category); err != nil {
+			return nil, fmt.Errorf("failed to scan category: %v", err)
+		}
+		uniqueCategories = append(uniqueCategories, category)
+	}
+
+	// Convert []string to []*string
+	result := make([]*string, len(uniqueCategories))
+	for i, category := range uniqueCategories {
+		category := category // Create a new variable to avoid pointer issues in the loop
+		result[i] = &category
+	}
+
+	return result, nil
 }
 
 // SearchProducts is the resolver for the searchProducts field.

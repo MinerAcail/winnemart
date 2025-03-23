@@ -148,7 +148,17 @@ func (r *mutationResolver) DeleteVendor(ctx context.Context, id string) (*bool, 
 }
 
 // CreateUnavailablePeriod is the resolver for the createUnavailablePeriod field.
-func (r *mutationResolver) CreateUnavailablePeriod(ctx context.Context, input model.CreateUnavailablePeriodInput, vendorID string) (*model.UnavailablePeriod, error) {
+func (r *mutationResolver) CreateUnavailablePeriod(ctx context.Context, input model.CreateUnavailablePeriodInput) (*model.UnavailablePeriod, error) {
+	VendorIDStr, err := r.Query().GetID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get vendor ID: %v", err)
+	}
+
+	vendorID, err := uuid.Parse(*VendorIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
 	// Find the existing vendor
 	var vendor model.Vendor
 	if err := r.DB.Where("id = ?", vendorID).First(&vendor).Error; err != nil {
@@ -194,7 +204,7 @@ func (r *mutationResolver) CreateUnavailablePeriod(ctx context.Context, input mo
 
 	// Create a new unavailable period
 	unavailablePeriod := &model.UnavailablePeriod{
-		VendorID:  vendorID,
+		VendorID:  vendorID.String(),
 		Day:       input.Day,
 		StartTime: input.StartTime,
 		EndTime:   input.EndTime,
@@ -209,7 +219,7 @@ func (r *mutationResolver) CreateUnavailablePeriod(ctx context.Context, input mo
 }
 
 // DeleteUnavailablePeriod is the resolver for the deleteUnavailablePeriod field.
-func (r *mutationResolver) DeleteUnavailablePeriod(ctx context.Context, id string, vendorID string) (*bool, error) {
+func (r *mutationResolver) DeleteUnavailablePeriod(ctx context.Context, id string) (*bool, error) {
 	// Find the existing unavailable period
 	var unavailablePeriod model.UnavailablePeriod
 	if err := r.DB.Where("id = ?", id).First(&unavailablePeriod).Error; err != nil {
@@ -306,7 +316,6 @@ func (r *queryResolver) GetVendor(ctx context.Context) (*model.Vendor, error) {
 
 // GetSharedVendor is the resolver for the getSharedVendor field.
 func (r *queryResolver) GetSharedVendor(ctx context.Context, vendorID string) (*model.Vendor, error) {
-
 	// Parse the UUID from string
 	vendID, err := uuid.Parse(vendorID)
 	if err != nil {
@@ -321,7 +330,6 @@ func (r *queryResolver) GetSharedVendor(ctx context.Context, vendorID string) (*
 	}
 
 	return &vendor, nil
-
 }
 
 // GetVendorProducts is the resolver for the getVendorProducts field.
@@ -355,7 +363,30 @@ func (r *queryResolver) ListVendors(ctx context.Context) ([]*model.Vendor, error
 
 // GetUnavailablePeriods is the resolver for the getUnavailablePeriods field.
 func (r *queryResolver) GetUnavailablePeriods(ctx context.Context) ([]*model.UnavailablePeriod, error) {
-	panic(fmt.Errorf("not implemented: GetUnavailablePeriods - getUnavailablePeriods"))
+	VendorIDStr, err := r.Query().GetID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get vendor ID: %v", err)
+	}
+
+	vendorID, err := uuid.Parse(*VendorIDStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	var periods []*model.UnavailablePeriod
+	if err := r.DB.Order("created_at DESC").Where("vendor_id = ?", vendorID).Find(&periods).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch unavailable periods: %v", err)
+	}
+	return periods, nil
+}
+
+// GetAllUnavailablePeriods is the resolver for the getAllUnavailablePeriods field.
+func (r *queryResolver) GetAllUnavailablePeriods(ctx context.Context) ([]*model.UnavailablePeriod, error) {
+	var vendorsTime []*model.UnavailablePeriod
+	if err := r.DB.Order("created_at DESC").Find(&vendorsTime).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch vendors Time: %v", err)
+	}
+	return vendorsTime, nil
 }
 
 // GetVendorOrders is the resolver for the getVendorOrders field.

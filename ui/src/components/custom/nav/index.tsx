@@ -5,7 +5,7 @@ import { useDeviceType } from "@/hooks/useDeviceType";
 import { useAuth } from "@/middleware/context/authContext";
 import useProtect, { ProtectType } from "@/middleware/useProtect";
 import { gql, useMutation } from "@apollo/client";
-import { CircleUser, Link2, LogIn, Package } from "lucide-react";
+import { CircleUser, Link2, LogIn, Package, Timer } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import logo from "../../../assets/ww.png";
@@ -78,6 +78,18 @@ function WorksNav({ to = "/", navName }: WorksNavProps) {
                 </Button>
               </Link>
             )}
+               {vendor && (
+              <Link to="/time">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Timer className="w-4 h-4" />
+                  Check Out
+                </Button>
+              </Link>
+            )}
 
             {isAuthenticated && vendor && navName && (
               <Link to={to}>
@@ -90,6 +102,7 @@ function WorksNav({ to = "/", navName }: WorksNavProps) {
                   {navName}
                 </Button>
               </Link>
+
             )}
             <Link to={vendor ? "/profile" : "/workerprofile"}>
               <Button

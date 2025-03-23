@@ -11,8 +11,11 @@ export interface Item {
   id: string;
   name: string;
   price: number;
+  commission?: number;
   categories: string[];
   imageUrls: string[];
+  VendorId?: string;
+
 }
 
 export interface HostelDetails {

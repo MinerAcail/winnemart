@@ -1,9 +1,9 @@
 package model
 
 import (
-	"time"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"time"
 )
 
 type Vendor struct {
@@ -12,7 +12,7 @@ type Vendor struct {
 	Type      string     `json:"type"`
 	Number    string     `json:"number"`
 	Password  *string    `json:"password,omitempty"`
-	Dpfile  *string    `json:"dpfile,omitempty"`
+	Dpfile    *string    `json:"dpfile,omitempty"`
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
@@ -25,14 +25,15 @@ type VendorOrder struct {
 	UpdatedAt             time.Time      `json:"updatedAt"`
 }
 
-
 type UnavailablePeriod struct {
-	ID                    uuid.UUID      `gorm:"type:uuid;default:uuid_generate_v4();primary_key" json:"id"`
-	VendorID  string `json:"VendorId"`
-	Day       string `json:"day"`
-	StartTime string `json:"startTime"`
-	EndTime   string `json:"endTime"`
+	ID        uuid.UUID  `gorm:"type:uuid;default:uuid_generate_v4();primary_key" json:"id"`
+	VendorID  string     `json:"VendorId"`
+	Day       string     `json:"day"`
+	StartTime string     `json:"startTime"`
+	EndTime   string     `json:"endTime"`
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
 
-func (Vendor) IsReturns() {}
+func (Vendor) IsReturns()     {}
 func (JobRequest) IsReturns() {}

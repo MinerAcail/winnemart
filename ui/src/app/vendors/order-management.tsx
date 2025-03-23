@@ -34,6 +34,8 @@ interface Product {
   name: string;
   price: number;
   imageUrls: string[];
+  commission?: number;
+
 }
 
 interface Item {

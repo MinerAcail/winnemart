@@ -14,6 +14,7 @@ interface Item {
   description?: string;
   imageUrl: string;
   price: string;
+  commission?: string;
 }
 
 interface Category {

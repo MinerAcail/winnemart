@@ -57,7 +57,7 @@ const ItemCarousel: React.FC<ItemCarouselProps> = ({
             </Carousel>
             <DialogDescription>
               <p className="text-primary font-bold text-xl my-2">
-                GH¢{selectedProduct.price}
+                GH¢{selectedProduct.commission}
               </p>
               <div className="flex flex-wrap gap-2 mb-4">
                 {selectedProduct.categories.map((category, index) => (

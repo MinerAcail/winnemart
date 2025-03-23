@@ -364,7 +364,7 @@ const CartComponent = ({
               <p className="font-bold">{item.name}</p>
               <p className="text-muted-foreground">
                 {ghSim}
-                {item.price}
+                {item.commission}
               </p>
             </div>
             <Button
@@ -382,7 +382,7 @@ const CartComponent = ({
             <p className="font-bold text-right">
               Total: {ghSim}
               {cart
-                .reduce((total, item) => total + Number(item.price), 0)
+                .reduce((total, item) => total + Number(item.commission), 0)
                 .toFixed(2)}
             </p>
             <TermsConditions

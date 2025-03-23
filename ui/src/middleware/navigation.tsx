@@ -12,21 +12,23 @@ import { AppSidebar } from "./bar";
 import { SubmitItemForm } from "@/app/userReview/submit-item-form";
 import ShopItemsManager from "@/components/custom/sortCategroy/cat/cat.tsx";
 import { CartProvider } from "@/hooks/CartContext";
-import { VendorDashboard, VendorItems, VendorProfile } from "@/app/vendors";
+import { VendorCheckOut, VendorDashboard, VendorItems, VendorProfile } from "@/app/vendors";
 import ProtectedIsAuthRoute from "./protectedIsAuth";
 import { DriverOrderItems, WorkersProfile } from "@/app/driver";
 import { OrderTrackingProvider } from "@/hooks/orderTrackingContext";
 import { ProtectType } from "./useProtect";
 import HeartbeatUpdater from "@/components/custom/nav/cheackActive";
-import SocialMediaHelmet from "@/components/custom/vendors/share";
-import { HelmetProvider } from "react-helmet-async";
+// import VendorAvailabilityPage from "@/app/vendors/available";
+// import SocialMediaHelmet from "@/components/custom/vendors/share";
+// import { HelmetProvider } from "react-helmet-async";
 
 const router = createBrowserRouter([
   { path: "/", element: <HostelStoreApp /> },
+  { path: "/:vendorId", element: <HostelStoreApp /> }, // Handle route with optional vendorId
   { path: "/delivery", element: <DriverOrderItems /> },
   { path: "/request", element: <SubmitItemForm /> },
   { path: "/shop", element: <ShopItemsManager /> },
-  { path: "/vendor/:Vendorid", element: <SocialMediaHelmet /> },
+  // { path: "/vendor/:Vendorid", element: <SocialMediaHelmet /> },
   { path: "/job", element: <JobPosting /> },
   {
     path: "/vendor",
@@ -37,6 +39,7 @@ const router = createBrowserRouter([
       />
     ),
   },
+  { path: "/time", element: <VendorCheckOut /> },
 
   {
     path: "/vendoritems",
@@ -81,10 +84,8 @@ export function Navigation() {
           <HeartbeatUpdater />
           <CartProvider>
             <AuthProvider>
-              <HelmetProvider>
-                <RouterProvider router={router} />
-                <Toaster />
-              </HelmetProvider>
+              <RouterProvider router={router} />
+              <Toaster />
             </AuthProvider>
           </CartProvider>
         </OrderTrackingProvider>

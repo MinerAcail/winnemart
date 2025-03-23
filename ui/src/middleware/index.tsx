@@ -1,10 +1,8 @@
 import { ApolloClient, InMemoryCache } from "@apollo/client";
 import createUploadLink from "apollo-upload-client/createUploadLink.mjs";
-const API_URL =
-  window.location.hostname === "localhost"
-    ? "https://api.winnemart.com/query"
-    : "https://api.winnemart.com/query"; // Changed HTTPS to HTTP
-
+// import { Production } from "../../v";
+const Production = true;
+const API_URL = Production ? "https://api.winnemart.com/query" : "http://localhost:4001/query";
 const link = createUploadLink({
   uri: API_URL,
   // uri: "http://localhost:4001/query",

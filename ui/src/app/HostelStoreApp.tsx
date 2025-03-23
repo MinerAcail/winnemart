@@ -10,25 +10,29 @@ import { useCart, Item } from "@/hooks/CartContext.tsx";
 import NavBar from "./navBar.tsx";
 import { ClearLocalStore } from "@/middleware/bar.tsx";
 import { NoItemsFound } from "@/components/custom/Empty.tsx";
-import MultipleCountdown from "@/components/custom/timer.tsx";
 // import MultipleCountdown from "@/components/custom/timer.tsx";
-import {WelcomePopupCard} from "@/components/ui/welcome-popup-card.tsx";
-import Category from "@/components/ui/youtube-category-bar.tsx";
+// import MultipleCountdown from "@/components/custom/timer.tsx";
+import { WelcomePopupCard } from "@/components/ui/welcome-popup-card.tsx";
+import CategoryBar from "@/components/ui/category-bar.tsx";
+import { useParams } from "react-router";
 
 const GET_PRODUCTS = gql`
-  query getAllProducts($query: String) {
-    getAllProducts(query: $query) {
+  query getAllProducts($query: String, $vendorId: String) {
+    getAllProducts(query: $query, vendorId: $vendorId) {
       id
       name
       price
       state
       categories
       imageUrls
+      VendorId
+      commission
     }
   }
 `;
 
 const HostelStoreContent: React.FC = () => {
+  const { vendorId } = useParams();
   const { isDesktop } = useDeviceType();
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [searchTerm, setSearchTerm] = useState<string>(""); // Controlled search state
@@ -42,10 +46,20 @@ const HostelStoreContent: React.FC = () => {
     placeOrder,
   } = useCart();
 
-  // Fetch products with search term
-  const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, {
-    variables: { query: searchTerm },
-  });
+
+
+// Prepare variables object
+const queryVariables: { query: string; vendorId?: string } = { query: searchTerm };
+
+// Check if vendorId exists and is not empty or whitespace
+if (vendorId !== undefined && vendorId !== null && vendorId.trim() !== '') {
+  queryVariables.vendorId = vendorId;
+}
+
+// Use the conditionally built variables object
+const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, {
+  variables: queryVariables
+});;
 
   // Load category from URL on component mount
   useEffect(() => {
@@ -76,7 +90,7 @@ const HostelStoreContent: React.FC = () => {
     refetch({ query: value }); // Refetch data with new search term
   }
 
-  if (loading) return <Loading />;
+  // if (loading) return <Loading />;
   if (error) return <p>Error: {error.message}</p>;
 
   // Extract items from the fetched data
@@ -90,27 +104,30 @@ const HostelStoreContent: React.FC = () => {
 
   return (
     <div className="maincontainer mx-auto px-4">
-      <WelcomePopupCard/>
+      <WelcomePopupCard />
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Main content */}
         <div className="w-full">
-          <NavBar onSearch={handleSearch} />
+          <div className="pb-11">
+            <NavBar onSearch={handleSearch} />
+          </div>
 
-
-          {/* removetodo */}
-          <h1 className="text-2xl font-bold mb-4">Order Receipt</h1>
-  {/* <MultipleCountdown/> */}
-          <Category />
+          <CategoryBar onCategoryChange={handleSearch} />
           {filteredItems.length === 0 ? (
             <NoItemsFound />
           ) : (
-            <ItemGrid
-              filteredItems={filteredItems}
-              addToCart={addToCart}
-              onItemSelect={setSelectedProduct}
-              className="grid grid-cols-2 pt-20 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-4"
-              
-            />
+            <>
+              {loading ? (
+                <Loading />
+              ) : (
+                <ItemGrid
+                  filteredItems={filteredItems}
+                  addToCart={addToCart}
+                  onItemSelect={setSelectedProduct}
+                  className="grid grid-cols-2 pt-20 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-4"
+                />
+              )}
+            </>
           )}
           <ItemCarousel
             selectedProduct={selectedProduct}
@@ -122,7 +139,7 @@ const HostelStoreContent: React.FC = () => {
         {/* Cart sidebar */}
         {filteredItems.length !== 0 && isDesktop && (
           <div className="w-full lg:w-1/4">
-              <MultipleCountdown />
+            {/* <MultipleCountdown /> */}
             <div className="sticky top-4">
               <CartSidebar
                 cart={cart}
@@ -153,7 +170,7 @@ const HostelStoreApp: React.FC = () => {
       variables: { orderId: sanitizedOrderId },
     });
   }, [sanitizedOrderId, clearLocalStore]);
-// console.log("data",data);
+  // console.log("data",data);
 
   useEffect(() => {
     if (data?.clearLocalStore) {

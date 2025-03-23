@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 
-const MAIN_WEBSITE_URL = "https://winnemart.com/items/";
+const MAIN_WEBSITE_URL = "https://winnemart.com/";
 const MINIO_BASE_URL = "https://winnemart.com";
 
 // Fetch vendor data from API

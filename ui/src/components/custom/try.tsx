@@ -12,7 +12,9 @@ import {  useRef } from "react";
 interface Product {
   id: string;
   name: string;
-  price: string; // Price comes as a string in the response
+  price: string; // Price comes as a string in the 
+  commission?:string;
+  
 }
 
 export interface ProductInfo {
@@ -36,6 +38,7 @@ export interface OrderItem {
   name: string;
   price: number;
   quantity: number;
+  commission?:number;
 }
 
 export const GET_ORDER_TRACKING = gql`
@@ -53,6 +56,7 @@ export const GET_ORDER_TRACKING = gql`
           id
           name
           price
+          commission
         }
       }
     }
@@ -139,13 +143,15 @@ export default function CardReceipt({
             const items: OrderItem[] = order.productInfor.flatMap((info) =>
               info.product.map((product) => ({
                 name: product.name,
-                price: parseFloat(product.price), // Convert price from string to number
+                price: parseFloat(product.commission ?? "0"), // Convert price from string to number
                 quantity: info.quantity,
               }))
             );
 
+
+
             const subtotal = items.reduce(
-              (sum, item) => sum + item.price * item.quantity,
+              (sum, item) => sum + (item.price ?? 0) * item.quantity,
               0
             );
             const currentHour = new Date().getHours();
@@ -225,7 +231,7 @@ export default function CardReceipt({
                         </div>
                         <span className="text-zinc-900 dark:text-zinc-100">
                           {ghSim}
-                          {(item.price * item.quantity).toFixed(2)}
+                          {((item.price ?? 0) * item.quantity).toFixed(2)}
                         </span>
                       </div>
                     ))}

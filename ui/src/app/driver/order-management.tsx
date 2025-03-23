@@ -89,6 +89,7 @@ const GET_VENDOR_ORDERS = gql`
           name
           price
           imageUrls
+          
         }
       }
       createdAt
@@ -150,7 +151,7 @@ export default function OrderManagement() {
     data?.getAssignedOrders?.map((order: Order) => {
       // Calculate order total from items
       const total = order.items.reduce((sum, item) => {
-        return sum + item.quantity * item.product.price;
+        return sum + item.quantity * (item?.product?.price ?? 0);
       }, 0);
 
       // Format date (from ISO string to readable format)

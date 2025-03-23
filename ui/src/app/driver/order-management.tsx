@@ -33,6 +33,7 @@ interface Product {
   id: string;
   name: string;
   price: number;
+  commission: number;
   imageUrls: string[];
 }
 
@@ -89,7 +90,7 @@ const GET_VENDOR_ORDERS = gql`
           name
           price
           imageUrls
-          
+          commission
         }
       }
       createdAt
@@ -151,7 +152,7 @@ export default function OrderManagement() {
     data?.getAssignedOrders?.map((order: Order) => {
       // Calculate order total from items
       const total = order.items.reduce((sum, item) => {
-        return sum + item.quantity * (item?.product?.price ?? 0);
+        return sum + item.quantity * (item?.product?.commission ?? 0);
       }, 0);
 
       // Format date (from ISO string to readable format)
@@ -172,7 +173,7 @@ export default function OrderManagement() {
           id: item.id,
           name: item.product.name,
           quantity: item.quantity,
-          price: item.product.price,
+          price: item.product.commission,
           imageUrl: item.product.imageUrls?.[0] || null,
         })),
       };
@@ -216,18 +217,7 @@ export default function OrderManagement() {
                       </Badge>
                     </div>
 
-                    <div className="mt-2 flex items-center justify-between">
-                      <div>
-                        <p className="text-sm">
-                          Estimated Delivery: {order.estimatedDeliveryDate}
-                        </p>
-                      </div>
-                      <p className="font-bold">
-                        {ghSim}
-                        {5 + order.total}
-                      </p>
-                    </div>
-
+                    <OrderCostSummary order={order} />
                     <div className="mt-3 flex items-center justify-between">
                       <CollapsibleTrigger asChild>
                         <Button size="sm" variant="outline" className="w-1/2">
@@ -419,3 +409,64 @@ export default function OrderManagement() {
     </Card>
   );
 }
+
+
+
+
+
+import {  Truck, Receipt } from 'lucide-react';
+
+const OrderCostSummary = ({ order }: { order: ProcessedOrder }) => {
+  // Calculate delivery fee based on time of day
+  const isDaytime = new Date().getHours() >= 6 && new Date().getHours() < 17;
+  const deliveryFee = isDaytime ? 7 : 10;
+  const totalCost = order.total + deliveryFee;
+  
+  return (
+    <Card className="w-full mt-4 bg-white shadow-md">
+      <CardContent className="pt-6">
+        <div className="space-y-4">
+          {/* Items Total */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">Items Total</span>
+            </div>
+            <span className="font-medium text-right">{ghSim} {order.total.toFixed(2)}</span>
+          </div>
+          
+          {/* Delivery Cost */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Truck className="w-5 h-5 text-gray-600" />
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-700">Delivery Fee</span>
+                <span className="text-xs text-gray-500">
+                  {isDaytime ? "Day Rate (6AM-5PM)" : "Night Rate (5PM-10PM)"}
+                </span>
+              </div>
+            </div>
+            <span className="font-medium text-right">{ghSim} {deliveryFee.toFixed(2)}</span>
+          </div>
+          
+          {/* Estimated Delivery */}
+          <div className="flex items-center justify-between bg-gray-50 p-2 rounded-md">
+            <span className="text-xs text-gray-600">Estimated Delivery:</span>
+            <span className="text-xs font-medium">{order.estimatedDeliveryDate}</span>
+          </div>
+          
+          <Separator className="my-2" />
+          
+          {/* Total Cost */}
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2">
+              <Receipt className="w-5 h-5 text-emerald-600" />
+              <span className="font-bold text-gray-900">TOTAL COST</span>
+            </div>
+            <span className="text-lg font-bold text-emerald-700">{ghSim} {totalCost.toFixed(2)}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};

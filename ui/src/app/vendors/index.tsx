@@ -7,7 +7,7 @@ import VendorAvailabilityPage from "./available";
 export function VendorDashboard() {
   return (
     <div className="flex flex-col w-full ">
-      <WorksNav navName="orders" to="/vendoritems"/>
+      <WorksNav />
       <VendorItemManagement />
     </div>
   );
@@ -16,7 +16,7 @@ export function VendorDashboard() {
 export function VendorItems() {
   return (
     <div className="flex flex-col w-full">
-      <WorksNav navName="items" to="/vendor" />
+      <WorksNav />
 
       <OrderManagement />
     </div>
@@ -26,7 +26,7 @@ export function VendorItems() {
 export function VendorProfile() {
   return (
     <div className="flex flex-col w-full">
-      <WorksNav  />
+      <WorksNav />
 
       <ProfileVendor />
     </div>
@@ -35,9 +35,9 @@ export function VendorProfile() {
 export function VendorCheckOut() {
   return (
     <div className="flex flex-col  w-full">
-    <div className="pb-10">
-    <WorksNav  />
-    </div>
+      <div className="pb-10">
+        <WorksNav />
+      </div>
 
       <VendorAvailabilityPage />
     </div>

@@ -46,20 +46,20 @@ const HostelStoreContent: React.FC = () => {
     placeOrder,
   } = useCart();
 
+  // Prepare variables object
+  const queryVariables: { query: string; vendorId?: string } = {
+    query: searchTerm,
+  };
 
+  // Check if vendorId exists and is not empty or whitespace
+  if (vendorId !== undefined && vendorId !== null && vendorId.trim() !== "") {
+    queryVariables.vendorId = vendorId;
+  }
 
-// Prepare variables object
-const queryVariables: { query: string; vendorId?: string } = { query: searchTerm };
-
-// Check if vendorId exists and is not empty or whitespace
-if (vendorId !== undefined && vendorId !== null && vendorId.trim() !== '') {
-  queryVariables.vendorId = vendorId;
-}
-
-// Use the conditionally built variables object
-const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, {
-  variables: queryVariables
-});;
+  // Use the conditionally built variables object
+  const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, {
+    variables: queryVariables,
+  });
 
   // Load category from URL on component mount
   useEffect(() => {
@@ -113,12 +113,12 @@ const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, {
           </div>
 
           <CategoryBar onCategoryChange={handleSearch} />
-          {filteredItems.length === 0 ? (
-            <NoItemsFound />
+          {loading ? (
+            <Loading />
           ) : (
             <>
-              {loading ? (
-                <Loading />
+              {filteredItems.length === 0 ? (
+                <NoItemsFound />
               ) : (
                 <ItemGrid
                   filteredItems={filteredItems}

@@ -144,7 +144,7 @@ const JobPosting: React.FC = () => {
       <FloatingBubbles />
 
       <div className="relative z-10 ">
-       <WorksNav navName="Vendor" to="/vendor"/>
+       <WorksNav />
 
         <main className="container mx-auto px-4 mt-10 py-12 md:py-20">
           <motion.div

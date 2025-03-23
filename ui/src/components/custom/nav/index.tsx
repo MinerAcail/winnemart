@@ -1,14 +1,21 @@
-import Login from "@/app/Login";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { gql, useMutation } from "@apollo/client";
+import { CircleUser, Link2, LogIn, Package, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
-// import { useSidebar } from "@/components/ui/sidebar";
+import Login from "@/app/Login";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { useAuth } from "@/middleware/context/authContext";
 import useProtect, { ProtectType } from "@/middleware/useProtect";
-import { gql, useMutation } from "@apollo/client";
-import { CircleUser, Link2, LogIn, Package, Timer } from "lucide-react";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router";
 import logo from "../../../assets/ww.png";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 
 export const LOGOUT = gql`
   mutation logOut {
@@ -16,30 +23,21 @@ export const LOGOUT = gql`
   }
 `;
 
-interface WorksNavProps {
-  to?: string;
-  navName?: string;
-}
 
-function WorksNav({ to = "/", navName }: WorksNavProps) {
-  const { logout, isAuthenticated } = useAuth(); // Access the logout function from the auth context
+
+function WorksNav() {
+  const { logout, isAuthenticated } = useAuth();
   const { hasAccess: driver } = useProtect([ProtectType.Driver]);
   const { hasAccess: vendor } = useProtect([ProtectType.vendor]);
-  const [logoutMutation] = useMutation(LOGOUT); // Apollo useMutation hook
-  const navigate = useNavigate(); // Initialize the navigate hook
-
+  const [logoutMutation] = useMutation(LOGOUT);
+  const navigate = useNavigate();
   const { isDesktop } = useDeviceType();
-  // const { toggleSidebar } = useSidebar();
   const [isSearchExpanded] = useState<boolean>(false);
+
   const handleLogout = async () => {
     try {
-      // Call the GraphQL logout mutation
       await logoutMutation();
-
-      // Perform the local logout (clear localStorage and update state)
       logout();
-
-      // Optionally, you can display a message or redirect elsewhere
       setTimeout(() => {
         navigate("/login", { replace: true });
       }, 1000);
@@ -47,84 +45,127 @@ function WorksNav({ to = "/", navName }: WorksNavProps) {
       console.error("Error logging out:", err);
     }
   };
+
   return (
-    <nav className="fixed top-0  left-0 w-full z-50 bg-[#76a683] shadow-md flex justify-between items-center">
+    <nav className="fixed top-0 left-0 w-full z-50 bg-[#76a683] shadow-md">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link to={"/"} className="flex items-center">
           <img src={logo} alt="WinneMart Logo" className="w-12 pr-[5px]" />
-
-          {(isDesktop || !isSearchExpanded) && (
-            <>
-              {/* <span className="text-lg font-extrabold text-white tracking-wider font-mono">
-              winne
-            </span>
-            <span className="text-lg font-extrabold text-black tracking-wider pl-[2px] font-mono">
-              mart
-            </span> */}
-            </>
-          )}
+          {(isDesktop || !isSearchExpanded) && <></>}
         </Link>
+
         {isAuthenticated ? (
-          <div className="flex items-center gap-2">
-            {driver && (
-              <Link to="/delivery">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Package className="w-4 h-4" />
-                  Delivery
-                </Button>
-              </Link>
-            )}
-               {vendor && (
-              <Link to="/time">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Timer className="w-4 h-4" />
-                  Check Out
-                </Button>
-              </Link>
-            )}
+          <NavigationMenu>
+            <NavigationMenuList>
+              {vendor && (
+                <>
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger>Products</NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <ul className="grid w-48 gap-3 p-4">
+                        <li>
+                          <NavigationMenuLink asChild>
+                            <Link
+                              to="/vendoritems"
+                              className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-md"
+                            >
+                              <Link2 className="w-4 h-4" />
+                              <span>Items</span>
+                            </Link>
+                          </NavigationMenuLink>
+                        </li>
+                        <li>
+                          <NavigationMenuLink asChild>
+                            <Link
+                              to="/vendor"
+                              className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-md"
+                            >
+                              <Link2 className="w-4 h-4" />
+                              <span>Orders</span>
+                            </Link>
+                          </NavigationMenuLink>
+                        </li>
+                      </ul>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger>Options</NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <ul className="grid w-48 gap-3 p-4">
+                        <li>
+                          <NavigationMenuLink asChild>
+                            <Link
+                              to="/time"
+                              className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-md"
+                            >
+                              <Timer className="w-4 h-4" />
+                              <span>Check Out</span>
+                            </Link>
+                          </NavigationMenuLink>
+                        </li>
 
-            {isAuthenticated && vendor && navName && (
-              <Link to={to}>
+                        <li>
+                          <NavigationMenuLink asChild>
+                            <Link
+                              to="/profile"
+                              className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-md"
+                            >
+                              <CircleUser className="h-4 w-4" />
+                              <span>Profile</span>
+                            </Link>
+                          </NavigationMenuLink>
+                        </li>
+                      </ul>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                </>
+              )}
+
+              {driver && (
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger>Driver Options</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-48 gap-3 p-4">
+                      <li>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            to="/delivery"
+                            className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-md"
+                          >
+                            <Package className="w-4 h-4" />
+                            <span>Delivery</span>
+                          </Link>
+                        </NavigationMenuLink>
+                      </li>
+                      <li>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            to="/workerprofile"
+                            className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-md"
+                          >
+                            <CircleUser className="h-4 w-4" />
+                            <span>Profile</span>
+                          </Link>
+                        </NavigationMenuLink>
+                      </li>
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              )}
+
+              <NavigationMenuItem>
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={handleLogout}
                   className="flex items-center gap-2"
                 >
-                  <Link2 className="w-4 h-4" />
-                  {navName}
+                  <LogIn className="w-4 h-4" />
+                  Sign Out
                 </Button>
-              </Link>
-
-            )}
-            <Link to={vendor ? "/profile" : "/workerprofile"}>
-              <Button
-                variant="outline"
-                size="sm"
-                // onClick={handleLogout}
-                className="flex items-center gap-2"
-              >
-                <CircleUser className="h-4 w-4" />
-                Profile
-              </Button>
-            </Link>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLogout}
-              className="flex items-center gap-2"
-            >
-              <LogIn className="w-4 h-4" />
-              Sign Out
-            </Button>
-          </div>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
         ) : (
           <Login>
             <Button

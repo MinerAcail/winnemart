@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   ShoppingBasket,
-  MenuSquare,
   ShoppingBag,
   LucideHome,
 } from "lucide-react";
@@ -14,6 +13,8 @@ import { Link, useLocation } from "react-router";
 import { useSidebar } from "../ui/sidebar";
 import logo from "../../assets/ww.png";
 import Search from "../../../icons/input-with-button.tsx";
+
+import ResponsiveNavigation from "./bignav.tsx";
 interface SelectCategoryFilterProps {
   categories: string[];
   selectedCategory: string;
@@ -49,12 +50,16 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
 
         {(isDesktop || !isSearchExpanded) && (
           <>
-            <span className="text-lg font-extrabold text-white tracking-wider font-mono">
-              winne
-            </span>
-            <span className="text-lg font-extrabold text-black tracking-wider pl-[2px] font-mono">
-              mart
-            </span>
+            {(isDesktop || !isSearchExpanded) && window.innerWidth !== 320 && window.innerHeight !== 480 && (
+              <>
+                <span className="text-lg font-extrabold text-white tracking-wider font-mono">
+                  winne
+                </span>
+                <span className="text-lg font-extrabold text-black tracking-wider pl-[2px] font-mono">
+                  mart
+                </span>
+              </>
+            )}
           </>
         )}
       </Link>
@@ -95,10 +100,14 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
                 <ShoppingBag className="w-6 h-6 text-slate-700" />
               )}
             </Link>
-            <MenuSquare
+            <Button
               onClick={toggleSidebar}
-              className="w-6 h-6 text-slate-700"
-            />
+              variant="ghost"
+              size="sm"
+              className="flex items-center  p transition-colors bg-slate-100 rounded-md"
+            >
+              <span className="font-medium text-slate-700">Menu</span>
+            </Button>
           </div>
         )}
 
@@ -110,30 +119,7 @@ const MenuBar: React.FC<SelectCategoryFilterProps> = ({
 
         {isDesktop && (
           <div className="flex items-center space-x-4">
-            {isShopPage ? (
-              <Link to={"/"}>
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-1 p-3"
-                >
-                  Home
-                </Button>
-              </Link>
-            ) : (
-              <Link to={"/shop"}>
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-1 p-3"
-                >
-                  Shop
-                </Button>
-              </Link>
-            )}
-            <Link to={"/request"}>
-              <Button variant="outline" className="flex items-center gap-1 p-3">
-                Request Item
-              </Button>
-            </Link>
+            <ResponsiveNavigation />
           </div>
         )}
       </div>

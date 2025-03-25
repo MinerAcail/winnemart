@@ -75,7 +75,8 @@ const ItemCard = memo(({
     >
       <div className=" overflow-hidden rounded-lg mb-4">
         <img
-          src={item.imageUrls[0] || '/placeholder-image.jpg'}
+         src={Array.isArray(item?.imageUrls) && item.imageUrls.length > 0 ? item.imageUrls[0] : '/placeholder-image.jpg'}
+
           alt={item.name}
           className={`w-full h-40 object-cover transition-transform hover:scale-105 duration-300 ${!isAvailable ? 'opacity-60' : ''}`}
           loading="lazy"

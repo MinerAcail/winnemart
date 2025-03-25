@@ -2,7 +2,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Package, Bike, LucideIcon } from "lucide-react";
+import { Package, Bike, LucideIcon, Megaphone } from "lucide-react";
 import ApplyNowSection from "./applyNow";
 import WorksNav from "@/components/custom/nav";
 // const ghSim = "GH¢";
@@ -137,14 +137,12 @@ function JobPostingCard({
 }
 
 const JobPosting: React.FC = () => {
-  
- 
   return (
     <div className="  min-h-screen w-full bgcontainer">
       <FloatingBubbles />
 
       <div className="relative z-10 ">
-       <WorksNav />
+        <WorksNav />
 
         <main className="container mx-auto px-4 mt-10 py-12 md:py-20">
           <motion.div
@@ -157,8 +155,8 @@ const JobPosting: React.FC = () => {
               Join Our Elite Delivery Team
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300">
-              Be part of a dynamic team that keeps the winneba town moving. We're
-              looking for passionate individuals who love being on the go!
+              Be part of a dynamic team that keeps the winneba town moving.
+              We're looking for passionate individuals who love being on the go!
             </p>
           </motion.div>
 
@@ -168,6 +166,19 @@ const JobPosting: React.FC = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="max-w-4xl mx-auto space-y-8"
           >
+            <JobPostingCard
+              title="Advertiser"
+              description="Promote our platform and earn commissions when users uses your promo code. Upload a short video to showcase our services!"
+              requirements={[
+                "Marketing or social media experience preferred",
+                "Ability to engage an audience effectively",
+                "Unique promo code for tracking referrals",
+                "Optional: Video submission (1 min max)",
+              ]}
+              icon={Megaphone}
+              location="Flexible • Remote Possible"
+            />
+
             <JobPostingCard
               title="Dispatch Coordinator"
               description="Lead our logistics operations and be the crucial link between vendors and drivers. Your organizational skills will keep our delivery network running smoothly."

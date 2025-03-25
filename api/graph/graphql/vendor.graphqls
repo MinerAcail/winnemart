@@ -58,6 +58,7 @@ extend type Mutation {
   getGrowthData(id: String!): GrowthData
 
   updateProductByVendor(productId: String!, input: ProductInputUpdate!): Product
+  craeteProductByVendor( input: ProductInputUpdate!): Product
 }
 
 input CreateVendorInput {

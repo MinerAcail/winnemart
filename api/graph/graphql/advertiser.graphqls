@@ -1,0 +1,26 @@
+type PromoCode {
+  id: String!
+  advertiserID: String!
+  promoCode: String!
+  discountApplied: Float!
+  createdAt: String!
+}
+
+type GeneratedPromoCode {
+  id: String!
+  promoCodeID: String!
+  userNumber: String!
+  totalAmount: Float!
+  orderID: String!
+  vendorId:String!
+  createdAt: String!
+}
+extend type Query {
+  getPromoCodes: [PromoCode!]!
+  getOrdersWithPromo: [Order!]!
+}
+extend type Mutation {
+  generatePromoCode(advertiserID: String!): PromoCode!
+  applyPromoCode(orderID: String!, promoCode: String!): Order!
+}
+

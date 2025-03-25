@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { gql, useMutation } from "@apollo/client";
-import { CircleUser, Link2, LogIn, Package, Timer } from "lucide-react";
+import { CircleUser,  ListChecks, LogIn, Logs, Package, PackagePlus, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Login from "@/app/Login";
 import { useDeviceType } from "@/hooks/useDeviceType";
@@ -69,7 +69,7 @@ function WorksNav() {
                               to="/vendor"
                               className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-md"
                             >
-                              <Link2 className="w-4 h-4" />
+                              <ListChecks className="w-4 h-4" />
                               <span>Items</span>
                             </Link>
                           </NavigationMenuLink>
@@ -80,8 +80,20 @@ function WorksNav() {
                               to="/vendoritems"
                               className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-md"
                             >
-                              <Link2 className="w-4 h-4" />
+                              
+                              <Logs className="w-4 h-4" />
                               <span>Orders</span>
+                            </Link>
+                          </NavigationMenuLink>
+                        </li>
+                        <li>
+                          <NavigationMenuLink asChild>
+                            <Link
+                              to="/vendor/new"
+                              className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-md"
+                            >
+                              <PackagePlus className="w-4 h-4" />
+                              <span>Add New</span>
                             </Link>
                           </NavigationMenuLink>
                         </li>

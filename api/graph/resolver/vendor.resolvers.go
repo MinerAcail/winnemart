@@ -291,6 +291,53 @@ func (r *mutationResolver) UpdateProductByVendor(ctx context.Context, productID 
 	return &product, nil
 }
 
+// CraeteProductByVendor is the resolver for the craeteProductByVendor field.
+func (r *mutationResolver) CraeteProductByVendor(ctx context.Context, input model.ProductInputUpdate) (*model.Product, error) {
+	// Get Vendor ID from context
+	vendorIDStr, err := r.Query().GetID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get vendor ID: %v", err)
+	}
+
+	// Validate required fields
+	if input.Name == nil || input.Price == nil {
+		return nil, errors.New("product name and price are required")
+	}
+
+	// Assign default state if nil
+	state := model.ProductStateInactive
+	if input.State != nil {
+		state = *input.State
+	}
+
+	// Create new product
+	product := model.Product{
+		ID:       uuid.New(),
+		Name:     input.Name,
+		Price:    input.Price,
+		State:    &state, // Assigning the default or provided state
+		VendorID: vendorIDStr,
+	}
+
+	// Assign categories
+	if input.Categories != nil && len(input.Categories) > 0 {
+		var categories pq.StringArray
+		for _, category := range input.Categories {
+			if category != nil {
+				categories = append(categories, *category)
+			}
+		}
+		product.Categories = categories
+	}
+
+	// Insert into database
+	if err := r.DB.Create(&product).Error; err != nil {
+		return nil, fmt.Errorf("failed to create product: %w", err)
+	}
+
+	return &product, nil
+}
+
 // GetVendor is the resolver for the getVendor field.
 func (r *queryResolver) GetVendor(ctx context.Context) (*model.Vendor, error) {
 	VendorIDStr, err := r.Query().GetID(ctx)

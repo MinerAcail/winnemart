@@ -20,7 +20,7 @@ func ExecuteSearchQuery(db *gorm.DB, query string) ([]*model.Product, error) {
 	err := db.Raw(`
         WITH ranked_products AS (
             SELECT 
-                *,
+                * ,
                 ts_rank_cd(search_vector, plainto_tsquery('english', ?)) AS ts_rank_val,
                 similarity(LOWER(name), LOWER(?)) AS name_sim,
                 word_similarity(name, ?) AS word_sim,
@@ -31,11 +31,12 @@ func ExecuteSearchQuery(db *gorm.DB, query string) ([]*model.Product, error) {
                 levenshtein(LOWER(name), LOWER(?)) AS typo_distance
             FROM products
             WHERE 
-                search_vector @@ plainto_tsquery('english', ?) OR 
+                state != 'INACTIVE' AND 
+                (search_vector @@ plainto_tsquery('english', ?) OR 
                 (similarity(LOWER(name), LOWER(?)) > CAST(? AS NUMERIC)) OR 
                 (name ILIKE '%' || ? || '%') OR 
                 (name ILIKE ? || '%') OR 
-                (levenshtein(LOWER(name), LOWER(?)) <= 2)
+                (levenshtein(LOWER(name), LOWER(?)) <= 2))
         )
         SELECT * FROM ranked_products
         ORDER BY
@@ -61,6 +62,7 @@ func ExecuteSearchQuery(db *gorm.DB, query string) ([]*model.Product, error) {
 
 	return products, nil
 }
+
 func ExecuteSearchQueryWithVendorPriority(db *gorm.DB, query string, vendorID string) ([]*model.Product, error) {
     var products []*model.Product
     similarityThreshold := 0.12
@@ -80,11 +82,12 @@ func ExecuteSearchQueryWithVendorPriority(db *gorm.DB, query string, vendorID st
                 levenshtein(LOWER(name), LOWER(?)) AS typo_distance
             FROM products
             WHERE 
-                search_vector @@ plainto_tsquery('english', ?) OR 
+                state != 'INACTIVE' AND 
+                (search_vector @@ plainto_tsquery('english', ?) OR 
                 (similarity(LOWER(name), LOWER(?)) > CAST(? AS NUMERIC)) OR 
                 (name ILIKE '%' || ? || '%') OR 
                 (name ILIKE ? || '%') OR 
-                (levenshtein(LOWER(name), LOWER(?)) <= 2)
+                (levenshtein(LOWER(name), LOWER(?)) <= 2))
         )
         SELECT * FROM ranked_products
         ORDER BY
@@ -111,6 +114,7 @@ func ExecuteSearchQueryWithVendorPriority(db *gorm.DB, query string, vendorID st
 
     return products, nil
 }
+
 func ExecuteCategorySearchQuery(db *gorm.DB, query string) ([]*model.CategoryBox, error) {
 	var categoryBoxes []*model.CategoryBox
 	similarityThreshold := 0.12
@@ -172,19 +176,21 @@ func FetchAllProducts(db *gorm.DB) ([]*model.Product, error) {
 func FetchProductsWithVendorPriority(db *gorm.DB, vendorID string) ([]*model.Product, error) {
     var vendorProducts []*model.Product
     var otherProducts []*model.Product
-    
-    // Fetch products with the specified vendorID
-    if err := db.Where("vendor_id = ?", vendorID).Order("created_at DESC").Find(&vendorProducts).Error; err != nil {
+
+    // Fetch products with the specified vendorID, excluding inactive products
+    if err := db.Where("state != ? AND vendor_id = ?", "INACTIVE", vendorID).
+        Order("created_at DESC").Find(&vendorProducts).Error; err != nil {
         return nil, fmt.Errorf("failed to fetch vendor products: %v", err)
     }
-    
-    // Fetch all other products
-    if err := db.Where("vendor_id IS NULL OR vendor_id != ?", vendorID).Order("created_at DESC").Find(&otherProducts).Error; err != nil {
+
+    // Fetch all other products, excluding inactive products
+    if err := db.Where("state != ? AND (vendor_id IS NULL OR vendor_id != ?)", "INACTIVE", vendorID).
+        Order("created_at DESC").Find(&otherProducts).Error; err != nil {
         return nil, fmt.Errorf("failed to fetch other products: %v", err)
     }
-    
+
     // Combine the results with vendor products first
     allProducts := append(vendorProducts, otherProducts...)
-    
+
     return allProducts, nil
 }

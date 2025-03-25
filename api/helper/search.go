@@ -163,11 +163,12 @@ func ExecuteCategorySearchQuery(db *gorm.DB, query string) ([]*model.CategoryBox
 // fetchAllProducts retrieves all products ordered by created_at
 func FetchAllProducts(db *gorm.DB) ([]*model.Product, error) {
 	var products []*model.Product
-	if err := db.Order("created_at DESC").Find(&products).Error; err != nil {
+	if err := db.Where("state != ?", "INACTIVE").Order("created_at DESC").Find(&products).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch products: %v", err)
 	}
 	return products, nil
 }
+
 func FetchProductsWithVendorPriority(db *gorm.DB, vendorID string) ([]*model.Product, error) {
     var vendorProducts []*model.Product
     var otherProducts []*model.Product

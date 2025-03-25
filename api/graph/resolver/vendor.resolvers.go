@@ -72,16 +72,6 @@ func (r *mutationResolver) UpdateVendor(ctx context.Context, dpfile *graphql.Upl
 	if err != nil {
 		return nil, fmt.Errorf("invalid vendor ID: %w", err)
 	}
-	simpleName := strings.ToLower(strings.ReplaceAll(*input.Name, " ", "-"))
-	simpleName = regexp.MustCompile(`[^a-z0-9-]`).ReplaceAllString(simpleName, "")
-	bucketName := fmt.Sprintf("v-%s", simpleName[:helper.MinInt(len(simpleName), 10)])
-
-	log.Printf("Initial bucket name: %s", bucketName)
-
-	// Ensure the bucket exists in MinIO
-	if err := helper.CreateBucketInMinio(ctx, r.MinIOClient, bucketName); err != nil {
-		return nil, err
-	}
 
 	// Find the existing vendor
 	var vendor model.Vendor
@@ -91,36 +81,70 @@ func (r *mutationResolver) UpdateVendor(ctx context.Context, dpfile *graphql.Upl
 		}
 		return nil, fmt.Errorf("failed to fetch vendor: %w", err)
 	}
-	// Upload each file and store the URL
-	fileURL, err := helper.UploadFileToMinio(ctx, r.MinIOClient, bucketName, "dpfile", dpfile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to upload dpfile %s: %v", dpfile.Filename, err)
-	}
-	// Update fields if provided
-	if input.Name != nil {
+
+	// Track whether any updates are made
+	var updateNeeded bool
+
+	// Update fields only if they are different
+	if input.Name != nil && vendor.Name != *input.Name {
 		vendor.Name = *input.Name
+		updateNeeded = true
 	}
-	if input.Type != nil {
+
+	if input.Type != nil && vendor.Type != *input.Type {
 		vendor.Type = *input.Type
+		updateNeeded = true
 	}
-	if input.Number != nil {
+
+	if input.Number != nil && vendor.Number != *input.Number {
 		vendor.Number = *input.Number
+		updateNeeded = true
 	}
+
 	if input.Password != nil {
-		// Hash the new password
+		// Hash and compare password
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(*input.Password), bcrypt.DefaultCost)
 		if err != nil {
 			return nil, fmt.Errorf("failed to hash password: %w", err)
 		}
 		hashedPasswordStr := string(hashedPassword)
-		vendor.Password = &hashedPasswordStr
+		if vendor.Password == nil || *vendor.Password != hashedPasswordStr {
+			vendor.Password = &hashedPasswordStr
+			updateNeeded = true
+		}
 	}
+
 	if dpfile != nil {
-		vendor.Dpfile = &fileURL
+		// Generate bucket name
+		simpleName := strings.ToLower(strings.ReplaceAll(*input.Name, " ", "-"))
+		simpleName = regexp.MustCompile(`[^a-z0-9-]`).ReplaceAllString(simpleName, "")
+		bucketName := fmt.Sprintf("v-%s", simpleName[:helper.MinInt(len(simpleName), 10)])
+
+		log.Printf("Initial bucket name: %s", bucketName)
+
+		// Ensure the bucket exists in MinIO
+		if err := helper.CreateBucketInMinio(ctx, r.MinIOClient, bucketName); err != nil {
+			return nil, err
+		}
+
+		// Upload file to MinIO
+		fileURL, err := helper.UploadFileToMinio(ctx, r.MinIOClient, bucketName, "dpfile", dpfile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to upload dpfile %s: %v", dpfile.Filename, err)
+		}
+
+		// Only update if the URL is different
+		if vendor.Dpfile == nil || *vendor.Dpfile != fileURL {
+			vendor.Dpfile = &fileURL
+			updateNeeded = true
+		}
 	}
-	// Save the updated vendor to the database
-	if err := r.DB.Save(&vendor).Error; err != nil {
-		return nil, fmt.Errorf("failed to update vendor: %w", err)
+
+	// Save only if there are changes
+	if updateNeeded {
+		if err := r.DB.Save(&vendor).Error; err != nil {
+			return nil, fmt.Errorf("failed to update vendor: %w", err)
+		}
 	}
 
 	return &vendor, nil

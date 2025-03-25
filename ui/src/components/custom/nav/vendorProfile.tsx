@@ -121,7 +121,6 @@ export default function ProfileVendor() {
   );
 
   // Profile form
-  // Profile form - adjusted default values
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {

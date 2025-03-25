@@ -69,10 +69,10 @@ const UPDATE_VENDOR = gql`
 const profileFormSchema = z.object({
   name: z.string().min(2, {
     message: "Name must be at least 2 characters.",
-  }),
+  }).optional(),
   number: z.string().regex(/^\d+$/, {
     message: "Please enter a valid number.",
-  }),
+  }).optional(),
 });
 
 // Password form schema
@@ -167,16 +167,20 @@ export default function ProfileVendor() {
   // Handle profile form submission
   function onProfileSubmit(data: ProfileFormValues) {
     setIsLoading(true);
+   // Prepare input object with only provided values
+   const input: { name?: string; number?: string; type: string } = {
+    type: vendorData?.getVendor?.type || "default",
+  };
+
+  // Only add name and number if they are provided
+  if (data.name !== undefined) input.name = data.name;
+  if (data.number !== undefined) input.number = data.number;
+
 
     updateVendor({
       variables: {
         dpfile: selectedFile,
-        input: {
-          name: data.name,
-          number: data.number,
-          // Include other required fields from your schema
-          type: vendorData?.getVendor?.type || "default",
-        },
+        input: input,
       },
     });
   }

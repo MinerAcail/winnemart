@@ -121,11 +121,12 @@ export default function ProfileVendor() {
   );
 
   // Profile form
+  // Profile form - adjusted default values
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: vendorData?.getVendor?.name || "",
-      number: vendorData?.getVendor?.number || "",
+      name: vendorData?.getVendor?.name || undefined,
+      number: vendorData?.getVendor?.number || undefined,
     },
   });
 
@@ -133,8 +134,8 @@ export default function ProfileVendor() {
   useState(() => {
     if (vendorData?.getVendor) {
       profileForm.reset({
-        name: vendorData.getVendor.name || "",
-        number: vendorData.getVendor.number || "",
+        name: vendorData.getVendor.name || undefined,
+        number: vendorData.getVendor.number || undefined,
       });
     }
   });

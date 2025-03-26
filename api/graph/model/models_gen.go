@@ -120,6 +120,7 @@ type ProductInput struct {
 	Price      string       `json:"price"`
 	State      ProductState `json:"state"`
 	Categories []*string    `json:"categories,omitempty"`
+	VendorID   *string      `json:"VendorId,omitempty"`
 }
 
 type ProductInputUpdate struct {

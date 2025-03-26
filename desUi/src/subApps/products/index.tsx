@@ -78,7 +78,7 @@ interface Vendor {
   number: string;
 }
 
-interface ListVendorsResponse {
+export interface ListVendorsResponse {
   listVendors: Vendor[];
 }
 const UPDATE_PRODUCT = gql`
@@ -114,7 +114,7 @@ const GET_ALL_PRODUCTS = gql`
     }
   }
 `;
-const GET_ALL_VENDORS = gql`
+export const GET_ALL_VENDORS = gql`
   query listVendors {
     listVendors {
       id

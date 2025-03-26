@@ -83,7 +83,10 @@ func (r *mutationResolver) VendorUpload(ctx context.Context, files []*graphql.Up
 		ImageUrls:  productURLs,
 		Categories: categories,
 	}
-
+	// Check if VendorID is not nil and add it to the product
+	if input.VendorID != nil {
+		product.VendorID = input.VendorID
+	}
 	// Save the product to the database
 	if err := r.DB.Create(&product).Error; err != nil {
 		return nil, fmt.Errorf("failed to save product: %v", err)

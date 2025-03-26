@@ -1,10 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Product } from "./types";
 import { X, Upload } from "lucide-react";
-import { gql, useMutation } from "@apollo/client";
+import { gql, useMutation, useQuery } from "@apollo/client";
+import { GET_ALL_VENDORS, ListVendorsResponse } from "..";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type ProductFormProps = {
   onAddProduct: (product: Product) => void;
@@ -30,11 +38,27 @@ export default function ProductForm({ onAddProduct }: ProductFormProps) {
   const [categories, setCategories] = useState("");
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-
+  const [vendorId, setVendorId] = useState<string>(() => {
+    // Initialize vendorId from localStorage, or empty string if not set
+    return localStorage.getItem("selectedVendorId") || "";
+  });
   const [VendorUpload, { loading, error }] = useMutation(ADD_PRODUCT, {
     refetchQueries: ["getNewAddedProducts"], // Refresh product list after adding
   });
-
+  const {
+    loading: loadingVendors,
+    error: vendorsError,
+    data: vendorsData,
+  } = useQuery<ListVendorsResponse>(GET_ALL_VENDORS);
+  const vendors = vendorsData?.listVendors || [];
+  // Effect to update localStorage when vendorId changes
+  useEffect(() => {
+    if (vendorId) {
+      localStorage.setItem("selectedVendorId", vendorId);
+    } else {
+      localStorage.removeItem("selectedVendorId");
+    }
+  }, [vendorId]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -51,6 +75,8 @@ export default function ProductForm({ onAddProduct }: ProductFormProps) {
             .split(",")
             .map((cat) => cat.trim())
             .filter((cat) => cat !== ""),
+
+          VendorId: vendorId,
         },
         files: images, // Pass the images
       },
@@ -133,6 +159,32 @@ export default function ProductForm({ onAddProduct }: ProductFormProps) {
           required
           className="w-full"
         />
+      </div>
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="VendorId" className="text-right">
+          Vendor
+        </Label>
+        {loadingVendors ? (
+          <div className="col-span-3">Loading vendors...</div>
+        ) : vendorsError ? (
+          <div className="col-span-3 text-red-500">Error loading vendors</div>
+        ) : (
+          <Select
+            value={vendorId}
+            onValueChange={(value) => setVendorId(value)}
+          >
+            <SelectTrigger className="col-span-3">
+              <SelectValue placeholder="Select vendor" />
+            </SelectTrigger>
+            <SelectContent>
+              {vendors.map((vendor) => (
+                <SelectItem key={vendor.id} value={vendor.id}>
+                  {vendor.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="images">Product Images</Label>

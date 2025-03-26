@@ -20,6 +20,8 @@ input ProductInput {
   price: String!
   state: ProductState!
   categories: [String]
+  VendorId: String
+
 }
 input ProductInputUpdate {
   name: String

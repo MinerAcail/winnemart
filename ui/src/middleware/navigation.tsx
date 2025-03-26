@@ -18,8 +18,9 @@ import { DriverOrderItems, WorkersProfile } from "@/app/driver";
 import { OrderTrackingProvider } from "@/hooks/orderTrackingContext";
 import { ProtectType } from "./useProtect";
 import HeartbeatUpdater from "@/components/custom/nav/cheackActive";
-import DashboardPage from "@/app/Advertiser";
+// import DashboardPage from "@/app/Advertiser/dashboard";
 import UploadProduct from "@/app/vendors/upload";
+import Advertiser from "@/app/Advertiser";
 // import VendorAvailabilityPage from "@/app/vendors/available";
 // import SocialMediaHelmet from "@/components/custom/vendors/share";
 // import { HelmetProvider } from "react-helmet-async";
@@ -32,9 +33,17 @@ const router = createBrowserRouter([
   { path: "/shop", element: <ShopItemsManager /> },
   // { path: "/vendor/:Vendorid", element: <SocialMediaHelmet /> },
   { path: "/job", element: <JobPosting /> },
-  { path: "/advert", element: <DashboardPage /> },
+  // { path: "/", element: <Advertiser /> },
 
   {
+    path: "/advert",
+    element: (
+      <ProtectedIsAuthRoute
+        expectedTypes={[ProtectType.Advertiser]}
+        element={<Advertiser />}
+      />
+    ),
+  },  {
     path: "/vendor",
     element: (
       <ProtectedIsAuthRoute

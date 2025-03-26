@@ -64,7 +64,11 @@ export default function ErrorLogin() {
           navigate("/delivery");
         } else if (userType === ProtectType.vendor) {
           navigate("/vendor");
-        } else {
+        }
+        else if (userType === ProtectType.Advertiser) {
+          navigate("/advert");
+        }
+        else {
           navigate("/");
         }
       } else {

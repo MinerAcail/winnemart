@@ -89,6 +89,9 @@ const Login = ({ children }: { children: ReactNode }) => {
           navigate("/delivery");
         } else if (userType === ProtectType.vendor) {
           navigate("/vendor");
+        }
+        else if (userType === ProtectType.Advertiser) {
+          navigate("/advert");
         } else {
           setError("Invalid user type. Please contact support.");
         }

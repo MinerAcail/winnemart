@@ -52,6 +52,8 @@ func PerformMigrations(db *gorm.DB) error {
 		&model.Vendor{},
 		&model.VendorOrder{},
 		&model.UnavailablePeriod{},
+		&model.GeneratedPromoCode{},
+		&model.PromoCode{},
 
 	); err != nil {
 		return fmt.Errorf("failed to run AutoMigrate: %w", err)

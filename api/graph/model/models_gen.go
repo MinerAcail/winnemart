@@ -89,6 +89,11 @@ type LoginInput struct {
 type Mutation struct {
 }
 
+type NewData struct {
+	OrderID *string        `json:"orderId,omitempty"`
+	Items   []*ProductData `json:"items,omitempty"`
+}
+
 type OrderChat struct {
 	OrderID  string         `json:"orderId"`
 	Messages []*ChatMessage `json:"messages"`
@@ -199,6 +204,16 @@ type Jobresponse struct {
 type OrderproductInfor struct {
 	Product  []*Product `json:"product"`
 	Quantity int32      `json:"quantity"`
+}
+
+type ProductData struct {
+	ID       *string `json:"id,omitempty"`
+	NewPrice string  `json:"newPrice"`
+}
+
+type Vendorinfor struct {
+	Vendor *Vendor    `json:"Vendor,omitempty"`
+	Items  []*Product `json:"items,omitempty"`
 }
 
 type WorksInput struct {

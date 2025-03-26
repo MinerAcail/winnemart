@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "../ui/card";
 import { ghSim } from "./ItemGrid";
 import CardReceipt, { GET_ORDER_TRACKING } from "./try";
-import { useQuery } from "@apollo/client";
+import { gql, useLazyQuery, useQuery } from "@apollo/client";
 import locations from "./sortCategroy/cat/data";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -130,7 +130,6 @@ const CartSidebar: React.FC<CartSidebarProps> = ({
   return (
     <>
       {!showReceipt ? (
-        
         <>
           {newOrder === false && (
             <CartComponent
@@ -240,6 +239,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MinChat from "@/app/message";
 import { Item } from "@/hooks/CartContext";
 import { TermsConditions } from "../ui/term_and_condition_ui";
+import { Switch } from "../ui/switch";
 // import { Trigger } from "@radix-ui/react-tabs";
 
 export function SideTabs({
@@ -279,6 +279,27 @@ export function SideTabs({
   );
 }
 
+// Updated GraphQL query to match backend response
+const CHECKPROMOCODE = gql`
+  query CheckPromoCode($productsIds: [String!]!, $promocode: String!) {
+    checkPromoCode(productIds: $productsIds, promoCode: $promocode) {
+      id
+      newPrice
+    }
+  }
+`;
+interface PromoCodeData {
+  checkPromoCode: {
+    id: string;
+    newPrice: string;
+  }[];
+}
+
+interface PromoCodeVariables {
+  productsIds: string[];
+  promocode: string;
+}
+
 const CartComponent = ({
   cart,
   text,
@@ -310,6 +331,93 @@ const CartComponent = ({
   hostelDetails: HostelDetails;
   showReceipt: boolean | null;
 }) => {
+  const [showPromoInput, setShowPromoInput] = useState(false);
+  const [promoCode, setPromoCode] = useState(
+    localStorage.getItem("appliedPromoCode") || ""
+  );
+  const [promoCodeError, setPromoCodeError] = useState("");
+  const [discountedPrices, setDiscountedPrices] = useState<
+    Record<string, number>
+  >(() => {
+    const storedPrices = localStorage.getItem("discountedPrices");
+    return storedPrices ? JSON.parse(storedPrices) : {};
+  });
+  useEffect(() => {
+    // Save cart and discounts to localStorage on updates
+    localStorage.setItem("cart", JSON.stringify(cart));
+    localStorage.setItem("discountedPrices", JSON.stringify(discountedPrices));
+  }, [cart, discountedPrices]);
+
+  const [checkPromoCode, { loading }] = useLazyQuery<
+    PromoCodeData,
+    PromoCodeVariables
+  >(CHECKPROMOCODE, {
+    onCompleted: (data) => {
+      if (data.checkPromoCode && data.checkPromoCode.length > 0) {
+        // Convert the array to a dictionary for easy lookup
+        const newPrices = data.checkPromoCode.reduce(
+          (acc, item) => ({
+            ...acc,
+            [item.id]: parseFloat(item.newPrice),
+          }),
+          {}
+        );
+        setDiscountedPrices(newPrices);
+        setPromoCodeError(""); // Clear any previous errors
+      }
+    },
+    onError: (error) => {
+      // Handle specific error messages from the backend
+      setPromoCodeError(
+        error.message || "Invalid promo code. Please try again."
+      );
+      setDiscountedPrices({}); // Reset discounted prices
+    },
+  });
+
+  // Handle promo code input
+  const handlePromoCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPromoCode(e.target.value);
+    setPromoCodeError("");
+  };
+
+  // Apply promo code
+  const applyPromoCode = () => {
+    if (!promoCode.trim()) {
+      setPromoCodeError("Please enter a promo code");
+      return;
+    }
+
+    const productIds = cart.map((item) => item.id);
+
+    checkPromoCode({
+      variables: {
+        productsIds: productIds,
+        promocode: promoCode,
+      },
+    });
+
+    // Save the promo code in localStorage
+    localStorage.setItem("appliedPromoCode", promoCode);
+  };
+
+  // Calculate total price, considering discounted prices if available
+  const calculateTotal = () => {
+    return cart.reduce(
+      (totals, item) => {
+        const originalPrice = parseFloat(item.commission?.toString() || "0");
+        const discountedPrice = discountedPrices[item.id] || originalPrice;
+
+        return {
+          original: totals.original + originalPrice,
+          discounted: totals.discounted + discountedPrice,
+        };
+      },
+      { original: 0, discounted: 0 }
+    );
+  };
+  const { original, discounted } = calculateTotal();
+
   return (
     <Card className="sticky mt-30 lg:mt-32 h-72 overflow-auto border p-1 m-4">
       <CardContent className="p-4">
@@ -354,7 +462,6 @@ const CartComponent = ({
             }
           />
         </div>
-
         {cart.map((item, index) => (
           <div
             key={index}
@@ -363,8 +470,23 @@ const CartComponent = ({
             <div>
               <p className="font-bold">{item.name}</p>
               <p className="text-muted-foreground">
-                {ghSim}
-                {item.commission}
+                {discountedPrices[item.id] ? (
+                  <>
+                    <span className="line-through text-red-500">
+                      {ghSim}
+                      {item.commission}
+                    </span>{" "}
+                    <span className="font-bold">
+                      {ghSim}
+                      {discountedPrices[item.id]}
+                    </span>
+                  </>
+                ) : (
+                  <span>
+                    {ghSim}
+                    {item.commission}
+                  </span>
+                )}
               </p>
             </div>
             <Button
@@ -380,11 +502,60 @@ const CartComponent = ({
         {cart.length > 0 && (
           <div className="mt-4">
             <p className="font-bold text-right">
-              Total: {ghSim}
-              {cart
-                .reduce((total, item) => total + Number(item.commission), 0)
-                .toFixed(2)}
+              {original !== discounted ? (
+                <>
+                  <span className="line-through text-red-500">
+                    {ghSim}
+                    {original.toFixed(2)}
+                  </span>{" "}
+                  <span className="font-bold">
+                    {ghSim}
+                    {discounted.toFixed(2)}
+                  </span>
+                </>
+              ) : (
+                <span>
+                  {ghSim}
+                  {original.toFixed(2)}
+                </span>
+              )}
             </p>
+            <div className="mt-2 flex items-center space-x-2">
+              <Switch
+                checked={showPromoInput}
+                onCheckedChange={(checked) => {
+                  setShowPromoInput(checked);
+                  // Reset promo code when toggling off
+                  if (!checked) {
+                    setPromoCode("");
+                    setPromoCodeError("");
+                    setDiscountedPrices({}); // Reset discounted prices
+                  }
+                }}
+              />
+              <span>Promo Code</span>
+            </div>
+            {showPromoInput && (
+              <div className="mt-2">
+                <Input
+                  placeholder="Enter Promo Code"
+                  value={promoCode}
+                  onChange={handlePromoCodeChange}
+                  className={promoCodeError ? "border-red-500" : ""}
+                />
+                {promoCodeError && (
+                  <p className="text-red-500 text-sm mt-1">{promoCodeError}</p>
+                )}
+                <Button
+                  onClick={applyPromoCode}
+                  className="mt-2"
+                  variant="secondary"
+                  disabled={loading}
+                >
+                  {loading ? "Applying..." : "Apply"}
+                </Button>
+              </div>
+            )}
             <TermsConditions
               onClick={() => {
                 placeOrder();

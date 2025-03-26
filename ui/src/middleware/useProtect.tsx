@@ -22,4 +22,5 @@ export const ProtectType = {
   Driver: "Driver",
   Dispatch: "Dispatch",
   vendor: "VENDOR",
+  Advertiser:"Advertiser"
 } as const;

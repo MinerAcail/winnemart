@@ -35,12 +35,33 @@ export interface OrderTrackingData {
 }
 
 export interface OrderItem {
+  id?: string;
   name: string;
+  originalPrice: number;
   price: number;
   quantity: number;
-  commission?:number;
+  hasPromoDiscount: boolean;
 }
-
+export interface PromoPriceData {
+  priceWithPromocode: {
+    orderId: string;
+    items: {
+      id: string;
+      newPrice: number;
+    }[];
+  }[];
+}
+const CHANGE_PRICE_WITH_PROMO_CODE = gql`
+  query PriceWithPromocode($orderIDs:[String!]!){
+    priceWithPromocode(orderIDs:$orderIDs){
+      orderId
+      items{
+        id
+        newPrice
+      }
+    }
+  }
+`;
 export const GET_ORDER_TRACKING = gql`
   query useGetordertracking($orderId: [String]) {
     useGetordertracking(orderId: $orderId) {
@@ -93,21 +114,41 @@ export default function CardReceipt({
   const ordId = rawOrderId ? rawOrderId.replace(/^"|"$/g, "").trim() : null;
   const sanitizedOrderId = ordId && ordId.length > 0 ? ordId : null;
 
-  const { data, error, loading } = useQuery<OrderTrackingData>(
+  const { 
+    data: orderTrackingData, 
+    error: orderTrackingError, 
+    loading: orderTrackingLoading 
+
+   } = useQuery<OrderTrackingData>(
     GET_ORDER_TRACKING,
     {
       variables: { orderId: sanitizedOrderId },
       skip: !sanitizedOrderId, // Skip query if orderId is null
     }
   );
+  // Fetch promo price data
+  const { 
+    data: promoData, 
+    error: promoError, 
+    loading: promoLoading 
+  } = useQuery<PromoPriceData>(
+    CHANGE_PRICE_WITH_PROMO_CODE,
+    {
+      variables: { orderIDs: sanitizedOrderId ? [sanitizedOrderId] : [] },
+      skip: !sanitizedOrderId,
+    }
+  );
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error loading order details.</p>;
 
-  const orders = data?.useGetordertracking;
-  console.log("orders", orders);
+  if (orderTrackingLoading || promoLoading) return <p>Loading...</p>;
+  if (orderTrackingError) return <p>Error loading order details.</p>;
+  if (promoError) return <p>Error loading promo prices.</p>;
 
+
+  const orders = orderTrackingData?.useGetordertracking;
   if (!orders || orders.length === 0) return <p>No order details available.</p>;
+
+
 
   return (
     <div ref={receiptRef} className="w-full max-w-md mx-auto">
@@ -140,24 +181,51 @@ export default function CardReceipt({
             const orderIdShort = order.orderId.slice(0, 5);
 
             // Extract items properly
-            const items: OrderItem[] = order.productInfor.flatMap((info) =>
-              info.product.map((product) => ({
-                name: product.name,
-                price: parseFloat(product.commission ?? "0"), // Convert price from string to number
-                quantity: info.quantity,
-              }))
-            );
+               const items: OrderItem[] = order.productInfor.flatMap((info) =>
+                        info.product.map((product) => {
+                          // Check if there's a promo price for this product
+                          const promoItem = promoData?.priceWithPromocode
+                            ?.find(promo => promo.orderId === order.orderId)
+                            ?.items.find(item => item.id === product.id);
+          
+                          const originalPrice = parseFloat(product.commission ?? "0");
+                          const newPrice = promoItem ? promoItem.newPrice : originalPrice;
+          
+                          return {
+                            id: product.id,
+                            name: product.name,
+                            originalPrice: originalPrice,
+                            price: newPrice,
+                            quantity: info.quantity,
+                            hasPromoDiscount: !!promoItem
+                          };
+                        })
+                      );
 
 
 
-            const subtotal = items.reduce(
-              (sum, item) => sum + (item.price ?? 0) * item.quantity,
-              0
-            );
-            const currentHour = new Date().getHours();
-            const delivery = currentHour >= 6 && currentHour < 17 ? 7 : 10; // Delivery amount based on time
-            const total = subtotal + delivery;
-            const bgColor = bgColors[index % bgColors.length]; // Cycle through the colors
+           // Calculate original subtotal (before promo)
+           const originalSubtotal = items.reduce(
+            (sum, item) => sum + item.originalPrice * item.quantity,
+            0
+          );
+   // Calculate new subtotal (after promo)
+   const subtotal = items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+          const currentHour = new Date().getHours();
+          const originalDelivery = currentHour >= 6 && currentHour < 17 ? 7 : 10;
+          const delivery = originalDelivery; // Assuming delivery fee doesn't change
+
+          // Calculate totals
+          const originalTotal = originalSubtotal + originalDelivery;
+          const total = subtotal + delivery;
+
+          // Check if any item has a promo discount
+          const hasPromoDiscount = items.some(item => item.hasPromoDiscount);
+
+          const bgColor = bgColors[index % bgColors.length];
 
             return (
               <div
@@ -229,10 +297,16 @@ export default function CardReceipt({
                             {item.name}
                           </span>
                         </div>
-                        <span className="text-zinc-900 dark:text-zinc-100">
-                          {ghSim}
-                          {((item.price ?? 0) * item.quantity).toFixed(2)}
-                        </span>
+                        <div className="flex flex-col items-end">
+                          {item.hasPromoDiscount && (
+                            <span className="text-zinc-600 dark:text-zinc-400 line-through mr-2">
+                              {ghSim}{(item.originalPrice * item.quantity).toFixed(2)}
+                            </span>
+                          )}
+                          <span className="text-zinc-900 dark:text-zinc-100">
+                            {ghSim}{(item.price * item.quantity).toFixed(2)}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -244,28 +318,39 @@ export default function CardReceipt({
                     <span className="text-zinc-600 dark:text-zinc-400">
                       Subtotal
                     </span>
-                    <span className="text-zinc-900 dark:text-zinc-100">
-                      {ghSim}
-                      {subtotal.toFixed(2)}
-                    </span>
+                    <div className="flex flex-col items-end">
+                      {hasPromoDiscount && (
+                        <span className="text-zinc-600 dark:text-zinc-400 line-through mr-2 text-sm">
+                          {ghSim}{originalSubtotal.toFixed(2)}
+                        </span>
+                      )}
+                      <span className="text-zinc-900 dark:text-zinc-100">
+                        {ghSim}{subtotal.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-zinc-600 dark:text-zinc-400">
                       Delivery Fee
                     </span>
                     <span className="text-zinc-900 dark:text-zinc-100">
-                      {ghSim}
-                      {delivery.toFixed(2)}
+                      {ghSim}{delivery.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between text-base font-medium pt-2 border-t border-zinc-200 dark:border-zinc-800">
                     <span className="text-zinc-900 dark:text-zinc-100">
                       Total
                     </span>
-                    <span className="text-zinc-900 dark:text-zinc-100">
-                      {ghSim}
-                      {total.toFixed(2)}
-                    </span>
+                    <div className="flex flex-col items-end">
+                      {hasPromoDiscount && (
+                        <span className="text-zinc-600 dark:text-zinc-400 line-through mr-2 text-sm">
+                          {ghSim}{originalTotal.toFixed(2)}
+                        </span>
+                      )}
+                      <span className="text-zinc-900 dark:text-zinc-100">
+                        {ghSim}{total.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

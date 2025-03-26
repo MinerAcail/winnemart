@@ -6,45 +6,500 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/mineracail/sergi/graph"
 	"github.com/mineracail/sergi/graph/model"
+	"github.com/mineracail/sergi/helper"
+	"gorm.io/gorm"
 )
 
 // ID is the resolver for the id field.
 func (r *generatedPromoCodeResolver) ID(ctx context.Context, obj *model.GeneratedPromoCode) (string, error) {
-	panic(fmt.Errorf("not implemented: ID - id"))
-}
-
-// VendorID is the resolver for the vendorId field.
-func (r *generatedPromoCodeResolver) VendorID(ctx context.Context, obj *model.GeneratedPromoCode) (string, error) {
-	panic(fmt.Errorf("not implemented: VendorID - vendorId"))
+	id := obj.ID.String()
+	return id, nil
 }
 
 // GeneratePromoCode is the resolver for the generatePromoCode field.
-func (r *mutationResolver) GeneratePromoCode(ctx context.Context, advertiserID string) (*model.PromoCode, error) {
-	panic(fmt.Errorf("not implemented: GeneratePromoCode - generatePromoCode"))
+func (r *mutationResolver) GeneratePromoCode(ctx context.Context, vendorID string) (*model.PromoCode, error) {
+	// Retrieve the advertiser (user) ID from the context
+	advertiserID, err := r.Query().GetID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get advertiser ID: %v", err)
+	}
+
+	// Parse the UUID from string
+	advID, err := uuid.Parse(*advertiserID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid advertiser ID: %w", err)
+	}
+
+	// Ensure the vendor exists
+	var vendor model.Vendor
+	if err := r.DB.Where("id = ?", vendorID).First(&vendor).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("vendor not found with ID: %s", vendorID)
+		}
+		return nil, fmt.Errorf("failed to fetch vendor: %w", err)
+	}
+
+	// Check if a promo code already exists for this vendor and advertiser
+	var existingPromo model.PromoCode
+	if err := r.DB.Where("advertiser_id = ? AND vendor_id = ?", advID, vendorID).First(&existingPromo).Error; err == nil {
+		return nil, fmt.Errorf("a promo code already exists for this vendor and advertiser")
+	}
+
+	// Generate a unique promo code
+	promoCode, err := helper.GenerateRandomCode(ctx, r.DB, 5)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a new promo code entry
+	newPromo := model.PromoCode{
+		AdvertiserID:    advID.String(),
+		PromoCode:       promoCode,
+		VendorID:        &vendorID,
+		DiscountApplied: 7.0, // Default discount (can be modified)
+	}
+
+	// Save the promo code to the database
+	if err := r.DB.Create(&newPromo).Error; err != nil {
+		return nil, fmt.Errorf("failed to create promo code: %w", err)
+	}
+
+	return &newPromo, nil
 }
 
 // ApplyPromoCode is the resolver for the applyPromoCode field.
-func (r *mutationResolver) ApplyPromoCode(ctx context.Context, orderID string, promoCode string) (*model.Order, error) {
-	panic(fmt.Errorf("not implemented: ApplyPromoCode - applyPromoCode"))
+func (r *mutationResolver) ApplyPromoCode(ctx context.Context, orderID string, promoCode string) (*model.GeneratedPromoCode, error) {
+	// Start a transaction
+	tx := r.DB.Begin()
+	if tx.Error != nil {
+		return nil, fmt.Errorf("failed to start transaction: %v", tx.Error)
+	}
+
+	// Check if order exists with preloaded items and products
+	var order model.Order
+	if err := tx.Preload("Items").Preload("Items.Product").Where("id = ?", orderID).First(&order).Error; err != nil {
+		tx.Rollback()
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("order not found")
+		}
+		return nil, fmt.Errorf("failed to fetch order: %v", err)
+	}
+
+	// Check if promo code exists
+	var promo model.PromoCode
+	if err := tx.Where("promo_code = ?", promoCode).First(&promo).Error; err != nil {
+		tx.Rollback()
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("invalid promo code")
+		}
+		return nil, fmt.Errorf("failed to fetch promo code: %v", err)
+	}
+
+	// Ensure promo code is associated with a vendor
+	if promo.VendorID == nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("promo code is not associated with a vendor")
+	}
+
+	// Filter products that belong to the promo's vendor
+	var productIDs []uuid.UUID
+	for _, item := range order.Items {
+		// Safely check product's vendor ID
+		if item.Product != nil && item.Product.VendorID != nil && *item.Product.VendorID == *promo.VendorID {
+			productIDs = append(productIDs, item.Product.ID)
+		}
+	}
+
+	if len(productIDs) == 0 {
+		tx.Rollback()
+		return nil, fmt.Errorf("no eligible products found for promo code")
+	}
+
+	// Fetch the matching products
+	var products []model.Product
+	if err := tx.Where("id IN (?)", productIDs).Find(&products).Error; err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("failed to fetch products: %v", err)
+	}
+
+	// Calculate total price for eligible products
+	var totalAmount float64
+	for _, product := range products {
+		if product.Price == nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("product %s has no price", product.ID)
+		}
+		price, err := strconv.ParseFloat(*product.Price, 64)
+		if err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("invalid price format for product %s", product.ID)
+		}
+
+		// Apply commission
+		priceWithCommission := price + helper.CalculateCommission(price)
+
+		totalAmount += priceWithCommission
+	}
+
+	// Apply discount, ensuring it doesn't go negative
+	discountedAmount := totalAmount - promo.DiscountApplied
+	if discountedAmount < 0 {
+		discountedAmount = 0
+	}
+
+	// Generate a record for the applied promo code
+	generatedPromo := &model.GeneratedPromoCode{
+		PromoCodeID:    promo.ID.String(),
+		CustomerNumber: order.CustomerNumber,
+		OrderID:        orderID,
+		TotalAmount:    discountedAmount,
+	}
+
+	// Save the promo code usage
+	if err := tx.Create(generatedPromo).Error; err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("failed to apply promo code: %v", err)
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %v", err)
+	}
+
+	return generatedPromo, nil
 }
 
 // ID is the resolver for the id field.
 func (r *promoCodeResolver) ID(ctx context.Context, obj *model.PromoCode) (string, error) {
-	panic(fmt.Errorf("not implemented: ID - id"))
+	id := obj.ID.String()
+	return id, nil
 }
 
-// GetPromoCodes is the resolver for the getPromoCodes field.
-func (r *queryResolver) GetPromoCodes(ctx context.Context) ([]*model.PromoCode, error) {
-	panic(fmt.Errorf("not implemented: GetPromoCodes - getPromoCodes"))
+// GetPromoCode is the resolver for the getPromoCode field.
+func (r *queryResolver) GetPromoCode(ctx context.Context, vendorID *string) (*model.PromoCode, error) {
+	var promoCodes *model.PromoCode
+	if err := r.DB.Where("vendor_id = ?", vendorID).Find(&promoCodes).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch promo code: %v", err)
+	}
+	return promoCodes, nil
+}
+
+// GetAllPromoCode is the resolver for the getAllPromoCode field.
+func (r *queryResolver) GetAllPromoCode(ctx context.Context) ([]*model.PromoCode, error) {
+	// Retrieve the advertiser (user) ID from the context
+	advertiserID, err := r.Query().GetID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get advertiser ID: %v", err)
+	}
+
+	// Parse the UUID from string
+	advID, err := uuid.Parse(*advertiserID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid advertiser ID: %w", err)
+	}
+
+	var promoCodes []*model.PromoCode
+	if err := r.DB.Where("advertiser_id = ?", advID).Find(&promoCodes).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch promo codes: %v", err)
+
+	}
+	return promoCodes, nil
 }
 
 // GetOrdersWithPromo is the resolver for the getOrdersWithPromo field.
-func (r *queryResolver) GetOrdersWithPromo(ctx context.Context) ([]*model.Order, error) {
-	panic(fmt.Errorf("not implemented: GetOrdersWithPromo - getOrdersWithPromo"))
+func (r *queryResolver) GetOrdersWithPromo(ctx context.Context, orderID *string) (*model.GeneratedPromoCode, error) {
+	var generatedPromoCode *model.GeneratedPromoCode
+	var order *model.Order
+
+	// If orderID is not provided, return an error
+	if orderID == nil {
+		return nil, fmt.Errorf("order ID must be provided")
+	}
+
+	// First, find the generated promo code associated with the order
+	if err := r.DB.Where("order_id = ?", *orderID).First(&generatedPromoCode).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("no promo code found for order: %s", *orderID)
+		}
+		return nil, fmt.Errorf("failed to fetch generated promo code: %v", err)
+	}
+
+	// Now find the order with all its associated items
+	if err := r.DB.Preload("Items").Preload("Items.Product").Where("id = ?", *orderID).First(&order).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("order not found: %s", *orderID)
+		}
+		return nil, fmt.Errorf("failed to fetch order: %v", err)
+	}
+
+	// Optional: You might want to attach the promo code information to the order
+
+	return nil, nil
+}
+
+// GetAllOrdersWithPromo is the resolver for the getAllOrdersWithPromo field.
+func (r *queryResolver) GetAllOrdersWithPromo(ctx context.Context) ([]*model.GeneratedPromoCode, error) {
+	var generatedPromoCodes []*model.GeneratedPromoCode
+
+	// Fetch all generated promo codes
+	// You might want to add pagination or additional filtering as needed
+	if err := r.DB.Find(&generatedPromoCodes).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch generated promo codes: %v", err)
+	}
+
+	// Check if no promo codes exist
+	if len(generatedPromoCodes) == 0 {
+		return nil, fmt.Errorf("no promo codes found")
+	}
+
+	return generatedPromoCodes, nil
+}
+
+// GetOrderPromoDetails is the resolver for the getOrderPromoDetails field.
+func (r *queryResolver) GetOrderPromoDetails(ctx context.Context, orderID string) ([]*model.Order, error) {
+	// Fetch the order with detailed preloading
+	return nil, nil
+}
+
+// GetAllVendors is the resolver for the getAllVendors field.
+func (r *queryResolver) GetAllVendors(ctx context.Context) ([]*model.Vendorinfor, error) {
+	var vendors []*model.Vendor
+	if err := r.DB.Find(&vendors).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch vendors: %v", err)
+	}
+
+	var result []*model.Vendorinfor
+
+	for _, vendor := range vendors {
+		var products []*model.Product
+		if err := r.DB.Where("vendor_id = ?", vendor.ID).Find(&products).Error; err != nil {
+			return nil, fmt.Errorf("failed to fetch products for vendor %s: %v", vendor.ID, err)
+		}
+
+		result = append(result, &model.Vendorinfor{
+			Vendor: vendor,
+			Items:  products,
+		})
+	}
+
+	return result, nil
+}
+
+// CheckPromoCode is the resolver for the checkPromoCode field.
+func (r *queryResolver) CheckPromoCode(ctx context.Context, productIds []string, promoCode string) ([]*model.ProductData, error) {
+	// Check if the promo code exists
+	var promo model.PromoCode
+	if err := r.DB.Where("promo_code = ?", promoCode).First(&promo).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("invalid promo code")
+		}
+		return nil, fmt.Errorf("failed to fetch promo code: %v", err)
+	}
+
+	// Ensure promo code is associated with a vendor
+	if promo.VendorID == nil {
+		return nil, fmt.Errorf("promo code is not associated with a vendor")
+	}
+
+	// Fetch all products that match the given IDs and belong to the vendor
+	var products []model.Product
+	if err := r.DB.Where("id IN (?) AND vendor_id = ?", productIds, *promo.VendorID).Find(&products).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch products: %v", err)
+	}
+
+	// If no matching products are found, the promo code isn't applicable
+	if len(products) == 0 {
+		return nil, fmt.Errorf("promo code is not valid for these products")
+	}
+
+	// Apply discount and commission
+	var productData []*model.ProductData
+	for _, product := range products {
+		if product.Price == nil {
+			continue
+		}
+
+		// Convert price from string to float
+		price, err := strconv.ParseFloat(*product.Price, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid product price format")
+		}
+
+		// Get admin commission
+		commission := helper.CalculateCommission(price)
+
+		// Add commission to the base price
+		priceWithCommission := price + commission
+
+		// Convert promo discount percentage from 7 to 0.07
+		discountPercentage := promo.DiscountApplied / 100.0
+
+		// Apply promo code discount
+		finalPrice := priceWithCommission * (1 - discountPercentage)
+
+		id := product.ID.String()
+
+		// Append product with new price
+		productData = append(productData, &model.ProductData{
+			ID:       &id,
+			NewPrice: fmt.Sprintf("%.2f", finalPrice), // Format price to 2 decimal places
+		})
+	}
+
+	return productData, nil
+}
+
+// PriceWithPromocode is the resolver for the priceWithPromocode field.
+func (r *queryResolver) PriceWithPromocode(ctx context.Context, orderIDs []string) ([]*model.NewData, error) {
+	// Validate input
+	if len(orderIDs) == 0 {
+		return nil, fmt.Errorf("order IDs cannot be empty")
+	}
+
+	// Start a database transaction
+	tx := r.DB.Begin()
+	if tx.Error != nil {
+		return nil, fmt.Errorf("failed to start transaction: %v", tx.Error)
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Find the generated promo codes for these orders
+	var generatedPromoCodes []model.GeneratedPromoCode
+	if err := tx.Where("order_id IN (?)", orderIDs).Find(&generatedPromoCodes).Error; err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("failed to retrieve generated promo codes: %v", err)
+	}
+
+	// Group generated promo codes by order ID
+	promoCodesByOrder := make(map[string][]model.GeneratedPromoCode)
+	for _, genPromo := range generatedPromoCodes {
+		promoCodesByOrder[genPromo.OrderID] = append(promoCodesByOrder[genPromo.OrderID], genPromo)
+	}
+
+	// Retrieve the orders with preloaded items and products
+	var orders []model.Order
+	if err := tx.
+		Preload("Items").
+		Preload("Items.Product").
+		Where("id IN (?)", orderIDs).
+		Find(&orders).Error; err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("failed to retrieve orders: %v", err)
+	}
+
+	// Collect all promo code IDs
+	var allPromoCodeIDs []string
+	for _, genPromoCodes := range promoCodesByOrder {
+		for _, genPromo := range genPromoCodes {
+			allPromoCodeIDs = append(allPromoCodeIDs, genPromo.PromoCodeID)
+		}
+	}
+
+	// Fetch the original promo codes to get vendor information
+	var promoCodes []model.PromoCode
+	promoCodeMap := make(map[string]model.PromoCode)
+	if len(allPromoCodeIDs) > 0 {
+		if err := tx.Where("id IN (?)", allPromoCodeIDs).Find(&promoCodes).Error; err != nil {
+			tx.Rollback()
+			return nil, fmt.Errorf("failed to retrieve promo codes: %v", err)
+		}
+
+		// Create a map for quick lookup
+		for _, pc := range promoCodes {
+			promoCodeMap[pc.ID.String()] = pc
+		}
+	}
+
+	// Prepare the results
+	var result []*model.NewData
+
+	// Process each order
+	for _, order := range orders {
+		// Prepare the product data for products with promo codes
+		var productItems []*model.ProductData
+		for _, item := range order.Items {
+			// Ensure product exists
+			if item.Product == nil {
+				continue
+			}
+
+			// Find the promo code for this order
+			var applicablePromo *model.PromoCode
+			for _, genPromo := range promoCodesByOrder[order.ID.String()] {
+				if promo, exists := promoCodeMap[genPromo.PromoCodeID]; exists {
+					applicablePromo = &promo
+					break
+				}
+			}
+
+			// Skip if no promo code found
+			if applicablePromo == nil {
+				continue
+			}
+
+			// Check if the product belongs to the promo code's vendor
+			if item.Product.VendorID != nil &&
+				applicablePromo.VendorID != nil &&
+				*item.Product.VendorID == *applicablePromo.VendorID {
+
+				// Convert product price to float
+				if item.Product.Price == nil {
+					continue
+				}
+
+				price, err := strconv.ParseFloat(*item.Product.Price, 64)
+				if err != nil {
+					return nil, fmt.Errorf("invalid product price format for product %s", item.Product.ID)
+				}
+
+				// Get admin commission
+				commission := helper.CalculateCommission(price)
+
+				// Add commission to the base price
+				priceWithCommission := price + commission
+
+				// Convert promo discount percentage from 7 to 0.07
+				discountPercentage := applicablePromo.DiscountApplied / 100.0
+
+				// Apply promo code discount
+				finalPrice := priceWithCommission * (1 - discountPercentage)
+
+				id := item.Product.ID.String()
+
+				productItems = append(productItems, &model.ProductData{
+					ID:       &id,
+					NewPrice: fmt.Sprintf("%.2f", finalPrice), // Format price to 2 decimal places
+				})
+			}
+		}
+
+		// Only add order if it has promo code products
+		if len(productItems) > 0 {
+			id := order.ID.String()
+			result = append(result, &model.NewData{
+				OrderID: &id,
+				Items:   productItems,
+			})
+		}
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %v", err)
+	}
+
+	return result, nil
 }
 
 // GeneratedPromoCode returns graph.GeneratedPromoCodeResolver implementation.

@@ -1,12 +1,19 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from "react";
-import { useMutation } from "@apollo/client";
+import { gql, useMutation } from "@apollo/client";
 import {
   CREATE_ORDER_ITEMS,
   OrderInput,
   OrderItem,
 } from "@/middleware/api/createorder";
 import { toast } from "sonner";
-
+const APPLY_PROMOCODE = gql`
+mutation ApplyPromoCode($orderID:String!,$promoCode:String!){
+  applyPromoCode(orderID:$orderID,promoCode:$promoCode){
+    id
+    orderID
+  }
+}
+`
 export interface Item {
   id: string;
   name: string;
@@ -96,7 +103,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   const [createOrder] = useMutation(CREATE_ORDER_ITEMS, {
     refetchQueries: ["useGetordertracking"],
   });
-
+  const [applyPromoCode] = useMutation(APPLY_PROMOCODE);
   // Set mounted flag on component mount
   useEffect(() => {
     isMounted.current = true;
@@ -215,6 +222,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       if (data?.createOrderItems) {
+        const orderId = data.createOrderItems.id;
         // Save order date details
         const now = new Date();
         const orderDate: OrderDate = {
@@ -227,6 +235,19 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         
         // Save order ID to localStorage
         setStorageItem('foodie_last_order_id', data.createOrderItems.id);
+          // Check if a promo code exists
+          const appliedPromoCode = localStorage.getItem("appliedPromoCode") || "";
+
+
+      if (appliedPromoCode) {
+        await applyPromoCode({
+          variables: {
+            orderID: orderId,
+            promoCode: appliedPromoCode,
+          },
+        });
+        toast.success(`Promo code "${appliedPromoCode}" applied successfully!`);
+      }
         
         toast.success(
           `Order placed successfully! Your order ID is: ${data.createOrderItems.id.slice(

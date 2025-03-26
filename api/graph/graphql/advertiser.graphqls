@@ -2,6 +2,7 @@ type PromoCode {
   id: String!
   advertiserID: String!
   promoCode: String!
+  vendorId: String!
   discountApplied: Float!
   createdAt: String!
 }
@@ -9,18 +10,40 @@ type PromoCode {
 type GeneratedPromoCode {
   id: String!
   promoCodeID: String!
-  userNumber: String!
+  customerNumber: String!
   totalAmount: Float!
-  orderID: String!
-  vendorId:String!
+  orderID:String
   createdAt: String!
 }
-extend type Query {
-  getPromoCodes: [PromoCode!]!
-  getOrdersWithPromo: [Order!]!
+type vendorinfor {
+  Vendor: Vendor
+  items: [Product]
 }
-extend type Mutation {
-  generatePromoCode(advertiserID: String!): PromoCode!
-  applyPromoCode(orderID: String!, promoCode: String!): Order!
+type productData {
+  id: String
+  newPrice: String!
 }
 
+type NewData{
+  orderId:String
+  items:[productData]
+}
+
+extend type Query {
+  getPromoCode(vendorId: String): PromoCode!
+  getAllPromoCode: [PromoCode!]!
+  getOrdersWithPromo(orderID:String): GeneratedPromoCode!
+  getAllOrdersWithPromo: [GeneratedPromoCode]!
+  # getAllOrdersWithPromo: [GeneratedPromoCode]!
+  getOrderPromoDetails(orderId:String!):[Order]
+  getAllVendors: [vendorinfor!]!
+  checkPromoCode(productIds: [String!]!, promoCode: String!): [productData]!
+  priceWithPromocode(orderIDs: [String!]!): [NewData]!
+}
+extend type Mutation {
+  generatePromoCode(vendorId: String!): PromoCode!
+  applyPromoCode(
+    orderID: String!
+    promoCode: String!
+  ): GeneratedPromoCode!
+}

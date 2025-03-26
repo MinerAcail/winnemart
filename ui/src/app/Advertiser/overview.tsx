@@ -1,4 +1,3 @@
-
 import {
   Card,
   CardContent,
@@ -6,36 +5,46 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
 import { toast } from "sonner";
+import { gql, useQuery } from "@apollo/client";
 
-// Sample promo codes for quick access
-const quickPromoCodes = [
-  { code: "ITEMS", discount: "10% Off" },
-  { code: "FREESHIP", discount: "Free Shipping" },
-];
+const GET_ALL_PROMO_CODE = gql`
+query GetAllPromoCode {
+  getAllPromoCode {
+    id
+    vendorId
+    promoCode
+    discountApplied
+  }
+}
+`;
+
+const GET_VENDOR = gql`
+  query getSharedVendor($Vendor: String!) {
+    getSharedVendor(VendorId: $Vendor) {
+      id
+      name
+      dpfile
+    }
+  }
+`;
+
+// Define the PromoCode type
+type PromoCode = {
+  id: string;
+  vendorId: string;
+  promoCode: string;
+  discountApplied: string;
+};
 
 export function Overview() {
-  const copyToClipboard = (code: string) => {
-    if (navigator.clipboard) {
-      navigator.clipboard
-        .writeText(code)
-        .then(() => {
-          toast.success("Copied to clipboard", {
-            description: `Promo code ${code} has been copied.`,
-          });
-        })
-        .catch(() => {
-          toast.error("Failed to copy", {
-            description: "Could not copy the promo code.",
-          });
-        });
-    } else {
-      toast.error("Clipboard not supported");
-    }
-  };
+  const { loading: promoLoading, error: promoError, data: promoData } = useQuery(GET_ALL_PROMO_CODE);
+
+
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -84,7 +93,6 @@ export function Overview() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-               
                 <Badge variant="secondary">Trending up</Badge>
               </CardHeader>
               <CardContent>
@@ -107,35 +115,106 @@ export function Overview() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {quickPromoCodes.map((promo) => (
-              <Card
-                key={promo.code}
-                className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300"
-              >
-                <CardHeader className="p-3 pb-0">
-                  <CardTitle className="text-sm">{promo.discount}</CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 pt-2">
-                  <div className="flex items-center justify-between">
-                    <code className="relative rounded bg-muted px-2 py-1 font-mono text-xs font-semibold">
-                      {promo.code}
-                    </code>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => copyToClipboard(promo.code)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {promoLoading ? (
+            <p>Loading promo codes...</p>
+          ) : promoError ? (
+            <p>Error loading promo codes: {promoError.message}</p>
+          ) : (
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {promoData?.getAllPromoCode.map((promo: PromoCode) => (
+              <PromocodeCard 
+                key={promo.id} 
+                promoCode={promo.promoCode} 
+                discountApplied={promo.discountApplied}
+                vendorId={promo.vendorId}
+              />
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function PromocodeCard({ 
+  promoCode, 
+  discountApplied, 
+  vendorId 
+}: { 
+  promoCode: string, 
+  discountApplied: string, 
+  vendorId: string 
+}) {
+  const { loading, error, data } = useQuery(GET_VENDOR, {
+    variables: { Vendor: vendorId },
+  });
+
+  const copyToClipboard = (code: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard
+        .writeText(code)
+        .then(() => {
+          toast.success("Copied to clipboard", {
+            description: `Promo code ${code} has been copied.`,
+          });
+        })
+        .catch(() => {
+          toast.error("Failed to copy", {
+            description: "Could not copy the promo code.",
+          });
+        });
+    } else {
+      toast.error("Clipboard not supported");
+    }
+  };
+
+  if (loading) return (
+    <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+      <p>Loading vendor details...</p>
+    </Card>
+  );
+
+  if (error) return (
+    <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+      <p>Error loading vendor: {error.message}</p>
+    </Card>
+  );
+
+  const vendor = data?.getSharedVendor;
+
+  return (
+    <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+      <CardHeader className="p-3 pb-0 flex flex-row items-center space-x-3">
+        <Avatar>
+          <AvatarImage 
+            src={vendor?.dpfile || "/default-avatar.png"} 
+            alt={vendor?.name || "Vendor Avatar"} 
+          />
+          <AvatarFallback>
+            {vendor?.name ? vendor.name.charAt(0) : '?'}
+          </AvatarFallback>
+        </Avatar>
+        <div>
+          <CardTitle className="text-sm">{discountApplied}</CardTitle>
+          <p className="text-xs text-muted-foreground">{vendor?.name || 'Unknown Vendor'}</p>
+        </div>
+      </CardHeader>
+      <CardContent className="p-3 pt-2">
+        <div className="flex items-center justify-between">
+          <code className="relative rounded bg-muted px-2 py-1 font-mono text-xs font-semibold">
+            {promoCode}
+          </code>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => copyToClipboard(promoCode)}
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -72,7 +72,45 @@ func SetOrderTrackingCookie(w http.ResponseWriter, ctx context.Context, orderID 
 	log.Println("Updated Order Tracking Cookie:", string(newValue))
 	return nil
 }
+func SetPromocodeTrackingCookie(w http.ResponseWriter, ctx context.Context, promocodeID string, existspromocodeIDs []string) error {
+	const cookieName = "promocode_tracking"
 
+	// Check if promocode ID already exists
+	for _, id := range existspromocodeIDs {
+		if id == promocodeID {
+			log.Println("promocode ID already exists in cookie:", promocodeID)
+			return nil
+		}
+	}
+
+	// Append new promocode ID
+	existspromocodeIDs = append(existspromocodeIDs, promocodeID)
+
+	// Convert updated promocode IDs to JSON
+	newValue, err := json.Marshal(existspromocodeIDs)
+	if err != nil {
+		return err
+	}
+
+	// Determine if secure mode should be enabled (based on HTTPS)
+	secureFlag := ctx.Value("isHTTPS") == true // Adjust based on actual implementation
+
+	// Set the updated cookie
+	newCookie := &http.Cookie{
+		Name:     cookieName,
+		Value:    string(newValue),
+		Path:     "/",
+		HttpOnly: true,
+		Domain:   "winnemart.com", // Ensure this matches your main domain
+		Secure:   secureFlag,      // Secure should be true only if HTTPS is used
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(24 * time.Hour),
+	}
+
+	http.SetCookie(w, newCookie)
+	log.Println("Updated promocode Tracking Cookie:", string(newValue))
+	return nil
+}
 func SetjobRequestCookie(w http.ResponseWriter, requestId string) error {
 	cookie := &http.Cookie{
 		Name:   "job_request",
@@ -183,6 +221,42 @@ func GetOrderTrackingCookie(r *http.Request) ([]string, error) {
 	}
 
 	return orderIDs, nil
+}
+func GetPromocodeTrackingCookie(r *http.Request) ([]string, error) {
+	cookie, err := r.Cookie("promocode_tracking")
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			return []string{}, nil
+		}
+		return nil, err
+	}
+
+	var promocodeIDs []string
+	rawValue := cookie.Value
+
+	// First, attempt to unmarshal as JSON array
+	if json.Valid([]byte(rawValue)) {
+		if err := json.Unmarshal([]byte(rawValue), &promocodeIDs); err == nil {
+			return promocodeIDs, nil
+		}
+	}
+
+	log.Println("Malformed JSON detected in cookie:", rawValue)
+
+	// Remove outer brackets
+	rawValue = strings.Trim(rawValue, "[]\"")
+
+	// Handle cases where IDs are inside inner brackets
+	rawValue = strings.ReplaceAll(rawValue, "[", "")
+	rawValue = strings.ReplaceAll(rawValue, "]", "")
+	rawValue = strings.ReplaceAll(rawValue, "\"", "")
+
+	// Split by comma
+	if rawValue != "" {
+		promocodeIDs = strings.Split(rawValue, ",")
+	}
+
+	return promocodeIDs, nil
 }
 func RemoveOrderFromTrackingCookie(w http.ResponseWriter, ctx context.Context, orderID string, existsOrderIDs []string) error {
 	const cookieName = "order_tracking"

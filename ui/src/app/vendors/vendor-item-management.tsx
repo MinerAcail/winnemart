@@ -25,6 +25,7 @@ import {
 
 import { gql, useQuery, useMutation } from "@apollo/client";
 import { toast } from "sonner";
+import { ghSim } from "@/components/custom/ItemGrid";
 
 const GET_VENDOR_PRODUCTS = gql`
   query getVendorProducts {
@@ -230,7 +231,7 @@ export default function VendorItemManagement() {
                           step="0.01"
                         />
                       ) : (
-                        <p className="text-lg font-bold">${item.price.toFixed(2)}</p>
+                        <p className="text-lg font-bold">{ghSim}{item.price.toFixed(2)}</p>
                       )}
                     </div>
                   </div>

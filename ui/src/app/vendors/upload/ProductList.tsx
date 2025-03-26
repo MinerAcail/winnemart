@@ -1,3 +1,4 @@
+import { ghSim } from "@/components/custom/ItemGrid";
 import type { Product } from "./types";
 import { gql, useMutation, useQuery } from "@apollo/client";
 import { X } from "lucide-react";
@@ -60,7 +61,7 @@ export default function ProductList() {
                   <X className="w-4 h-4" />
                 </button>
                 <h3 className="text-xl font-bold mb-2">{product.name}</h3>
-                <p className="text-gray-600">Price: ${product.price}</p>
+                <p className="text-gray-600">Price: {ghSim}{product.price}</p>
               </li>
             ))}
           </ul>

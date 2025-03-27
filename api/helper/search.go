@@ -3,6 +3,7 @@ package helper
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/mineracail/sergi/graph/model"
 	"gorm.io/gorm"
@@ -64,10 +65,10 @@ func ExecuteSearchQuery(db *gorm.DB, query string) ([]*model.Product, error) {
 }
 
 func ExecuteSearchQueryWithVendorPriority(db *gorm.DB, query string, vendorID string) ([]*model.Product, error) {
-    var products []*model.Product
-    similarityThreshold := 0.12
+	var products []*model.Product
+	similarityThreshold := 0.12
 
-    err := db.Raw(`
+	err := db.Raw(`
         WITH ranked_products AS (
             SELECT 
                 *,
@@ -106,13 +107,13 @@ func ExecuteSearchQueryWithVendorPriority(db *gorm.DB, query string, vendorID st
             (CASE WHEN typo_distance <= 2 THEN (5 - typo_distance) * 2 ELSE 0 END)
         DESC LIMIT 50
     `, vendorID, query, query, query, query, query, query, query, query, fmt.Sprintf("%f", similarityThreshold),
-        query, query, query, query, query, query, query, query).Find(&products).Error
+		query, query, query, query, query, query, query, query).Find(&products).Error
 
-    if err != nil {
-        return nil, fmt.Errorf("failed to search products: %v", err)
-    }
+	if err != nil {
+		return nil, fmt.Errorf("failed to search products: %v", err)
+	}
 
-    return products, nil
+	return products, nil
 }
 
 func ExecuteCategorySearchQuery(db *gorm.DB, query string) ([]*model.CategoryBox, error) {
@@ -165,32 +166,68 @@ func ExecuteCategorySearchQuery(db *gorm.DB, query string) ([]*model.CategoryBox
 }
 
 // fetchAllProducts retrieves all products ordered by created_at
+//
+//	func FetchAllProducts(db *gorm.DB) ([]*model.Product, error) {
+//		var products []*model.Product
+//		if err := db.Where("state != ?", "INACTIVE").Order("created_at DESC").Find(&products).Error; err != nil {
+//			return nil, fmt.Errorf("failed to fetch products: %v", err)
+//		}
+//		return products, nil
+//	}
 func FetchAllProducts(db *gorm.DB) ([]*model.Product, error) {
 	var products []*model.Product
-	if err := db.Where("state != ?", "INACTIVE").Order("created_at DESC").Find(&products).Error; err != nil {
+
+	// Get current hour
+	currentHour := time.Now().Hour()
+	var timeCategory string
+
+	// Determine the current time category
+	switch {
+	case currentHour >= 5 && currentHour < 12:
+		timeCategory = "morning"
+	case currentHour >= 12 && currentHour < 17:
+		timeCategory = "afternoon"
+	default:
+		timeCategory = "evening"
+	}
+
+	// Order products based on time relevance and price (lower prices first)
+	if err := db.Where("state != ?", "INACTIVE").
+		Order(fmt.Sprintf(`
+			CASE 
+				WHEN categories @> ARRAY['%s'] THEN 1  -- Exact time match first
+				WHEN categories @> ARRAY['morning', 'afternoon', 'evening'] THEN 2  -- All time categories
+				WHEN categories && ARRAY['morning', 'afternoon', 'evening'] THEN 3  -- At least one time category
+				ELSE 4  -- No time category
+			END, 
+			CAST(price AS NUMERIC) ASC, -- Sort by lowest price within each category
+			created_at DESC -- If price is the same, show newest products first
+		`, timeCategory)).
+		Find(&products).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch products: %v", err)
 	}
+
 	return products, nil
 }
 
 func FetchProductsWithVendorPriority(db *gorm.DB, vendorID string) ([]*model.Product, error) {
-    var vendorProducts []*model.Product
-    var otherProducts []*model.Product
+	var vendorProducts []*model.Product
+	var otherProducts []*model.Product
 
-    // Fetch products with the specified vendorID, excluding inactive products
-    if err := db.Where("state != ? AND vendor_id = ?", "INACTIVE", vendorID).
-        Order("created_at DESC").Find(&vendorProducts).Error; err != nil {
-        return nil, fmt.Errorf("failed to fetch vendor products: %v", err)
-    }
+	// Fetch products with the specified vendorID, excluding inactive products
+	if err := db.Where("state != ? AND vendor_id = ?", "INACTIVE", vendorID).
+		Order("created_at DESC").Find(&vendorProducts).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch vendor products: %v", err)
+	}
 
-    // Fetch all other products, excluding inactive products
-    if err := db.Where("state != ? AND (vendor_id IS NULL OR vendor_id != ?)", "INACTIVE", vendorID).
-        Order("created_at DESC").Find(&otherProducts).Error; err != nil {
-        return nil, fmt.Errorf("failed to fetch other products: %v", err)
-    }
+	// Fetch all other products, excluding inactive products
+	if err := db.Where("state != ? AND (vendor_id IS NULL OR vendor_id != ?)", "INACTIVE", vendorID).
+		Order("created_at DESC").Find(&otherProducts).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch other products: %v", err)
+	}
 
-    // Combine the results with vendor products first
-    allProducts := append(vendorProducts, otherProducts...)
+	// Combine the results with vendor products first
+	allProducts := append(vendorProducts, otherProducts...)
 
-    return allProducts, nil
+	return allProducts, nil
 }

@@ -116,7 +116,7 @@ func (r *mutationResolver) UpdateVendor(ctx context.Context, dpfile *graphql.Upl
 
 	if dpfile != nil {
 		// Generate bucket name
-		simpleName := strings.ToLower(strings.ReplaceAll(*input.Name, " ", "-"))
+		simpleName := strings.ToLower(strings.ReplaceAll(vendor.Name, " ", "-"))
 		simpleName = regexp.MustCompile(`[^a-z0-9-]`).ReplaceAllString(simpleName, "")
 		bucketName := fmt.Sprintf("v-%s", simpleName[:helper.MinInt(len(simpleName), 10)])
 

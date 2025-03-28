@@ -1055,14 +1055,25 @@ func (r *queryResolver) GetProduct(ctx context.Context, id string) (*model.Produ
 }
 
 // GetAllProducts is the resolver for the getAllProducts field.
-func (r *queryResolver) GetAllProducts(ctx context.Context, query *string, vendorID *string) ([]*model.Product, error) {
+func (r *queryResolver) GetAllProducts(ctx context.Context, query *string, vendorID *string, limit *int32, offset *int32) ([]*model.Product, error) {
 	middleware.CleanupOrderTrackingCookie(ctx, r.DB)
 
+	limitVal := 10  // Default limit
+	offsetVal := 0  // Default offset
+	
+	
+	
 	// Handle empty query
 	if query == nil {
 		if vendorID == nil {
+			if limit != nil {
+				limitVal = int(*limit)
+			}
+			if offset != nil {
+				offsetVal = int(*offset)
+			}
 			// No vendorID specified, fetch all products normally
-			return helper.FetchAllProducts(r.DB)
+			return helper.FetchAllProducts(r.DB, limitVal, offsetVal)
 		} else {
 			// VendorID specified, prioritize those products
 			return helper.FetchProductsWithVendorPriority(r.DB, *vendorID)
@@ -1117,7 +1128,7 @@ func (r *queryResolver) SearchProducts(ctx context.Context, query string) ([]*mo
 
 	// Handle empty query
 	if cleanQuery == "" {
-		return helper.FetchAllProducts(r.DB)
+		return helper.FetchAllProduct(r.DB)
 	}
 
 	// Execute search query

@@ -117,7 +117,7 @@ type UserInfor {
 }
 extend type Query {
   getProduct(id: String!): Product!
-  getAllProducts(query: String,vendorId:String): [Product!]!
+  getAllProducts(query: String,vendorId:String,limit: Int, offset: Int): [Product!]!
   getAllCategories: [String]
   searchProducts(query: String!): [Product!]!
   getAllProductsByAdmin: [ProductInfor!]!

@@ -1,6 +1,6 @@
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- Get current user
 SELECT current_user;
 

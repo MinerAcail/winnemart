@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useMutation, useQuery } from "@apollo/client";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { gql } from "@apollo/client";
@@ -17,8 +17,8 @@ import CategoryBar from "@/components/ui/category-bar.tsx";
 import { useParams } from "react-router";
 
 const GET_PRODUCTS = gql`
-  query getAllProducts($query: String, $vendorId: String) {
-    getAllProducts(query: $query, vendorId: $vendorId) {
+  query getAllProducts($query: String, $vendorId: String, $limit: Int, $offset: Int) {
+    getAllProducts(query: $query, vendorId: $vendorId, limit: $limit, offset: $offset) {
       id
       name
       price
@@ -31,44 +31,31 @@ const GET_PRODUCTS = gql`
   }
 `;
 
+const LIMIT = 10;
+
 const HostelStoreContent: React.FC = () => {
   const { vendorId } = useParams();
   const { isDesktop } = useDeviceType();
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [searchTerm, setSearchTerm] = useState<string>(""); // Controlled search state
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedProduct, setSelectedProduct] = useState<Item | null>(null);
-  const {
-    cart,
-    hostelDetails,
-    setHostelDetails,
-    removeFromCart,
-    addToCart,
-    placeOrder,
-  } = useCart();
+  const observer = useRef<IntersectionObserver | null>(null);
 
-  // Prepare variables object
-  const queryVariables: { query: string; vendorId?: string } = {
-    query: searchTerm,
-  };
+  const { cart, hostelDetails, setHostelDetails, removeFromCart, addToCart, placeOrder } = useCart();
 
-  // Check if vendorId exists and is not empty or whitespace
-  if (vendorId !== undefined && vendorId !== null && vendorId.trim() !== "") {
-    queryVariables.vendorId = vendorId;
-  }
-
-  // Use the conditionally built variables object
-  const { data, loading, error, refetch } = useQuery(GET_PRODUCTS, {
-    variables: queryVariables,
+  const { data, loading, error, fetchMore, refetch } = useQuery(GET_PRODUCTS, {
+    variables: { query: searchTerm, vendorId: vendorId?.trim() || null, limit: LIMIT, offset: 0 },
+    notifyOnNetworkStatusChange: true,
+    fetchPolicy: 'network-only', // Force network request each time
+    nextFetchPolicy: 'network-only', // Ensure subsequent fetches also hit network
   });
 
-  // Load category from URL on component mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const category = params.get("category") || "All";
     setSelectedCategory(category);
   }, []);
 
-  // Update URL when category changes
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
 
@@ -78,42 +65,64 @@ const HostelStoreContent: React.FC = () => {
       params.delete("category");
     }
 
-    const newUrl = `${window.location.pathname}${
-      params.toString() ? "?" + params.toString() : ""
-    }`;
-    window.history.pushState({}, "", newUrl);
+    window.history.pushState({}, "", `${window.location.pathname}${params.toString() ? "?" + params.toString() : ""}`);
   }, [selectedCategory]);
 
-  // Handle search input changes
   function handleSearch(value: string): void {
     setSearchTerm(value);
-    refetch({ query: value }); // Refetch data with new search term
+    refetch({ query: value });
   }
 
-  // if (loading) return <Loading />;
+  const loadMoreProducts = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const firstEntry = entries[0];
+      if (firstEntry.isIntersecting && data?.getAllProducts.length >= LIMIT) {
+        fetchMore({
+          variables: {
+            query: searchTerm,
+            vendorId: vendorId?.trim() || null,
+            limit: LIMIT,
+            offset: data?.getAllProducts.length || 0,
+          },
+          updateQuery: (prev, { fetchMoreResult }) => {
+            if (!fetchMoreResult || fetchMoreResult.getAllProducts.length === 0) return prev;
+            return {
+              getAllProducts: [...prev.getAllProducts, ...fetchMoreResult.getAllProducts],
+            };
+          },
+        });
+      }
+    },
+    [fetchMore, searchTerm, vendorId, data]
+  );
+
+  useEffect(() => {
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(loadMoreProducts, { threshold: 1.0 });
+
+    const target = document.getElementById("load-more-trigger");
+    if (target) observer.current.observe(target);
+
+    return () => observer.current?.disconnect(); // Cleanup observer
+  }, [loadMoreProducts, data]);
+
   if (error) return <p>Error: {error.message}</p>;
 
-  // Extract items from the fetched data
   const products: Item[] = data?.getAllProducts ?? [];
-
-  // Filter products by selected category
   const filteredItems: Item[] = products.filter(
-    (item) =>
-      selectedCategory === "All" || item.categories.includes(selectedCategory)
+    (item) => selectedCategory === "All" || item.categories.includes(selectedCategory)
   );
 
   return (
     <div className="maincontainer mx-auto px-4">
       <WelcomePopupCard />
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Main content */}
         <div className="w-full">
           <div className="pb-11">
             <NavBar onSearch={handleSearch} />
           </div>
-
           <CategoryBar onCategoryChange={handleSearch} />
-          {loading ? (
+          {loading && products.length === 0 ? (
             <Loading />
           ) : (
             <>
@@ -129,25 +138,13 @@ const HostelStoreContent: React.FC = () => {
               )}
             </>
           )}
-          <ItemCarousel
-            selectedProduct={selectedProduct}
-            setSelectedProduct={setSelectedProduct}
-            addToCart={addToCart}
-          />
+          <div id="load-more-trigger" className="h-10" />
+          <ItemCarousel selectedProduct={selectedProduct} setSelectedProduct={setSelectedProduct} addToCart={addToCart} />
         </div>
-
-        {/* Cart sidebar */}
         {filteredItems.length !== 0 && isDesktop && (
           <div className="w-full lg:w-1/4">
-            {/* <MultipleCountdown /> */}
             <div className="sticky top-4">
-              <CartSidebar
-                cart={cart}
-                hostelDetails={hostelDetails}
-                setHostelDetails={setHostelDetails}
-                removeFromCart={removeFromCart}
-                placeOrder={placeOrder}
-              />
+              <CartSidebar cart={cart} hostelDetails={hostelDetails} setHostelDetails={setHostelDetails} removeFromCart={removeFromCart} placeOrder={placeOrder} />
             </div>
           </div>
         )}
@@ -155,6 +152,8 @@ const HostelStoreContent: React.FC = () => {
     </div>
   );
 };
+
+
 
 const HostelStoreApp: React.FC = () => {
   const rawOrderId = localStorage.getItem("foodie_last_order_id");

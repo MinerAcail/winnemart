@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Item } from "@/hooks/CartContext.tsx";
@@ -132,28 +132,22 @@ const ItemGrid: React.FC<ItemGridProps> = ({
     }
   }, [data]);
 
-  const isItemAvailable = (item: Item): boolean => {
+  const vendorUnavailablePeriodsMap = useMemo(() => {
+    return unavailablePeriods.reduce((acc, period) => {
+      if (!acc[period.VendorId]) acc[period.VendorId] = [];
+      acc[period.VendorId].push(period);
+      return acc;
+    }, {} as Record<string, UnavailablePeriod[]>);
+  }, [unavailablePeriods]);
+
+  const isItemAvailable = useCallback((item: Item): boolean => {
     const currentDay = getCurrentDayName();
-    
-    // Find if this vendor has any unavailable periods for the current day
-    const vendorUnavailablePeriods = unavailablePeriods.filter(
-      period => period.VendorId === item.VendorId && period.day === currentDay
+    const vendorUnavailablePeriods = item.VendorId ? vendorUnavailablePeriodsMap[item.VendorId] || [] : [];
+
+    return !vendorUnavailablePeriods.some(period => 
+      period.day === currentDay && isTimeInRange(period.startTime, period.endTime)
     );
-    
-    // If no unavailable periods for today, the item is available
-    if (vendorUnavailablePeriods.length === 0) {
-      return true;
-    }
-    
-    // Check if current time falls within any unavailable period
-    for (const period of vendorUnavailablePeriods) {
-      if (isTimeInRange(period.startTime, period.endTime)) {
-        return false; // Current time is within an unavailable period
-      }
-    }
-    
-    return true; // Current time is not within any unavailable period
-  };
+  }, [vendorUnavailablePeriodsMap]);
 
   if (loading) {
     return <div className="text-center py-8">Loading availability information...</div>;
@@ -161,15 +155,15 @@ const ItemGrid: React.FC<ItemGridProps> = ({
 
   if (error) {
     console.error("Error loading availability data:", error);
-    // If we can't load availability data, we'll assume all items are available
   }
 
   return (
     <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 ${className || ''}`}>
       {filteredItems.length > 0 ? (
-        filteredItems.map((item) => (
+        filteredItems.map((item,index) => (
           <ItemCard 
-            key={item.id || `item-${item.name}-${item.commission}`}
+          key={`${item.id || 'no-id'}-${index}-${item.name}-${item.commission}`}
+
             item={item}
             onAddToCart={() => addToCart(item)}
             onItemSelect={(e) => {
@@ -187,5 +181,6 @@ const ItemGrid: React.FC<ItemGridProps> = ({
     </div>
   );
 };
+
 
 export default ItemGrid;

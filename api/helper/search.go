@@ -167,21 +167,55 @@ func ExecuteCategorySearchQuery(db *gorm.DB, query string) ([]*model.CategoryBox
 
 // fetchAllProducts retrieves all products ordered by created_at
 //
-//	func FetchAllProducts(db *gorm.DB) ([]*model.Product, error) {
-//		var products []*model.Product
-//		if err := db.Where("state != ?", "INACTIVE").Order("created_at DESC").Find(&products).Error; err != nil {
-//			return nil, fmt.Errorf("failed to fetch products: %v", err)
-//		}
-//		return products, nil
-//	}
-func FetchAllProducts(db *gorm.DB) ([]*model.Product, error) {
+	func FetchAllProduct(db *gorm.DB) ([]*model.Product, error) {
+		var products []*model.Product
+		if err := db.Where("state != ?", "INACTIVE").Order("created_at DESC").Find(&products).Error; err != nil {
+			return nil, fmt.Errorf("failed to fetch products: %v", err)
+		}
+		return products, nil
+	}
+// func FetchAllProducts(db *gorm.DB) ([]*model.Product, error) {
+// 	var products []*model.Product
+
+// 	// Get current hour
+// 	currentHour := time.Now().Hour()
+// 	var timeCategory string
+
+// 	// Determine the current time category
+// 	switch {
+// 	case currentHour >= 5 && currentHour < 12:
+// 		timeCategory = "morning"
+// 	case currentHour >= 12 && currentHour < 17:
+// 		timeCategory = "afternoon"
+// 	default:
+// 		timeCategory = "evening"
+// 	}
+
+// 	// Order products based on time relevance and price (lower prices first)
+// 	if err := db.Where("state != ?", "INACTIVE").
+// 		Order(fmt.Sprintf(`
+// 			CASE 
+// 				WHEN categories @> ARRAY['%s'] THEN 1  -- Exact time match first
+// 				WHEN categories @> ARRAY['morning', 'afternoon', 'evening'] THEN 2  -- All time categories
+// 				WHEN categories && ARRAY['morning', 'afternoon', 'evening'] THEN 3  -- At least one time category
+// 				ELSE 4  -- No time category
+// 			END, 
+// 			CAST(price AS NUMERIC) ASC, -- Sort by lowest price within each category
+// 			created_at DESC -- If price is the same, show newest products first
+// 		`, timeCategory)).
+// 		Find(&products).Error; err != nil {
+// 		return nil, fmt.Errorf("failed to fetch products: %v", err)
+// 	}
+
+// 	return products, nil
+// }
+
+func FetchAllProducts(db *gorm.DB, limit int, offset int) ([]*model.Product, error) {
 	var products []*model.Product
 
-	// Get current hour
 	currentHour := time.Now().Hour()
 	var timeCategory string
 
-	// Determine the current time category
 	switch {
 	case currentHour >= 5 && currentHour < 12:
 		timeCategory = "morning"
@@ -191,24 +225,29 @@ func FetchAllProducts(db *gorm.DB) ([]*model.Product, error) {
 		timeCategory = "evening"
 	}
 
-	// Order products based on time relevance and price (lower prices first)
-	if err := db.Where("state != ?", "INACTIVE").
+	query := db.Where("state != ?", "INACTIVE")
+
+	if err := query.
 		Order(fmt.Sprintf(`
 			CASE 
-				WHEN categories @> ARRAY['%s'] THEN 1  -- Exact time match first
-				WHEN categories @> ARRAY['morning', 'afternoon', 'evening'] THEN 2  -- All time categories
-				WHEN categories && ARRAY['morning', 'afternoon', 'evening'] THEN 3  -- At least one time category
-				ELSE 4  -- No time category
+				WHEN categories @> ARRAY['%s'] THEN 1
+				WHEN categories @> ARRAY['morning', 'afternoon', 'evening'] THEN 2
+				WHEN categories && ARRAY['morning', 'afternoon', 'evening'] THEN 3
+				ELSE 4
 			END, 
-			CAST(price AS NUMERIC) ASC, -- Sort by lowest price within each category
-			created_at DESC -- If price is the same, show newest products first
+			CAST(price AS NUMERIC) ASC,
+			gen_random_uuid()
 		`, timeCategory)).
+		Limit(limit).
+		Offset(offset).
 		Find(&products).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch products: %v", err)
 	}
 
 	return products, nil
 }
+
+
 
 func FetchProductsWithVendorPriority(db *gorm.DB, vendorID string) ([]*model.Product, error) {
 	var vendorProducts []*model.Product

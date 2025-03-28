@@ -298,7 +298,7 @@ type ComplexityRoot struct {
 		GetAllOrderItemsByProductIDDelivery func(childComplexity int) int
 		GetAllOrderS                        func(childComplexity int) int
 		GetAllOrdersWithPromo               func(childComplexity int) int
-		GetAllProducts                      func(childComplexity int, query *string, vendorID *string) int
+		GetAllProducts                      func(childComplexity int, query *string, vendorID *string, limit *int32, offset *int32) int
 		GetAllProductsByAdmin               func(childComplexity int) int
 		GetAllPromoCode                     func(childComplexity int) int
 		GetAllRequestItems                  func(childComplexity int) int
@@ -581,7 +581,7 @@ type QueryResolver interface {
 	CheckPromoCode(ctx context.Context, productIds []string, promoCode string) ([]*model.ProductData, error)
 	PriceWithPromocode(ctx context.Context, orderIDs []string) ([]*model.NewData, error)
 	GetProduct(ctx context.Context, id string) (*model.Product, error)
-	GetAllProducts(ctx context.Context, query *string, vendorID *string) ([]*model.Product, error)
+	GetAllProducts(ctx context.Context, query *string, vendorID *string, limit *int32, offset *int32) ([]*model.Product, error)
 	GetAllCategories(ctx context.Context) ([]*string, error)
 	SearchProducts(ctx context.Context, query string) ([]*model.Product, error)
 	GetAllProductsByAdmin(ctx context.Context) ([]*model.ProductInfor, error)
@@ -2114,7 +2114,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.GetAllProducts(childComplexity, args["query"].(*string), args["vendorId"].(*string)), true
+		return e.complexity.Query.GetAllProducts(childComplexity, args["query"].(*string), args["vendorId"].(*string), args["limit"].(*int32), args["offset"].(*int32)), true
 
 	case "Query.getAllProductsByAdmin":
 		if e.complexity.Query.GetAllProductsByAdmin == nil {
@@ -4813,6 +4813,16 @@ func (ec *executionContext) field_Query_getAllProducts_args(ctx context.Context,
 		return nil, err
 	}
 	args["vendorId"] = arg1
+	arg2, err := ec.field_Query_getAllProducts_argsLimit(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg2
+	arg3, err := ec.field_Query_getAllProducts_argsOffset(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg3
 	return args, nil
 }
 func (ec *executionContext) field_Query_getAllProducts_argsQuery(
@@ -4838,6 +4848,32 @@ func (ec *executionContext) field_Query_getAllProducts_argsVendorID(
 	}
 
 	var zeroVal *string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getAllProducts_argsLimit(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int32, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+	if tmp, ok := rawArgs["limit"]; ok {
+		return ec.unmarshalOInt2ᚖint32(ctx, tmp)
+	}
+
+	var zeroVal *int32
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_getAllProducts_argsOffset(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int32, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
+	if tmp, ok := rawArgs["offset"]; ok {
+		return ec.unmarshalOInt2ᚖint32(ctx, tmp)
+	}
+
+	var zeroVal *int32
 	return zeroVal, nil
 }
 
@@ -14305,7 +14341,7 @@ func (ec *executionContext) _Query_getAllProducts(ctx context.Context, field gra
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().GetAllProducts(rctx, fc.Args["query"].(*string), fc.Args["vendorId"].(*string))
+		return ec.resolvers.Query().GetAllProducts(rctx, fc.Args["query"].(*string), fc.Args["vendorId"].(*string), fc.Args["limit"].(*int32), fc.Args["offset"].(*int32))
 	})
 	if err != nil {
 		ec.Error(ctx, err)

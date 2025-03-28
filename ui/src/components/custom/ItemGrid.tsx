@@ -6,6 +6,7 @@ import { useQuery, gql } from "@apollo/client";
 import { Product } from "@/app/vendors/upload/types";
 import { Badge } from "../ui/badge";
 import { Plus, Share } from "lucide-react";
+import { toast } from "sonner";
 
 // Currency symbol for Ghana Cedis
 export const ghSim = "GH¢";
@@ -83,36 +84,20 @@ const ItemCard = memo(
     onItemSelect: (e: React.MouseEvent) => void;
     isAvailable: boolean;
   }) => {
-    const productUrl =
-      typeof window !== "undefined"
-        ? window.location.origin + `/product/${item.id}`
-        : `https://winnemart.com/product/${item.id}`;
-
+ 
     // Function to handle sharing
-    const handleShare = async (e: React.MouseEvent) => {
-      e.stopPropagation();
-
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: item.name,
-            text: `Check out this product: ${item.name} on Winnemart!`,
-            url: productUrl,
-          });
-        } catch (error) {
-          console.error("Error sharing:", error);
-        }
-      } else {
-        // Fallback: Copy URL to clipboard
-        try {
-          await navigator.clipboard.writeText(productUrl);
-          alert("Product link copied to clipboard!");
-        } catch (error) {
-          console.error("Failed to copy:", error);
-        }
-      }
+    const handleShare = () => {
+      const productId = item?.id;
+  
+      // Create a sharable URL with vendor ID
+      const baseUrl = "https://ssr.winnemart.com";
+      const shareUrl = productId
+        ? `${baseUrl}/product/${productId}`
+        : window.location.href;
+      navigator.clipboard.writeText(shareUrl);
+      toast("Link copied to clipboard.");
+      // console.log(shareUrl);
     };
-
     return (
       <Card className="hover:shadow-xl transition-all duration-300">
         <CardContent

@@ -14,11 +14,21 @@ import { NoItemsFound } from "@/components/custom/Empty.tsx";
 // import MultipleCountdown from "@/components/custom/timer.tsx";
 import { WelcomePopupCard } from "@/components/ui/welcome-popup-card.tsx";
 import CategoryBar from "@/components/ui/category-bar.tsx";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 
 const GET_PRODUCTS = gql`
-  query getAllProducts($query: String, $vendorId: String, $limit: Int, $offset: Int) {
-    getAllProducts(query: $query, vendorId: $vendorId, limit: $limit, offset: $offset) {
+  query getAllProducts(
+    $query: String
+    $vendorId: String
+    $limit: Int
+    $offset: Int
+  ) {
+    getAllProducts(
+      query: $query
+      vendorId: $vendorId
+      limit: $limit
+      offset: $offset
+    ) {
       id
       name
       price
@@ -35,19 +45,33 @@ const LIMIT = 10;
 
 const HostelStoreContent: React.FC = () => {
   const { vendorId } = useParams();
+  const [searchParams] = useSearchParams();
+  const name = searchParams.get("name"); // Get "name" query param
   const { isDesktop } = useDeviceType();
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>(name || ""); // Use name if available
   const [selectedProduct, setSelectedProduct] = useState<Item | null>(null);
   const observer = useRef<IntersectionObserver | null>(null);
 
-  const { cart, hostelDetails, setHostelDetails, removeFromCart, addToCart, placeOrder } = useCart();
+  const {
+    cart,
+    hostelDetails,
+    setHostelDetails,
+    removeFromCart,
+    addToCart,
+    placeOrder,
+  } = useCart();
 
   const { data, loading, error, fetchMore, refetch } = useQuery(GET_PRODUCTS, {
-    variables: { query: searchTerm, vendorId: vendorId?.trim() || null, limit: LIMIT, offset: 0 },
+    variables: {
+      query: searchTerm.trim() || null,
+      vendorId: vendorId?.trim() || null,
+      limit: LIMIT,
+      offset: 0,
+    },
     notifyOnNetworkStatusChange: true,
-    fetchPolicy: 'network-only', // Force network request each time
-    nextFetchPolicy: 'network-only', // Ensure subsequent fetches also hit network
+    fetchPolicy: "network-only", // Force network request each time
+    nextFetchPolicy: "network-only", // Ensure subsequent fetches also hit network
   });
 
   useEffect(() => {
@@ -65,7 +89,13 @@ const HostelStoreContent: React.FC = () => {
       params.delete("category");
     }
 
-    window.history.pushState({}, "", `${window.location.pathname}${params.toString() ? "?" + params.toString() : ""}`);
+    window.history.pushState(
+      {},
+      "",
+      `${window.location.pathname}${
+        params.toString() ? "?" + params.toString() : ""
+      }`
+    );
   }, [selectedCategory]);
 
   function handleSearch(value: string): void {
@@ -85,9 +115,13 @@ const HostelStoreContent: React.FC = () => {
             offset: data?.getAllProducts.length || 0,
           },
           updateQuery: (prev, { fetchMoreResult }) => {
-            if (!fetchMoreResult || fetchMoreResult.getAllProducts.length === 0) return prev;
+            if (!fetchMoreResult || fetchMoreResult.getAllProducts.length === 0)
+              return prev;
             return {
-              getAllProducts: [...prev.getAllProducts, ...fetchMoreResult.getAllProducts],
+              getAllProducts: [
+                ...prev.getAllProducts,
+                ...fetchMoreResult.getAllProducts,
+              ],
             };
           },
         });
@@ -98,7 +132,9 @@ const HostelStoreContent: React.FC = () => {
 
   useEffect(() => {
     if (observer.current) observer.current.disconnect();
-    observer.current = new IntersectionObserver(loadMoreProducts, { threshold: 1.0 });
+    observer.current = new IntersectionObserver(loadMoreProducts, {
+      threshold: 1.0,
+    });
 
     const target = document.getElementById("load-more-trigger");
     if (target) observer.current.observe(target);
@@ -110,7 +146,8 @@ const HostelStoreContent: React.FC = () => {
 
   const products: Item[] = data?.getAllProducts ?? [];
   const filteredItems: Item[] = products.filter(
-    (item) => selectedCategory === "All" || item.categories.includes(selectedCategory)
+    (item) =>
+      selectedCategory === "All" || item.categories.includes(selectedCategory)
   );
 
   return (
@@ -139,12 +176,22 @@ const HostelStoreContent: React.FC = () => {
             </>
           )}
           <div id="load-more-trigger" className="h-10" />
-          <ItemCarousel selectedProduct={selectedProduct} setSelectedProduct={setSelectedProduct} addToCart={addToCart} />
+          <ItemCarousel
+            selectedProduct={selectedProduct}
+            setSelectedProduct={setSelectedProduct}
+            addToCart={addToCart}
+          />
         </div>
         {filteredItems.length !== 0 && isDesktop && (
           <div className="w-full lg:w-1/4">
             <div className="sticky top-4">
-              <CartSidebar cart={cart} hostelDetails={hostelDetails} setHostelDetails={setHostelDetails} removeFromCart={removeFromCart} placeOrder={placeOrder} />
+              <CartSidebar
+                cart={cart}
+                hostelDetails={hostelDetails}
+                setHostelDetails={setHostelDetails}
+                removeFromCart={removeFromCart}
+                placeOrder={placeOrder}
+              />
             </div>
           </div>
         )}
@@ -152,8 +199,6 @@ const HostelStoreContent: React.FC = () => {
     </div>
   );
 };
-
-
 
 const HostelStoreApp: React.FC = () => {
   const rawOrderId = localStorage.getItem("foodie_last_order_id");

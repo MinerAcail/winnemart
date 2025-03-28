@@ -86,6 +86,7 @@ const Login = ({ children }: { children: ReactNode }) => {
         console.log(userType);
         
         if (userType === ProtectType.Driver) {
+          
           navigate("/delivery");
         } else if (userType === ProtectType.vendor) {
           navigate("/vendor");

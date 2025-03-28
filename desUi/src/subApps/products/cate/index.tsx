@@ -52,6 +52,8 @@ const DragDropBoxes: React.FC = () => {
   const [boxImage, setBoxImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+
   const { toast } = useToast();
 
   const [
@@ -69,7 +71,10 @@ const DragDropBoxes: React.FC = () => {
   );
 
   // Fetch products with Apollo Client
-  const { data, loading, error } = useQuery(GET_PRODUCTS);
+  const { data, loading, error,refetch } = useQuery(GET_PRODUCTS,{
+    variables: { query: searchTerm },
+
+  });
   const products: Product[] = data?.getAllProducts || [];
 
   // Open the name input dialog
@@ -246,6 +251,10 @@ const DragDropBoxes: React.FC = () => {
     }
   };
 
+  function handleSearch(value: string): void {
+    setSearchTerm(value);
+    refetch({ query: value });
+  }
   if (loading)
     return <div className="p-8 text-center">Loading products...</div>;
   if (error)
@@ -324,6 +333,7 @@ const DragDropBoxes: React.FC = () => {
               <InputWithButton
                 isExpanded={isSearchExpanded}
                 setIsExpanded={setIsSearchExpanded}
+                onSearch={handleSearch}
               />
             </div>
 

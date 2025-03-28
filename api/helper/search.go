@@ -235,7 +235,7 @@ func FetchAllProducts(db *gorm.DB, limit int, offset int) ([]*model.Product, err
 				WHEN categories && ARRAY['morning', 'afternoon', 'evening'] THEN 3
 				ELSE 4
 			END, 
-			CAST(price AS NUMERIC) ASC,
+			CAST(price AS NUMERIC) DESC,
 			gen_random_uuid()
 		`, timeCategory)).
 		Limit(limit).

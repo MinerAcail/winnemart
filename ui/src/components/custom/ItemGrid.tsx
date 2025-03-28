@@ -86,18 +86,28 @@ const ItemCard = memo(
   }) => {
  
     // Function to handle sharing
-    const handleShare = () => {
+    const handleShare = async () => {
       const productId = item?.id;
-  
-      // Create a sharable URL with vendor ID
       const baseUrl = "https://ssr.winnemart.com";
       const shareUrl = productId
         ? `${baseUrl}/product/${productId}`
         : window.location.href;
-      navigator.clipboard.writeText(shareUrl);
-      toast("Link copied to clipboard.");
-      // console.log(shareUrl);
+    
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: item?.name || "Check this out!",
+            url: shareUrl,
+          });
+        } catch (error) {
+          console.error("Error sharing:", error);
+        }
+      } else {
+        navigator.clipboard.writeText(shareUrl);
+        toast("Link copied to clipboard.");
+      }
     };
+    
     return (
       <Card className="hover:shadow-xl transition-all duration-300">
         <CardContent

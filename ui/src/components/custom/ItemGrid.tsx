@@ -5,7 +5,7 @@ import { Item } from "@/hooks/CartContext.tsx";
 import { useQuery, gql } from "@apollo/client";
 import { Product } from "@/app/vendors/upload/types";
 import { Badge } from "../ui/badge";
-import { Plus } from "lucide-react";
+import { Plus, Share } from "lucide-react";
 
 // Currency symbol for Ghana Cedis
 export const ghSim = "GH¢";
@@ -82,61 +82,102 @@ const ItemCard = memo(
     onAddToCart: () => void;
     onItemSelect: (e: React.MouseEvent) => void;
     isAvailable: boolean;
-  }) => (
-    <Card className="hover:shadow-xl transition-all duration-300">
-      <CardContent
-        onClick={isAvailable ? onItemSelect : undefined}
-        className="p-4 text-center cursor-pointer"
-      >
-        <div className=" overflow-hidden rounded-lg mb-4">
-          <img
-            src={
-              Array.isArray(item?.imageUrls) && item.imageUrls.length > 0
-                ? item.imageUrls[0]
-                : "/placeholder-image.jpg"
-            }
-            alt={item.name}
-            className={`w-full h-40 object-cover transition-transform hover:scale-105 duration-300 ${
-              !isAvailable ? "opacity-60" : ""
-            }`}
-            loading="lazy"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "/placeholder-image.jpg";
-            }}
-          />
-        </div>
+  }) => {
+    const productUrl =
+      typeof window !== "undefined"
+        ? window.location.origin + `/product/${item.id}`
+        : `https://winnemart.com/product/${item.id}`;
 
-        <h3 className="font-bold text-lg truncate" title={item.name}>
-          {item.name}
-        </h3>
-        <p className="text-muted-foreground mb-2 font-medium">
-          {ghSim} {Number(item.commission).toFixed(2)}
-        </p>
-      </CardContent>
-      <CardContent className="text-center p-4 pt-0">
-        {isAvailable ? (
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddToCart();
-            }}
-            className="w-full"
-            variant="secondary"
-          >
-            Add to Cart
-          </Button>
-        ) : (
-          <Button
-            disabled
-            className="w-full opacity-100 cursor-not-allowed"
-            variant="outline"
-          >
-            Not available
-          </Button>
-        )}
-      </CardContent>
-    </Card>
-  )
+    // Function to handle sharing
+    const handleShare = async (e: React.MouseEvent) => {
+      e.stopPropagation();
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: item.name,
+            text: `Check out this product: ${item.name} on Winnemart!`,
+            url: productUrl,
+          });
+        } catch (error) {
+          console.error("Error sharing:", error);
+        }
+      } else {
+        // Fallback: Copy URL to clipboard
+        try {
+          await navigator.clipboard.writeText(productUrl);
+          alert("Product link copied to clipboard!");
+        } catch (error) {
+          console.error("Failed to copy:", error);
+        }
+      }
+    };
+
+    return (
+      <Card className="hover:shadow-xl transition-all duration-300">
+        <CardContent
+          onClick={isAvailable ? onItemSelect : undefined}
+          className="p-4 text-center cursor-pointer"
+        >
+          <div className=" overflow-hidden rounded-lg mb-4">
+            <img
+              src={
+                Array.isArray(item?.imageUrls) && item.imageUrls.length > 0
+                  ? item.imageUrls[0]
+                  : "/placeholder-image.jpg"
+              }
+              alt={item.name}
+              className={`w-full h-40 object-cover transition-transform hover:scale-105 duration-300 ${
+                !isAvailable ? "opacity-60" : ""
+              }`}
+              loading="lazy"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "/placeholder-image.jpg";
+              }}
+            />
+          </div>
+
+          <h3 className="font-bold text-lg truncate" title={item.name}>
+            {item.name}
+          </h3>
+          <p className="text-muted-foreground mb-2 font-medium">
+            {ghSim} {Number(item.commission).toFixed(2)}
+          </p>
+        </CardContent>
+        <CardContent className="text-center p-4 pt-0">
+          {isAvailable ? (
+            <div className="flex justify-between items-center">
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddToCart();
+                }}
+                className="w-[80%]"
+                variant="secondary"
+              >
+                Add to Cart
+              </Button>
+              <Button
+                onClick={handleShare}
+                className="w-[20%] ml-1"
+                variant="secondary"
+              >
+                <Share />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              disabled
+              className="w-full opacity-100 cursor-not-allowed"
+              variant="outline"
+            >
+              Not available
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 );
 import { useNavigate } from "react-router";
 
@@ -190,10 +231,9 @@ const ItemGrid: React.FC<ItemGridProps> = ({
       setUnavailablePeriods(data.getAllUnavailablePeriods);
     }
   }, [data]);
-const RedirectHandle =()=>{
-  navigate("/shop");
-
-}
+  const RedirectHandle = () => {
+    navigate("/shop");
+  };
   const vendorUnavailablePeriodsMap = useMemo(() => {
     return unavailablePeriods.reduce((acc, period) => {
       if (!acc[period.VendorId]) acc[period.VendorId] = [];
@@ -268,7 +308,7 @@ const RedirectHandle =()=>{
           >
             {categoriesToShow.map((category, colIndex) => (
               <Card
-              onClick={RedirectHandle}
+                onClick={RedirectHandle}
                 key={`category-${category.categoryBox.id}-col-${colIndex}`}
                 className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-pointer border-2"
               >

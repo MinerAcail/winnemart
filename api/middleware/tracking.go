@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/mineracail/sergi/graph/model"
 	"gorm.io/gorm"
 )
@@ -116,7 +117,7 @@ func SetjobRequestCookie(w http.ResponseWriter, requestId string) error {
 		Name:   "job_request",
 		Value:  requestId,
 		Domain: "winnemart.com", // Ensure this matches your main domain
-// 
+		//
 		Path:     "/",
 		HttpOnly: true, // Prevent access from JavaScript
 		// Secure:   true, // Use Secure (enable in production)
@@ -284,7 +285,7 @@ func RemoveOrderFromTrackingCookie(w http.ResponseWriter, ctx context.Context, o
 		Value:  string(newValue),
 		Path:   "/",
 		Domain: "winnemart.com", // Ensure this matches your main domain
-// 
+		//
 		HttpOnly: true,
 		Secure:   secureFlag,
 		SameSite: http.SameSiteLaxMode,
@@ -380,7 +381,7 @@ func CleanupOrderTrackingCookie1(ctx context.Context, db *gorm.DB) {
 			Value:  "",
 			Path:   "/",
 			Domain: "winnemart.com", // Ensure this matches your main domain
-// 
+			//
 			HttpOnly: true,
 			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
@@ -438,7 +439,7 @@ func CleanupOrderTrackingCookie(ctx context.Context, db *gorm.DB) {
 			Path:     "/",
 			HttpOnly: true,
 			Domain:   "winnemart.com", // Ensure this matches your main domain
-// 
+			//
 			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 			MaxAge:   -1, // Immediately expires the cookie
@@ -461,7 +462,7 @@ func CleanupOrderTrackingCookie(ctx context.Context, db *gorm.DB) {
 		Path:     "/",
 		HttpOnly: true,
 		Domain:   "winnemart.com", // Ensure this matches your main domain
-// 
+		//
 		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().Add(24 * time.Hour),
@@ -504,12 +505,60 @@ func CleanupRequestrackingCookie(ctx context.Context, db *gorm.DB) {
 			Path:     "/",
 			HttpOnly: true,
 			Domain:   "winnemart.com", // Ensure this matches your main domain
-// 
+			//
 			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 			MaxAge:   -1, // Immediately expires the cookie
 		}
 		http.SetCookie(w, cookie)
 		log.Println("Cleared request tracking cookie for completed request:", requestId)
+	}
+}
+
+type ContextKey string
+
+const (
+	SessionKey ContextKey = "session"
+	cookieName            = "session_uuid"
+	secureFlag            = true // Set this to false if not using HTTPS
+)
+
+func SessionMiddleware(db *gorm.DB) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			cookie, err := r.Cookie(cookieName)
+			var sessionID uuid.UUID
+
+			if err != nil || cookie.Value == "" {
+				sessionID = uuid.New()
+
+				newCookie := &http.Cookie{
+					Name:     cookieName,
+					Value:    sessionID.String(),
+					Path:     "/",
+					HttpOnly: true,
+					Domain:   "winnemart.com",
+					Secure:   secureFlag,
+					SameSite: http.SameSiteLaxMode,
+					Expires:  time.Now().Add(24 * time.Hour),
+				}
+
+				http.SetCookie(w, newCookie)
+
+				// Store session in database
+				session := model.Session{
+					ID:        sessionID.String(),
+					IPAddress: r.RemoteAddr,
+					UserAgent: r.UserAgent(),
+				}
+				db.Create(&session)
+			} else {
+				sessionID, _ = uuid.Parse(cookie.Value)
+			}
+
+			// Store session ID in context for GraphQL resolvers
+			ctx := context.WithValue(r.Context(), SessionKey, sessionID)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
 	}
 }

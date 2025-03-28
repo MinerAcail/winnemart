@@ -234,6 +234,18 @@ func (r *mutationResolver) WorksUpdate(ctx context.Context, applicantID string, 
 	return &jobRequest, nil
 }
 
+// GetAllSession is the resolver for the getAllSession field.
+func (r *queryResolver) GetAllSession(ctx context.Context) ([]*model.Session, error) {
+	var sessions []*model.Session
+
+	// Fetch all sessions from the database
+	if err := r.DB.Find(&sessions).Error; err != nil {
+		return nil, err
+	}
+
+	return sessions, nil
+}
+
 // GetAdmin is the resolver for the getAdmin field.
 func (r *queryResolver) GetAdmin(ctx context.Context, id string) (*model.Admin, error) {
 	var admin model.Admin
@@ -308,3 +320,15 @@ type adminResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type jobRequestResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *queryResolver) GetSession(ctx context.Context) ([]*model.Session, error) {
+	panic(fmt.Errorf("not implemented: GetSession - getSession"))
+}
+*/

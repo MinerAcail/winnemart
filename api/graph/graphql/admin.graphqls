@@ -23,7 +23,6 @@ type jobRequest {
   updatedAt: Time
 }
 
-
 input jobRequestInput {
   name: String!
   email: String!
@@ -44,12 +43,13 @@ type GrowthData {
 }
 
 extend type Query {
+  getAllSession: [Session]
   getAdmin(id: String!): Admin
   getGrowthData(id: String!): GrowthData
   listAdmins: [Admin!]!
-  reviewApplicate:[jobRequest]
-  reviewAllWorks:[jobRequest]
-  getAllWorks:[jobRequest]
+  reviewApplicate: [jobRequest]
+  reviewAllWorks: [jobRequest]
+  getAllWorks: [jobRequest]
 }
 
 extend type Mutation {
@@ -57,11 +57,11 @@ extend type Mutation {
   updateAdminStatus(id: String!, status: String!): Admin
   updateAdmin(id: String!, input: UpdateAdminInput!): Admin
   deleteAdmin(id: String!): Boolean
-  jobRequest(input:jobRequestInput):jobRequest
+  jobRequest(input: jobRequestInput): jobRequest
   useGetJobRequestTracking: jobRequest
 
-  jobResponse(applicantId:String!,State:String!):jobRequest
-  worksUpdate(applicantId:String!,input:worksInput):jobRequest
+  jobResponse(applicantId: String!, State: String!): jobRequest
+  worksUpdate(applicantId: String!, input: worksInput): jobRequest
 }
 
 input CreateAdminInput {
@@ -86,5 +86,13 @@ input worksInput {
   state: String
   password: String
   experience: String
+}
 
+type Session {
+  id: String!
+  userId: String
+  ipAddress: String!
+  userAgent: String!
+  createdAt: Time
+  updatedAt: Time
 }

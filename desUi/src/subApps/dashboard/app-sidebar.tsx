@@ -16,6 +16,14 @@ const data = {
       url: "/dashboard",
       icon: LayoutDashboard,
       isActive: true,
+      items: [
+        {
+          title: "Analytics",
+          url: "/analytics",
+        },
+       
+       
+      ],
     },
     {
       title: "Products",

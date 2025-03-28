@@ -18,6 +18,7 @@ import RequestItems from "@/subApps/products/requestItem";
 import DragDropBoxes from "@/subApps/products/cate/index";
 import ViewCate from "@/subApps/products/cate/cat/cat";
 import Vendor from "@/subApps/settings/Vendors";
+import AnalyticsDashbaord from "@/subApps/analytics";
 function Navigation() {
   return (
     <ApolloProvider client={Client}>
@@ -36,7 +37,7 @@ function Navigation() {
             <Route path="history" element={<OrdersHistory />} />
 
             <Route path="customers" element={<Customers />} />
-            <Route path="analytics" element={<Analytics />} />
+            <Route path="analytics" element={<AnalyticsDashbaord />} />
             <Route path="settings" element={<Settings />} />
             <Route path="review" element={<ReviewApplicate />} />
             <Route path="workers" element={<Workers />} />

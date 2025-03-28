@@ -31,3 +31,14 @@ type JobRequest struct {
 	CreatedAt    *time.Time `json:"createdAt,omitempty"`
 	UpdatedAt    *time.Time `json:"updatedAt,omitempty"`
 }
+
+
+type Session struct {
+	ID        string  `json:"id"`
+	UserID    *string `json:"userId,omitempty"`
+	IPAddress string  `json:"ipAddress"`
+	UserAgent string  `json:"userAgent"`
+CreatedAt    *time.Time `json:"createdAt,omitempty"`
+	UpdatedAt    *time.Time `json:"updatedAt,omitempty"`
+
+}

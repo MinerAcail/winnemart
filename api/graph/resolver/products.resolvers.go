@@ -1058,11 +1058,9 @@ func (r *queryResolver) GetProduct(ctx context.Context, id string) (*model.Produ
 func (r *queryResolver) GetAllProducts(ctx context.Context, query *string, vendorID *string, limit *int32, offset *int32) ([]*model.Product, error) {
 	middleware.CleanupOrderTrackingCookie(ctx, r.DB)
 
-	limitVal := 10  // Default limit
-	offsetVal := 0  // Default offset
-	
-	
-	
+	limitVal := 10 // Default limit
+	offsetVal := 0 // Default offset
+
 	// Handle empty query
 	if query == nil {
 		if vendorID == nil {

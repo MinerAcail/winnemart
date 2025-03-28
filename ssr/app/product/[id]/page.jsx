@@ -91,7 +91,8 @@ export default async function ProductPage({ params }) {
   }
 
   // Redirect human users
-  redirect(`${MAIN_WEBSITE_URL}${params.id}`);
+  redirect(`${MAIN_WEBSITE_URL}${params.id}?name=${encodeURIComponent(product.name)}`);
+
   return null;
 }
 

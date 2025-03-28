@@ -128,7 +128,7 @@ func main() {
 	// Configure CORS
 	corsConfig := cors.New(cors.Options{
 		// { "http://localhost:5173", "http://yourdomain.com", "https://anotherdomain.com"},
-		AllowedOrigins: []string{"https://winnemart.com", "http://ssr.winnemart.com", " http://localhost:1420/"},
+		AllowedOrigins: []string{"https://winnemart.com", "http://ssr.winnemart.com", " http://*"},
 
 		// AllowedOrigins:   []string{"http://localhost:5173","http://localhost:1420"}, // You can configure specific origins here
 		// AllowedOrigins:   []string{"*"}, // You can configure specific origins here

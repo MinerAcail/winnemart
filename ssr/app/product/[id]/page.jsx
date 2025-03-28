@@ -6,6 +6,7 @@ const MINIO_BASE_URL = "https://winnemart.com";
 
 // Known social media crawlers (regex for flexibility)
 const BOT_REGEX = /(facebookexternalhit|Twitterbot|WhatsApp|Discordbot|LinkedInBot)/i;
+export const ghSim = "GH¢";
 
 // Fetch product data from API
 async function getProduct(id) {
@@ -51,10 +52,10 @@ export async function generateMetadata({ params }) {
 
   return {
     title: product.name,
-    description: `Get ${product.name} for just $${product.price} on Winnemart!`,
+    description: `Get ${product.name} for just ${ghSim}${product.price} on Winnemart!`,
     openGraph: {
       title: product.name,
-      description: `Check out ${product.name} for $${product.price} on Winnemart.`,
+      description: `Check out ${product.name} for ${ghSim}${product.price} on Winnemart.`,
       images: [{ url: imageUrl }],
     },
   };
@@ -77,7 +78,7 @@ export default async function ProductPage({ params }) {
       <html>
         <head>
           <meta property="og:title" content={product.name} />
-          <meta property="og:description" content={`Get ${product.name} for just $${product.price} on Winnemart!`} />
+          <meta property="og:description" content={`Get ${product.name} for just ${ghSim}${product.price} on Winnemart!`} />
           <meta property="og:image" content={imageUrl} />
           <meta property="og:url" content={`${MAIN_WEBSITE_URL}${params.id}`} />
           <meta property="og:type" content="product" />

@@ -28,12 +28,14 @@ interface Session {
 }
 
 export function SessionDashboard() {
-  const { data, loading, error } = useQuery<{ getAllSession: Session[] }>(GET_ALL_SESSIONS)
+  const { data, loading, error } = useQuery<{ getAllSession: Session[] }>(GET_ALL_SESSIONS, {
+    pollInterval: 120000, // every 2 minutes
+  })
   const [searchQuery, setSearchQuery] = useState("")
   // const [activityFilter, setActivityFilter] = useState("all")
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  const itemsPerPage = 7
 
   if (loading) return <p>Loading sessions...</p>
   if (error) return <p>Error loading sessions: {error.message}</p>

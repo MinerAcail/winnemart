@@ -238,11 +238,10 @@ func (r *mutationResolver) WorksUpdate(ctx context.Context, applicantID string, 
 func (r *queryResolver) GetAllSession(ctx context.Context) ([]*model.Session, error) {
 	var sessions []*model.Session
 
-	// Fetch all sessions from the database
-	if err := r.DB.Find(&sessions).Error; err != nil {
+	// Fetch all sessions ordered by created_at descending (latest first)
+	if err := r.DB.Order("created_at DESC").Find(&sessions).Error; err != nil {
 		return nil, err
 	}
-
 	return sessions, nil
 }
 

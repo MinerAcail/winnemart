@@ -44,9 +44,9 @@ export function SessionDashboard() {
   const filteredSessions = allSessions.filter((session) => {
     // Search filter
     const matchesSearch =
-      session.userId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      session.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      session.ipAddress.toLowerCase().includes(searchQuery.toLowerCase())
+      session?.userId?.toLowerCase()?.includes(searchQuery?.toLowerCase()) ||
+      session?.id?.toLowerCase()?.includes(searchQuery?.toLowerCase()) ||
+      session?.ipAddress?.toLowerCase()?.includes(searchQuery?.toLowerCase())
 
     // Date filter
     const matchesDate = !date || format(new Date(session.createdAt), "yyyy-MM-dd") === format(date, "yyyy-MM-dd")

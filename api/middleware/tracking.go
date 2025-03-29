@@ -546,12 +546,15 @@ func SessionMiddleware(db *gorm.DB) func(http.Handler) http.Handler {
 				http.SetCookie(w, newCookie)
 
 				// Store session in database
-				session := model.Session{
-					ID:        sessionID.String(),
-					IPAddress: r.RemoteAddr,
-					UserAgent: r.UserAgent(),
+				if r.RemoteAddr != "172.18.0.1" {
+					session := model.Session{
+						ID:        sessionID.String(),
+						IPAddress: r.RemoteAddr,
+						UserAgent: r.UserAgent(),
+					}
+					db.Create(&session)
 				}
-				db.Create(&session)
+				// db.Create(&session)
 			} else {
 				sessionID, _ = uuid.Parse(cookie.Value)
 			}

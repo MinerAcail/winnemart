@@ -256,6 +256,7 @@ func FetchAllProduct(db *gorm.DB) ([]*model.Product, error) {
 
 // 	return products, nil
 // }
+
 func FetchAllProducts(db *gorm.DB, limit int, offset int) ([]*model.Product, error) {
 	var products []*model.Product
 
@@ -265,7 +266,7 @@ func FetchAllProducts(db *gorm.DB, limit int, offset int) ([]*model.Product, err
 		Order(`
             FLOOR(CAST(price AS NUMERIC) / 10) ASC,
             MD5(array_to_string(categories, ',')) ASC,
-            id ASC
+            gen_random_uuid()
         `).
 		Limit(limit).
 		Offset(offset).
@@ -275,7 +276,6 @@ func FetchAllProducts(db *gorm.DB, limit int, offset int) ([]*model.Product, err
 
 	return products, nil
 }
-
 
 func FetchProductsWithVendorPriority(db *gorm.DB, vendorID string) ([]*model.Product, error) {
 	var vendorProducts []*model.Product

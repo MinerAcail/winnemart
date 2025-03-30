@@ -3,7 +3,6 @@ package helper
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/mineracail/sergi/graph/model"
 	"gorm.io/gorm"
@@ -13,55 +12,103 @@ func CleanSearchQuery(query string) string {
 	return strings.TrimSpace(query)
 }
 
-// executeSearchQuery performs the full-text search with ranking
-func ExecuteSearchQuery(db *gorm.DB, query string) ([]*model.Product, error) {
+// ExecuteSearchQuery performs the full-text search with ranking
+// ExecuteSearchQuery performs full-text search with ranking
+func ExecuteSearchQuery(db *gorm.DB, queryString string) ([]*model.Product, error) {
 	var products []*model.Product
-	similarityThreshold := 0.12
+	
+	// Split and sanitize query terms
+	queryTerms := strings.FieldsFunc(queryString, func(r rune) bool { return r == ',' || r == '|' })
+	var validTerms []string
 
+	for _, term := range queryTerms {
+		trimmed := strings.TrimSpace(term)
+		if trimmed != "" {
+			validTerms = append(validTerms, trimmed)
+		}
+	}
+
+	// If no valid terms, return empty result
+	if len(validTerms) == 0 {
+		return products, nil
+	}
+
+	// Create the combined query for searching across all terms
+	var formattedTerms []string
+	for _, term := range validTerms {
+		if strings.Contains(term, " ") {
+			words := strings.Fields(term)
+			var escapedWords []string
+			for _, word := range words {
+				if word != "" {
+					escapedWords = append(escapedWords, escapeTsquerySpecialChars(word))
+				}
+			}
+			if len(escapedWords) > 0 {
+				formattedTerms = append(formattedTerms, strings.Join(escapedWords, " & "))
+			}
+		} else {
+			formattedTerms = append(formattedTerms, escapeTsquerySpecialChars(term))
+		}
+	}
+
+	// Construct final tsquery string
+	var combinedQuery string
+	if len(formattedTerms) > 0 {
+		combinedQuery = strings.Join(formattedTerms, " | ")
+	} else {
+		combinedQuery = "''::tsquery"
+	}
+
+	// Build the query with ranking and similarity scoring
 	err := db.Raw(`
-        WITH ranked_products AS (
-            SELECT 
-                * ,
-                ts_rank_cd(search_vector, plainto_tsquery('english', ?)) AS ts_rank_val,
-                similarity(LOWER(name), LOWER(?)) AS name_sim,
-                word_similarity(name, ?) AS word_sim,
-                GREATEST(
-                    similarity(LOWER(name), LOWER(?)),
-                    similarity(LOWER(?), LOWER(name))
-                ) AS bidirectional_sim,
-                levenshtein(LOWER(name), LOWER(?)) AS typo_distance
-            FROM products
-            WHERE 
-                state != 'INACTIVE' AND 
-                (search_vector @@ plainto_tsquery('english', ?) OR 
-                (similarity(LOWER(name), LOWER(?)) > CAST(? AS NUMERIC)) OR 
-                (name ILIKE '%' || ? || '%') OR 
-                (name ILIKE ? || '%') OR 
-                (levenshtein(LOWER(name), LOWER(?)) <= 2))
-        )
-        SELECT * FROM ranked_products
-        ORDER BY
-            CASE 
-                WHEN LOWER(name) = LOWER(?) THEN 10.0
-                WHEN name ILIKE ? THEN 8.0
-                WHEN name ILIKE ? || '%' THEN 6.0
-                WHEN name ILIKE '%' || ? || '%' THEN 4.0
-                ELSE 0 
-            END +
-            (bidirectional_sim * 10.0) +
-            (name_sim * 5.0) +
-            (ts_rank_val * 2.0) +
-            (word_sim * 3.0) +
-            (CASE WHEN typo_distance <= 2 THEN (5 - typo_distance) * 2 ELSE 0 END)
-        DESC LIMIT 50
-    `, query, query, query, query, query, query, query, query, fmt.Sprintf("%f", similarityThreshold),
-		query, query, query, query, query, query, query, query).Find(&products).Error
+		WITH ranked_products AS (
+			SELECT 
+				*,
+				ts_rank_cd(search_vector, plainto_tsquery('english', ?)) AS ts_rank_val
+			FROM products
+			WHERE 
+				state != 'INACTIVE' AND 
+				(search_vector @@ plainto_tsquery('english', ?) OR `+buildSimOrLikeConditions(validTerms)+`)
+		)
+		SELECT * FROM ranked_products
+		ORDER BY ts_rank_val DESC, FLOOR(CAST(price AS NUMERIC) / 10) ASC
+		LIMIT 50
+	`, combinedQuery, combinedQuery).Find(&products).Error
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to search products: %v", err)
 	}
 
 	return products, nil
+}
+
+// Escape special characters for PostgreSQL tsquery
+func escapeTsquerySpecialChars(s string) string {
+	specialChars := []string{"&", "|", "!", "(", ")", ":", "*"}
+	result := s
+	for _, char := range specialChars {
+		result = strings.ReplaceAll(result, char, "\\"+char)
+	}
+	return result
+}
+
+
+// Helper function to build OR conditions for each term
+func buildSimOrLikeConditions(terms []string) string {
+	var conditions []string
+	
+	for _, term := range terms {
+		condition := fmt.Sprintf(`
+			(similarity(LOWER(name), LOWER('%s')) > 0.12) OR 
+			(name ILIKE '%%%s%%') OR 
+			(name ILIKE '%s%%') OR 
+			(levenshtein(LOWER(name), LOWER('%s')) <= 2)
+		`, term, term, term, term)
+		conditions = append(conditions, condition)
+	}
+	
+	return "(" + strings.Join(conditions, " OR ") + ")"
 }
 
 func ExecuteSearchQueryWithVendorPriority(db *gorm.DB, query string, vendorID string) ([]*model.Product, error) {
@@ -166,14 +213,14 @@ func ExecuteCategorySearchQuery(db *gorm.DB, query string) ([]*model.CategoryBox
 }
 
 // fetchAllProducts retrieves all products ordered by created_at
-//
-	func FetchAllProduct(db *gorm.DB) ([]*model.Product, error) {
-		var products []*model.Product
-		if err := db.Where("state != ?", "INACTIVE").Order("created_at DESC").Find(&products).Error; err != nil {
-			return nil, fmt.Errorf("failed to fetch products: %v", err)
-		}
-		return products, nil
+func FetchAllProduct(db *gorm.DB) ([]*model.Product, error) {
+	var products []*model.Product
+	if err := db.Where("state != ?", "INACTIVE").Order("created_at DESC").Find(&products).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch products: %v", err)
 	}
+	return products, nil
+}
+
 // func FetchAllProducts(db *gorm.DB) ([]*model.Product, error) {
 // 	var products []*model.Product
 
@@ -194,12 +241,12 @@ func ExecuteCategorySearchQuery(db *gorm.DB, query string) ([]*model.CategoryBox
 // 	// Order products based on time relevance and price (lower prices first)
 // 	if err := db.Where("state != ?", "INACTIVE").
 // 		Order(fmt.Sprintf(`
-// 			CASE 
+// 			CASE
 // 				WHEN categories @> ARRAY['%s'] THEN 1  -- Exact time match first
 // 				WHEN categories @> ARRAY['morning', 'afternoon', 'evening'] THEN 2  -- All time categories
 // 				WHEN categories && ARRAY['morning', 'afternoon', 'evening'] THEN 3  -- At least one time category
 // 				ELSE 4  -- No time category
-// 			END, 
+// 			END,
 // 			CAST(price AS NUMERIC) ASC, -- Sort by lowest price within each category
 // 			created_at DESC -- If price is the same, show newest products first
 // 		`, timeCategory)).
@@ -209,35 +256,17 @@ func ExecuteCategorySearchQuery(db *gorm.DB, query string) ([]*model.CategoryBox
 
 // 	return products, nil
 // }
-
 func FetchAllProducts(db *gorm.DB, limit int, offset int) ([]*model.Product, error) {
 	var products []*model.Product
-
-	currentHour := time.Now().Hour()
-	var timeCategory string
-
-	switch {
-	case currentHour >= 5 && currentHour < 12:
-		timeCategory = "morning"
-	case currentHour >= 12 && currentHour < 17:
-		timeCategory = "afternoon"
-	default:
-		timeCategory = "evening"
-	}
 
 	query := db.Where("state != ?", "INACTIVE")
 
 	if err := query.
-		Order(fmt.Sprintf(`
-			CASE 
-				WHEN categories @> ARRAY['%s'] THEN 1
-				WHEN categories @> ARRAY['morning', 'afternoon', 'evening'] THEN 2
-				WHEN categories && ARRAY['morning', 'afternoon', 'evening'] THEN 3
-				ELSE 4
-			END, 
-			CAST(price AS NUMERIC) DESC,
-			gen_random_uuid()
-		`, timeCategory)).
+		Order(`
+            FLOOR(CAST(price AS NUMERIC) / 10) ASC,
+            MD5(array_to_string(categories, ',')) ASC,
+            id ASC
+        `).
 		Limit(limit).
 		Offset(offset).
 		Find(&products).Error; err != nil {
@@ -246,7 +275,6 @@ func FetchAllProducts(db *gorm.DB, limit int, offset int) ([]*model.Product, err
 
 	return products, nil
 }
-
 
 
 func FetchProductsWithVendorPriority(db *gorm.DB, vendorID string) ([]*model.Product, error) {
@@ -270,3 +298,5 @@ func FetchProductsWithVendorPriority(db *gorm.DB, vendorID string) ([]*model.Pro
 
 	return allProducts, nil
 }
+
+// func FetchAllProductstimebase(db *gorm.DB, limit int, offset int) ([]*model.Product, error) {

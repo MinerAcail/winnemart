@@ -12,7 +12,7 @@ import { ClearLocalStore } from "@/middleware/bar.tsx";
 import { NoItemsFound } from "@/components/custom/Empty.tsx";
 // import MultipleCountdown from "@/components/custom/timer.tsx";
 // import MultipleCountdown from "@/components/custom/timer.tsx";
-import { WelcomePopupCard } from "@/components/ui/welcome-popup-card.tsx";
+// import { WelcomePopupCard } from "@/components/ui/welcome-popup-card.tsx";
 import CategoryBar from "@/components/ui/category-bar.tsx";
 import { useParams, useSearchParams } from "react-router";
 import { LoaderCircle } from "lucide-react";
@@ -156,7 +156,7 @@ const HostelStoreContent: React.FC = () => {
 
   return (
     <div className="maincontainer mx-auto px-4">
-      <WelcomePopupCard onSearch={handleSearch} />
+      {/* <WelcomePopupCard onSearch={handleSearch} /> */}
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="w-full">
           <div className="pb-11">

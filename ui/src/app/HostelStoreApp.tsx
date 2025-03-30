@@ -152,7 +152,7 @@ const HostelStoreContent: React.FC = () => {
 
   return (
     <div className="maincontainer mx-auto px-4">
-      <WelcomePopupCard />
+      <WelcomePopupCard onSearch={handleSearch}/>
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="w-full">
           <div className="pb-11">

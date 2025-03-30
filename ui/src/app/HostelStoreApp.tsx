@@ -15,6 +15,7 @@ import { NoItemsFound } from "@/components/custom/Empty.tsx";
 import { WelcomePopupCard } from "@/components/ui/welcome-popup-card.tsx";
 import CategoryBar from "@/components/ui/category-bar.tsx";
 import { useParams, useSearchParams } from "react-router";
+import { LoaderCircle } from "lucide-react";
 
 const GET_PRODUCTS = gql`
   query getAllProducts(
@@ -52,6 +53,7 @@ const HostelStoreContent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>(name || ""); // Use name if available
   const [selectedProduct, setSelectedProduct] = useState<Item | null>(null);
   const observer = useRef<IntersectionObserver | null>(null);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
 
   const {
     cart,
@@ -107,6 +109,7 @@ const HostelStoreContent: React.FC = () => {
     (entries: IntersectionObserverEntry[]) => {
       const firstEntry = entries[0];
       if (firstEntry.isIntersecting && data?.getAllProducts.length >= LIMIT) {
+        setIsFetchingMore(true); // Set fetching state to true
         fetchMore({
           variables: {
             query: searchTerm,
@@ -115,6 +118,7 @@ const HostelStoreContent: React.FC = () => {
             offset: data?.getAllProducts.length || 0,
           },
           updateQuery: (prev, { fetchMoreResult }) => {
+            setIsFetchingMore(false); // Reset fetching state after fetching
             if (!fetchMoreResult || fetchMoreResult.getAllProducts.length === 0)
               return prev;
             return {
@@ -124,7 +128,7 @@ const HostelStoreContent: React.FC = () => {
               ],
             };
           },
-        });
+        }).catch(() => setIsFetchingMore(false)); // Handle errors and reset state
       }
     },
     [fetchMore, searchTerm, vendorId, data]
@@ -152,7 +156,7 @@ const HostelStoreContent: React.FC = () => {
 
   return (
     <div className="maincontainer mx-auto px-4">
-      <WelcomePopupCard onSearch={handleSearch}/>
+      <WelcomePopupCard onSearch={handleSearch} />
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="w-full">
           <div className="pb-11">
@@ -166,12 +170,20 @@ const HostelStoreContent: React.FC = () => {
               {filteredItems.length === 0 ? (
                 <NoItemsFound />
               ) : (
-                <ItemGrid
-                  filteredItems={filteredItems}
-                  addToCart={addToCart}
-                  onItemSelect={setSelectedProduct}
-                  className="grid grid-cols-2 pt-20 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-4"
-                />
+                <>
+                  <ItemGrid
+                    filteredItems={filteredItems}
+                    addToCart={addToCart}
+                    onItemSelect={setSelectedProduct}
+                    className="grid grid-cols-2 pt-20 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-4 gap-4"
+                  />
+                  <div id="load-more-trigger" className="h-10">
+                    {isFetchingMore && (
+                      <LoaderCircle className="w-4 h-4 animate-spin" />
+                    )}
+                    {/* Show spinner only when fetching */}
+                  </div>
+                </>
               )}
             </>
           )}

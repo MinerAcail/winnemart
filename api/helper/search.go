@@ -13,85 +13,86 @@ func CleanSearchQuery(query string) string {
 }
 
 // ExecuteSearchQuery performs the full-text search with ranking
+// ExecuteSearchQuery performs full-text search with ranking
 func ExecuteSearchQuery(db *gorm.DB, queryString string) ([]*model.Product, error) {
 	var products []*model.Product
-	// similarityThreshold := 0.12
 	
-	// Split the query string into individual terms and trim whitespace
-	queryTerms := strings.Split(queryString, ",")
-	for i := range queryTerms {
-		queryTerms[i] = strings.TrimSpace(queryTerms[i])
-	}
-	
-	// Filter out empty terms
+	// Split and sanitize query terms
+	queryTerms := strings.FieldsFunc(queryString, func(r rune) bool { return r == ',' || r == '|' })
 	var validTerms []string
+
 	for _, term := range queryTerms {
-		if term != "" {
-			validTerms = append(validTerms, term)
+		trimmed := strings.TrimSpace(term)
+		if trimmed != "" {
+			validTerms = append(validTerms, trimmed)
 		}
 	}
-	
+
 	// If no valid terms, return empty result
 	if len(validTerms) == 0 {
 		return products, nil
 	}
-	
+
 	// Create the combined query for searching across all terms
-	// Properly format terms for tsquery
 	var formattedTerms []string
 	for _, term := range validTerms {
-		// Replace spaces with & operators for phrases
-		formattedTerm := strings.ReplaceAll(term, " ", " & ")
-		formattedTerms = append(formattedTerms, formattedTerm)
+		if strings.Contains(term, " ") {
+			words := strings.Fields(term)
+			var escapedWords []string
+			for _, word := range words {
+				if word != "" {
+					escapedWords = append(escapedWords, escapeTsquerySpecialChars(word))
+				}
+			}
+			if len(escapedWords) > 0 {
+				formattedTerms = append(formattedTerms, strings.Join(escapedWords, " & "))
+			}
+		} else {
+			formattedTerms = append(formattedTerms, escapeTsquerySpecialChars(term))
+		}
 	}
-	combinedQuery := strings.Join(formattedTerms, " | ")
-	
-	// Build a CASE statement for ordering based on which term matches and its position
-	var orderCaseWhenClauses []string
-	for i, term := range validTerms {
-		// The earlier the term appears in the list, the higher its priority (lower i value)
-		priority := len(validTerms) - i
-		
-		orderCaseWhenClauses = append(orderCaseWhenClauses, fmt.Sprintf(`
-			WHEN LOWER(name) = LOWER('%s') THEN %d * 10.0
-			WHEN name ILIKE '%%%s%%' THEN %d * 5.0
-		`, term, priority, term, priority))
+
+	// Construct final tsquery string
+	var combinedQuery string
+	if len(formattedTerms) > 0 {
+		combinedQuery = strings.Join(formattedTerms, " | ")
+	} else {
+		combinedQuery = "''::tsquery"
 	}
-	
-	orderCaseStatement := strings.Join(orderCaseWhenClauses, " ")
-	
-	// Execute the search query with priority ordering
+
+	// Build the query with ranking and similarity scoring
 	err := db.Raw(`
 		WITH ranked_products AS (
 			SELECT 
-				* ,
-				ts_rank_cd(search_vector, to_tsquery('english', ?)) AS ts_rank_val,
-				CASE
-					`+orderCaseStatement+`
-					ELSE 0 
-				END AS term_priority
+				*,
+				ts_rank_cd(search_vector, plainto_tsquery('english', ?)) AS ts_rank_val
 			FROM products
 			WHERE 
 				state != 'INACTIVE' AND 
-				(
-					search_vector @@ to_tsquery('english', ?) OR 
-					`+buildSimOrLikeConditions(validTerms)+`
-				)
+				(search_vector @@ plainto_tsquery('english', ?) OR `+buildSimOrLikeConditions(validTerms)+`)
 		)
 		SELECT * FROM ranked_products
-		ORDER BY
-			term_priority DESC,
-			ts_rank_val DESC,
-			FLOOR(CAST(price AS NUMERIC) / 10) ASC
+		ORDER BY ts_rank_val DESC, FLOOR(CAST(price AS NUMERIC) / 10) ASC
 		LIMIT 50
 	`, combinedQuery, combinedQuery).Find(&products).Error
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to search products: %v", err)
 	}
-	
+
 	return products, nil
 }
+
+// Escape special characters for PostgreSQL tsquery
+func escapeTsquerySpecialChars(s string) string {
+	specialChars := []string{"&", "|", "!", "(", ")", ":", "*"}
+	result := s
+	for _, char := range specialChars {
+		result = strings.ReplaceAll(result, char, "\\"+char)
+	}
+	return result
+}
+
 
 // Helper function to build OR conditions for each term
 func buildSimOrLikeConditions(terms []string) string {

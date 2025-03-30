@@ -66,7 +66,7 @@ const HostelStoreContent: React.FC = () => {
 
   const { data, loading, error, fetchMore, refetch } = useQuery(GET_PRODUCTS, {
     variables: {
-      // query: searchTerm.trim() || null,
+      query: searchTerm.trim() || null,
       vendorId: vendorId?.trim() || null,
       limit: LIMIT,
       offset: 0,

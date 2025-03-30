@@ -1060,16 +1060,16 @@ func (r *queryResolver) GetAllProducts(ctx context.Context, query *string, vendo
 
 	limitVal := 10 // Default limit
 	offsetVal := 0 // Default offset
-
+	if limit != nil {
+		limitVal = int(*limit)
+	}
+	if offset != nil {
+		offsetVal = int(*offset)
+	}
 	// Handle empty query
 	if query == nil {
 		if vendorID == nil {
-			if limit != nil {
-				limitVal = int(*limit)
-			}
-			if offset != nil {
-				offsetVal = int(*offset)
-			}
+
 			// No vendorID specified, fetch all products normally
 			return helper.FetchAllProducts(r.DB, limitVal, offsetVal)
 		} else {
@@ -1080,7 +1080,7 @@ func (r *queryResolver) GetAllProducts(ctx context.Context, query *string, vendo
 
 	// Execute search query with vendor priority if vendorID is provided
 	if vendorID == nil {
-		return helper.ExecuteSearchQuery(r.DB, *query)
+		return helper.ExecuteSearchQueryNew(r.DB, *query, limitVal, offsetVal)
 	} else {
 		return helper.ExecuteSearchQueryWithVendorPriority(r.DB, *query, *vendorID)
 	}

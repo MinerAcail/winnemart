@@ -101,7 +101,68 @@ func buildSimOrLikeConditions(terms []string) string {
 	
 	return "(" + strings.Join(conditions, " OR ") + ")"
 }
+func ExecuteSearchQueryNew(db *gorm.DB, queryString string, limit int, offset int) ([]*model.Product, error) {
+	var products []*model.Product
 
+	queryTerms := strings.Split(queryString, ",")
+	for i := range queryTerms {
+		queryTerms[i] = strings.TrimSpace(queryTerms[i])
+	}
+	
+	var validTerms []string
+	for _, term := range queryTerms {
+		if term != "" {
+			validTerms = append(validTerms, term)
+		}
+	}
+
+	if len(validTerms) == 0 {
+		return products, nil
+	}
+
+	combinedQuery := strings.Join(validTerms, " | ")
+
+	var orderCaseWhenClauses []string
+	for i, term := range validTerms {
+		priority := len(validTerms) - i
+		orderCaseWhenClauses = append(orderCaseWhenClauses, fmt.Sprintf(`
+			WHEN LOWER(name) = LOWER('%s') THEN %d * 10.0
+			WHEN name ILIKE '%%%s%%' THEN %d * 5.0
+		`, term, priority, term, priority))
+	}
+
+	orderCaseStatement := strings.Join(orderCaseWhenClauses, " ")
+
+	err := db.Raw(`
+		WITH ranked_products AS (
+			SELECT 
+				*,
+				ts_rank_cd(search_vector, to_tsquery('english', ?)) AS ts_rank_val,
+				CASE
+					` + orderCaseStatement + `
+					ELSE 0 
+				END AS term_priority
+			FROM products
+			WHERE 
+				state != 'INACTIVE' AND 
+				(
+					search_vector @@ to_tsquery('english', ?) OR 
+					` + buildSimOrLikeConditions(validTerms) + `
+				)
+		)
+		SELECT * FROM ranked_products
+		ORDER BY
+			term_priority DESC,
+			ts_rank_val DESC
+		LIMIT ? OFFSET ?
+	`, combinedQuery, combinedQuery, limit, offset).Find(&products).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to search products: %v", err)
+	}
+
+	return products, nil
+}
 func ExecuteSearchQueryWithVendorPriority(db *gorm.DB, query string, vendorID string) ([]*model.Product, error) {
 	var products []*model.Product
 	similarityThreshold := 0.12

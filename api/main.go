@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
@@ -54,6 +55,8 @@ func PerformMigrations(db *gorm.DB) error {
 		&model.GeneratedPromoCode{},
 		&model.PromoCode{},
 		&model.Session{},
+		&model.Service{},
+
 	); err != nil {
 		return fmt.Errorf("failed to run AutoMigrate: %w", err)
 	}
@@ -142,7 +145,7 @@ func main() {
 	router.Use(middleware.Middleware)
 	router.Use(middleware.SessionMiddleware(resolver.DB))
 
-	// router.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	// server := handler.NewDefaultServer(Resolvers: resolver)
 
 	server := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: resolver}))

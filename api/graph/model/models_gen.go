@@ -56,6 +56,15 @@ type CreateAdminInput struct {
 	Status   *string `json:"status,omitempty"`
 }
 
+type CreateServiceInput struct {
+	Name       string    `json:"name"`
+	Type       string    `json:"type"`
+	Number     string    `json:"number"`
+	Email      string    `json:"email"`
+	Profession []*string `json:"profession,omitempty"`
+	Password   *string   `json:"password,omitempty"`
+}
+
 type CreateUnavailablePeriodInput struct {
 	Day       string `json:"day"`
 	StartTime string `json:"startTime"`
@@ -142,6 +151,8 @@ type RequestInput struct {
 	Images      []*graphql.Upload `json:"images,omitempty"`
 }
 
+
+
 type SystemInfo struct {
 	BdTable string `json:"bdTable"`
 	DbName  string `json:"dbName"`
@@ -159,6 +170,15 @@ type UpdateInput struct {
 	Type     *string `json:"type,omitempty"`
 	Number   *string `json:"number,omitempty"`
 	Password *string `json:"password,omitempty"`
+}
+
+type UpdateServiceInput struct {
+	Name       *string   `json:"name,omitempty"`
+	Type       *string   `json:"type,omitempty"`
+	Number     *string   `json:"number,omitempty"`
+	Email      string    `json:"email"`
+	Profession []*string `json:"profession,omitempty"`
+	Password   *string   `json:"password,omitempty"`
 }
 
 type UpdateVendorInput struct {

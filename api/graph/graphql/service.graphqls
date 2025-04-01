@@ -1,0 +1,41 @@
+type Service {
+  id: String!
+  name: String!
+  type: String!
+  number: String!
+  email: String!
+  profession: [String]
+  password: String
+  dpfile: String
+  createdAt: Time
+  updatedAt: Time
+}
+
+extend type Query {
+  getService: Service
+  getSharedService(ServiceId: String!): Service
+  listServices: [Service!]!
+}
+
+extend type Mutation {
+  createService(input: CreateServiceInput!): Service
+  updateService(dpfile: Upload, input: UpdateServiceInput!): Service
+  deleteService(id: String!): Boolean
+}
+
+input CreateServiceInput {
+  name: String!
+  type: String!
+  number: String!
+  email: String!
+  profession: [String]
+  password: String
+}
+input UpdateServiceInput {
+  name: String
+  type: String
+  number: String
+  email: String!
+  profession: [String]
+  password: String
+}

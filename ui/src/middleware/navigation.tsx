@@ -21,6 +21,8 @@ import HeartbeatUpdater from "@/components/custom/nav/cheackActive";
 // import DashboardPage from "@/app/Advertiser/dashboard";
 import UploadProduct from "@/app/vendors/upload";
 import Advertiser from "@/app/Advertiser";
+import BookingSystem from "@/components/serviceProviders/book";
+import ServiceProvider from "@/components/serviceProviders";
 // import VendorAvailabilityPage from "@/app/vendors/available";
 // import SocialMediaHelmet from "@/components/custom/vendors/share";
 // import { HelmetProvider } from "react-helmet-async";
@@ -34,6 +36,8 @@ const router = createBrowserRouter([
   // { path: "/vendor/:Vendorid", element: <SocialMediaHelmet /> },
   { path: "/job", element: <JobPosting /> },
   // { path: "/", element: <Advertiser /> },
+  // { path: "/book", element: <BookingSystem /> },
+  { path: "/service", element: <ServiceProvider /> },
 
   {
     path: "/advert",

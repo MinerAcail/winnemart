@@ -21,7 +21,6 @@ import HeartbeatUpdater from "@/components/custom/nav/cheackActive";
 // import DashboardPage from "@/app/Advertiser/dashboard";
 import UploadProduct from "@/app/vendors/upload";
 import Advertiser from "@/app/Advertiser";
-import BookingSystem from "@/components/serviceProviders/book";
 import ServiceProvider from "@/components/serviceProviders";
 // import VendorAvailabilityPage from "@/app/vendors/available";
 // import SocialMediaHelmet from "@/components/custom/vendors/share";

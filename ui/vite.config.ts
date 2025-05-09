@@ -16,8 +16,8 @@ export default defineConfig({
   server: {
     proxy: {
       "/minio": {
-        // target: 'http://localhost:9000', // Adjust if MinIO is not running on
-        target: "https://files.winnemart.com/", // Adjust if MinIO is not running on 192.168.62.193
+        target: 'http://localhost:9002', // Adjust if MinIO is not running on
+        // target: "https://files.winnemart.com/", // Adjust if MinIO is not running on 192.168.62.193
 
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/minio/, ""),
@@ -30,12 +30,7 @@ export default defineConfig({
     host: "0.0.0.0",
   },
   preview: {
-    allowedHosts: ["winnemart.com"], // Allow winnemart.com
+    port: 4174,
+    allowedHosts: [".winnemart.com",".r.winnemart.com"], // Allow winnemart.com
   },
 });
-//
-
-// const API_URL =
-//   window.location.hostname === "localhost"
-//     ? "http://16.16.208.207:9000"
-//     : `https://${window.location.hostname}/9000`; // Changed HTTPS to HTTP

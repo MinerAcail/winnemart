@@ -84,7 +84,7 @@ func main() {
 	dbPassword := os.Getenv("Password")
 	dbName := os.Getenv("DBName")
 	dbHost := os.Getenv("Host") // Use service name in Docker Compose
-	dbPort := "5433"            // Default PostgreSQL port
+	dbPort := "5432"            // Default PostgreSQL port
 
 	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
 	minioAccessKey := os.Getenv("MINIO_ACCESS_KEY")
